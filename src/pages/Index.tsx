@@ -1,131 +1,79 @@
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
-import { Film, Music, Ticket, Calendar } from 'lucide-react';
+import { Film, Music, Ticket, Calendar, ChevronRight } from 'lucide-react';
 import { Header } from '@/components/Header';
 import Footer from '@/components/Footer';
 import HeroSection from '@/components/HeroSection';
 import EventCard, { EventProps } from '@/components/EventCard';
 import MovieCard, { MovieProps } from '@/components/MovieCard';
 import CategoryFilter from '@/components/CategoryFilter';
-
-// Mock data
-const trendingEvents: EventProps[] = [
-  {
-    id: 'kkr-vs-rcb',
-    title: 'Kolkata Knight Riders vs Royal Challengers Bengaluru',
-    image: '/lovable-uploads/933af9b9-e587-4f31-9e71-7474b68aa224.png',
-    date: 'Sat 22 Mar 2025',
-    time: '7:30 PM',
-    venue: 'Eden Gardens',
-    city: 'Kolkata',
-    category: 'Cricket',
-    price: 900,
-    status: 'fast-filling',
-    interested: 20900
-  },
-  {
-    id: 'arijit-singh-concert',
-    title: 'Arijit Singh Live in Concert',
-    image: '/lovable-uploads/0717f399-6c25-40d2-ab0c-e8dce44e2e91.png',
-    date: 'Fri 15 Apr 2025',
-    time: '6:00 PM',
-    venue: 'Jawaharlal Nehru Stadium',
-    city: 'Delhi',
-    category: 'Music',
-    price: 2500,
-    status: 'available',
-    interested: 15800
-  },
-  {
-    id: 'standup-comedy',
-    title: 'Comedy Night with Vir Das',
-    image: '/lovable-uploads/16d0f852-d124-40f8-9ce8-998d21e53155.png',
-    date: 'Sat 05 Apr 2025',
-    time: '8:00 PM',
-    venue: 'The Comedy Club',
-    city: 'Mumbai',
-    category: 'Comedy',
-    price: 1200,
-    status: 'available',
-    interested: 8500
-  },
-  {
-    id: 'csk-vs-mi',
-    title: 'Chennai Super Kings vs Mumbai Indians',
-    image: 'https://assets-in.bmscdn.com/discovery-catalog/events/tr:w-400,h-600,bg-CCCCCC:w-400.0,h-660.0,cm-pad_resize,bg-000000,fo-top:ote-U2F0LCAyMyBNYXI%3D,ots-29,otc-FFFFFF,oy-612,ox-24:q-80/et00384210-xlkrftdpeb-portrait.jpg',
-    date: 'Sat 29 Mar 2025',
-    time: '7:30 PM',
-    venue: 'M.A. Chidambaram Stadium',
-    city: 'Chennai',
-    category: 'Cricket',
-    price: 1100,
-    status: 'fast-filling',
-    interested: 18700
-  },
-];
-
-const upcomingMovies: MovieProps[] = [
-  {
-    id: 'movie-1',
-    title: 'Khadaan',
-    image: 'https://assets-in.bmscdn.com/discovery-catalog/events/tr:w-400,h-600,bg-CCCCCC:w-400.0,h-660.0,cm-pad_resize,bg-000000,fo-top:oi-discovery-catalog@@icons@@star-icon-202203010609.png,ox-24,oy-615,ow-29:ote-OS4xLzEwICAyMDIuNUsgVm90ZXM%3D,ots-29,otc-FFFFFF,oy-612,ox-70:q-80/et00338629-adeyjbxpah-portrait.jpg',
-    rating: 9.1,
-    language: 'Hindi',
-    genre: 'Action/Thriller',
-    format: '2D'
-  },
-  {
-    id: 'movie-2',
-    title: 'Love Story 2025',
-    image: 'https://assets-in.bmscdn.com/discovery-catalog/events/tr:w-400,h-600,bg-CCCCCC:w-400.0,h-660.0,cm-pad_resize,bg-000000,fo-top:oi-discovery-catalog@@icons@@star-icon-202203010609.png,ox-24,oy-615,ow-29:ote-OC4zLzEwICA0OS45SyBWb3Rlcw%3D%3D,ots-29,otc-FFFFFF,oy-612,ox-70:q-80/et00385216-aumbjdskjv-portrait.jpg',
-    rating: 8.3,
-    language: 'Hindi',
-    genre: 'Romance',
-    format: '2D'
-  },
-  {
-    id: 'movie-3',
-    title: 'The Diplomat',
-    image: 'https://assets-in.bmscdn.com/discovery-catalog/events/tr:w-400,h-600,bg-CCCCCC:w-400.0,h-660.0,cm-pad_resize,bg-000000,fo-top:oi-discovery-catalog@@icons@@star-icon-202203010609.png,ox-24,oy-615,ow-29:ote-OC41LzEwICA3LjVLIFZvdGVz,ots-29,otc-FFFFFF,oy-612,ox-70:q-80/et00384544-kkqnzebezl-portrait.jpg',
-    rating: 8.5,
-    language: 'English',
-    genre: 'Thriller/Drama',
-    format: 'IMAX'
-  },
-  {
-    id: 'movie-4',
-    title: 'The Godfather',
-    image: 'https://assets-in.bmscdn.com/discovery-catalog/events/tr:w-400,h-600,bg-CCCCCC:w-400.0,h-660.0,cm-pad_resize,bg-000000,fo-top:oi-discovery-catalog@@icons@@star-icon-202203010609.png,ox-24,oy-615,ow-29:ote-OS40LzEwICA3LjlLIFZvdGVz,ots-29,otc-FFFFFF,oy-612,ox-70:q-80/et00310790-nmwsnukkhg-portrait.jpg',
-    rating: 9.4,
-    language: 'English',
-    genre: 'Crime/Drama',
-    format: '4DX'
-  },
-];
-
-const categoryOptions = [
-  { id: 'all', label: 'All Categories' },
-  { id: 'movies', label: 'Movies', icon: <Film className="w-4 h-4" /> },
-  { id: 'concerts', label: 'Concerts', icon: <Music className="w-4 h-4" /> },
-  { id: 'sports', label: 'Sports', icon: <Ticket className="w-4 h-4" /> },
-  { id: 'comedy', label: 'Comedy Shows' },
-  { id: 'theatre', label: 'Theatre' },
-  { id: 'activities', label: 'Activities' },
-];
-
-const cityOptions = [
-  { id: 'kolkata', label: 'Kolkata' },
-  { id: 'mumbai', label: 'Mumbai' },
-  { id: 'delhi', label: 'Delhi' },
-  { id: 'bangalore', label: 'Bangalore' },
-  { id: 'chennai', label: 'Chennai' },
-  { id: 'hyderabad', label: 'Hyderabad' },
-];
+import LanguageSelector from '@/components/LanguageSelector';
+import { supabase } from '@/integrations/supabase/client';
+import { toast } from 'sonner';
 
 const Index = () => {
   const [selectedCategory, setSelectedCategory] = useState('all');
   const [selectedCity, setSelectedCity] = useState('kolkata');
+  const [selectedLanguage, setSelectedLanguage] = useState('english');
+  const [events, setEvents] = useState<EventProps[]>([]);
+  const [movies, setMovies] = useState<MovieProps[]>([]);
+  const [isLoading, setIsLoading] = useState(true);
+  
+  const categoryOptions = [
+    { id: 'all', label: 'All Categories' },
+    { id: 'movies', label: 'Movies', icon: <Film className="w-4 h-4" /> },
+    { id: 'concerts', label: 'Concerts', icon: <Music className="w-4 h-4" /> },
+    { id: 'sports', label: 'Sports', icon: <Ticket className="w-4 h-4" /> },
+    { id: 'comedy', label: 'Comedy Shows' },
+    { id: 'theatre', label: 'Theatre' },
+    { id: 'activities', label: 'Activities' },
+  ];
+
+  const cityOptions = [
+    { id: 'kolkata', label: 'Kolkata' },
+    { id: 'mumbai', label: 'Mumbai' },
+    { id: 'delhi', label: 'Delhi' },
+    { id: 'bangalore', label: 'Bangalore' },
+    { id: 'chennai', label: 'Chennai' },
+    { id: 'hyderabad', label: 'Hyderabad' },
+  ];
+  
+  useEffect(() => {
+    const fetchData = async () => {
+      try {
+        setIsLoading(true);
+        
+        // Fetch events
+        const { data: eventsData, error: eventsError } = await supabase
+          .from('events')
+          .select('*')
+          .order('interested', { ascending: false })
+          .limit(4);
+          
+        if (eventsError) throw eventsError;
+        
+        // Fetch movies
+        const { data: moviesData, error: moviesError } = await supabase
+          .from('movies')
+          .select('*')
+          .order('rating', { ascending: false })
+          .limit(4);
+          
+        if (moviesError) throw moviesError;
+        
+        setEvents(eventsData || []);
+        setMovies(moviesData || []);
+      } catch (error) {
+        console.error('Error fetching data:', error);
+        toast.error('Failed to load content');
+      } finally {
+        setIsLoading(false);
+      }
+    };
+    
+    fetchData();
+  }, []);
   
   return (
     <div className="min-h-screen flex flex-col">
@@ -135,6 +83,25 @@ const Index = () => {
         <HeroSection />
         
         <div className="page-container pt-10">
+          {/* Language Selector */}
+          <div className="mb-8">
+            <LanguageSelector 
+              onSelectLanguage={setSelectedLanguage}
+              defaultLanguage={selectedLanguage}
+            />
+          </div>
+          
+          {/* Coming Soon Section */}
+          <div className="mb-8">
+            <div className="glass-card rounded-xl p-4 bg-gradient-to-r from-red-500 to-red-600 text-white flex items-center justify-between">
+              <div>
+                <h2 className="text-2xl font-bold mb-1">Coming Soon</h2>
+                <p>Explore Upcoming Movies</p>
+              </div>
+              <ChevronRight className="w-6 h-6" />
+            </div>
+          </div>
+          
           {/* City & Category Filters */}
           <div className="flex flex-col md:flex-row items-start md:items-center justify-between mb-8 gap-4">
             <h2 className="section-title">Events in your city</h2>
@@ -156,13 +123,24 @@ const Index = () => {
           {/* Popular Events */}
           <section className="mb-12">
             <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-6">
-              {trendingEvents.map((event) => (
-                <EventCard key={event.id} {...event} />
-              ))}
+              {isLoading ? (
+                // Loading skeletons
+                Array.from({ length: 4 }).map((_, index) => (
+                  <div key={index} className="animate-pulse">
+                    <div className="rounded-lg bg-gray-200 h-48 mb-2"></div>
+                    <div className="h-4 bg-gray-200 rounded w-3/4 mb-2"></div>
+                    <div className="h-4 bg-gray-200 rounded w-1/2"></div>
+                  </div>
+                ))
+              ) : (
+                events.map((event) => (
+                  <EventCard key={event.id} {...event} />
+                ))
+              )}
             </div>
             
             <div className="text-center mt-8">
-              <Link to="/events" className="btn-secondary">
+              <Link to="/live-events" className="btn-secondary">
                 View All Events
               </Link>
             </div>
@@ -175,27 +153,27 @@ const Index = () => {
             <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
               <div className="relative rounded-2xl overflow-hidden aspect-[21/9]">
                 <img 
-                  src="https://assets-in.bmscdn.com/promotions/cms/creatives/1707307798397_webnew.jpg" 
-                  alt="Get 10% off with HSBC Cards" 
+                  src="/lovable-uploads/a6f58909-a0b4-48f4-929b-2a3f51d568ce.png" 
+                  alt="Get 24 free tickets with credit card" 
                   className="w-full h-full object-cover"
                 />
                 <div className="absolute inset-0 flex flex-col justify-end p-6 bg-gradient-to-t from-black/70 via-black/30 to-transparent">
-                  <h3 className="text-white text-xl font-bold mb-2">Get 10% off with HSBC Cards</h3>
+                  <h3 className="text-white text-xl font-bold mb-2">Your next credit card gets you 24 free tickets!</h3>
                   <p className="text-white/80 mb-4">Apply now and get exclusive discounts on your bookings</p>
-                  <button className="btn-primary w-full md:w-auto">Book Now</button>
+                  <button className="btn-primary w-full md:w-auto">Apply Now</button>
                 </div>
               </div>
               
               <div className="relative rounded-2xl overflow-hidden aspect-[21/9]">
                 <img 
-                  src="https://assets-in.bmscdn.com/promotions/cms/creatives/1708597481425_offernew.jpg" 
-                  alt="Your next credit card gets you 24 free tickets!" 
+                  src="/lovable-uploads/5ec570bc-cd94-4965-9f1f-2de8132737b8.png" 
+                  alt="Live theatre play" 
                   className="w-full h-full object-cover"
                 />
                 <div className="absolute inset-0 flex flex-col justify-end p-6 bg-gradient-to-t from-black/70 via-black/30 to-transparent">
-                  <h3 className="text-white text-xl font-bold mb-2">Your next credit card gets you 24 free tickets!</h3>
-                  <p className="text-white/80 mb-4">Apply now for amazing benefits</p>
-                  <button className="btn-primary w-full md:w-auto">Apply Now</button>
+                  <h3 className="text-white text-xl font-bold mb-2">Humare Ram - A LIVE Theatre Play</h3>
+                  <p className="text-white/80 mb-4">A New Perspective on the Ramayana!</p>
+                  <button className="btn-primary w-full md:w-auto">Book Now</button>
                 </div>
               </div>
             </div>
@@ -207,86 +185,25 @@ const Index = () => {
               <h2 className="section-title">Recommended Movies</h2>
               <Link to="/movies" className="text-book-primary font-medium flex items-center">
                 <span>See All</span>
-                <svg className="w-5 h-5 ml-1" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
-                </svg>
+                <ChevronRight className="w-5 h-5 ml-1" />
               </Link>
             </div>
             
             <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-4">
-              {upcomingMovies.map((movie) => (
-                <MovieCard key={movie.id} {...movie} />
-              ))}
-            </div>
-          </section>
-          
-          {/* Premier Venues */}
-          <section className="mb-12">
-            <h2 className="section-title">Premier Venues</h2>
-            
-            <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-6">
-              <div className="glass-card rounded-xl p-4">
-                <img 
-                  src="https://assets-in.bmscdn.com/iedb/venues/1/0/0/0/7/7/100077-inox-r-city-ghatkopar-w_1680x420.jpg" 
-                  alt="INOX: R City Mall" 
-                  className="w-full h-40 object-cover rounded-lg mb-4"
-                />
-                <h3 className="font-medium text-lg mb-1">INOX: R City Mall</h3>
-                <p className="text-sm text-gray-500 mb-3">Ghatkopar West, Mumbai</p>
-                <div className="flex flex-wrap gap-2">
-                  <span className="chip bg-gray-100 text-gray-800">
-                    4K
-                  </span>
-                  <span className="chip bg-gray-100 text-gray-800">
-                    IMAX
-                  </span>
-                  <span className="chip bg-gray-100 text-gray-800">
-                    Dolby Atmos
-                  </span>
-                </div>
-              </div>
-              
-              <div className="glass-card rounded-xl p-4">
-                <img 
-                  src="https://assets-in.bmscdn.com/iedb/venues/1/0/0/0/1/8/100018-pvr-forum-koramangala_1680x420.jpg" 
-                  alt="PVR: Forum Mall" 
-                  className="w-full h-40 object-cover rounded-lg mb-4"
-                />
-                <h3 className="font-medium text-lg mb-1">PVR: Forum Mall</h3>
-                <p className="text-sm text-gray-500 mb-3">Koramangala, Bangalore</p>
-                <div className="flex flex-wrap gap-2">
-                  <span className="chip bg-gray-100 text-gray-800">
-                    Dolby Atmos
-                  </span>
-                  <span className="chip bg-gray-100 text-gray-800">
-                    4DX
-                  </span>
-                  <span className="chip bg-gray-100 text-gray-800">
-                    Recliners
-                  </span>
-                </div>
-              </div>
-              
-              <div className="glass-card rounded-xl p-4">
-                <img 
-                  src="https://assets-in.bmscdn.com/iedb/venues/1/0/0/0/8/0/100080-inox-nehru-place_1680x420.jpg" 
-                  alt="INOX: Nehru Place" 
-                  className="w-full h-40 object-cover rounded-lg mb-4"
-                />
-                <h3 className="font-medium text-lg mb-1">INOX: Nehru Place</h3>
-                <p className="text-sm text-gray-500 mb-3">Delhi</p>
-                <div className="flex flex-wrap gap-2">
-                  <span className="chip bg-gray-100 text-gray-800">
-                    IMAX
-                  </span>
-                  <span className="chip bg-gray-100 text-gray-800">
-                    MX4D
-                  </span>
-                  <span className="chip bg-gray-100 text-gray-800">
-                    Premium Seating
-                  </span>
-                </div>
-              </div>
+              {isLoading ? (
+                // Loading skeletons
+                Array.from({ length: 5 }).map((_, index) => (
+                  <div key={index} className="animate-pulse">
+                    <div className="rounded-lg bg-gray-200 h-64 mb-2"></div>
+                    <div className="h-4 bg-gray-200 rounded w-3/4 mb-2"></div>
+                    <div className="h-4 bg-gray-200 rounded w-1/2"></div>
+                  </div>
+                ))
+              ) : (
+                movies.map((movie) => (
+                  <MovieCard key={movie.id} {...movie} />
+                ))
+              )}
             </div>
           </section>
           
@@ -340,6 +257,50 @@ const Index = () => {
                   </svg>
                 </div>
                 <span className="font-medium">Activities</span>
+              </div>
+            </div>
+          </section>
+          
+          {/* Best Events This Week */}
+          <section className="mb-12">
+            <h2 className="section-title">Best Events This Week</h2>
+            <p className="text-gray-600 mb-6">Monday to Sunday, we got you covered</p>
+            
+            <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+              <div className="bg-pink-100 rounded-lg overflow-hidden relative">
+                <img 
+                  src="/lovable-uploads/0fd32f0a-9c12-4231-9802-96980d536ed7.png"
+                  alt="Plan for Today"
+                  className="w-full h-full object-cover"
+                />
+                <div className="absolute inset-0 flex flex-col justify-center items-center text-white p-4 bg-gradient-to-t from-pink-600/80 via-pink-600/50 to-transparent">
+                  <h3 className="text-2xl font-bold mb-1">PLAN FOR TODAY</h3>
+                  <p className="text-lg font-medium">6 Events</p>
+                </div>
+              </div>
+              
+              <div className="bg-green-100 rounded-lg overflow-hidden relative">
+                <img 
+                  src="/lovable-uploads/de56d65d-b22e-441f-93bf-405beb74b0c1.png"
+                  alt="Plan for Tomorrow"
+                  className="w-full h-full object-cover"
+                />
+                <div className="absolute inset-0 flex flex-col justify-center items-center text-white p-4 bg-gradient-to-t from-green-600/80 via-green-600/50 to-transparent">
+                  <h3 className="text-2xl font-bold mb-1">PLAN FOR TOMORROW</h3>
+                  <p className="text-lg font-medium">25+ Events</p>
+                </div>
+              </div>
+              
+              <div className="bg-blue-100 rounded-lg overflow-hidden relative">
+                <img 
+                  src="/lovable-uploads/08aa6b44-d684-4348-944e-67a3e4d2a992.png"
+                  alt="Weekend Plans"
+                  className="w-full h-full object-cover"
+                />
+                <div className="absolute inset-0 flex flex-col justify-center items-center text-white p-4 bg-gradient-to-t from-blue-600/80 via-blue-600/50 to-transparent">
+                  <h3 className="text-2xl font-bold mb-1">WEEKEND PLANS</h3>
+                  <p className="text-lg font-medium">110+ Events</p>
+                </div>
               </div>
             </div>
           </section>
