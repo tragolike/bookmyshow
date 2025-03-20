@@ -1,3 +1,6 @@
+
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap');
+
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
@@ -13,7 +16,7 @@
     --popover: 0 0% 100%;
     --popover-foreground: 222.2 84% 4.9%;
 
-    --primary: 222.2 47.4% 11.2%;
+    --primary: 346 83% 63%;
     --primary-foreground: 210 40% 98%;
 
     --secondary: 210 40% 96.1%;
@@ -32,39 +35,32 @@
     --input: 214.3 31.8% 91.4%;
     --ring: 222.2 84% 4.9%;
 
-    --radius: 0.5rem;
+    --radius: 0.75rem;
 
     --sidebar-background: 0 0% 98%;
-
     --sidebar-foreground: 240 5.3% 26.1%;
-
     --sidebar-primary: 240 5.9% 10%;
-
     --sidebar-primary-foreground: 0 0% 98%;
-
     --sidebar-accent: 240 4.8% 95.9%;
-
     --sidebar-accent-foreground: 240 5.9% 10%;
-
     --sidebar-border: 220 13% 91%;
-
     --sidebar-ring: 217.2 91.2% 59.8%;
   }
 
   .dark {
-    --background: 222.2 84% 4.9%;
+    --background: 240 10% 7%;
     --foreground: 210 40% 98%;
 
-    --card: 222.2 84% 4.9%;
+    --card: 240 10% 3.9%;
     --card-foreground: 210 40% 98%;
 
-    --popover: 222.2 84% 4.9%;
+    --popover: 240 10% 3.9%;
     --popover-foreground: 210 40% 98%;
 
-    --primary: 210 40% 98%;
-    --primary-foreground: 222.2 47.4% 11.2%;
+    --primary: 346 83% 63%;
+    --primary-foreground: 210 40% 98%;
 
-    --secondary: 217.2 32.6% 17.5%;
+    --secondary: 240 3.7% 15.9%;
     --secondary-foreground: 210 40% 98%;
 
     --muted: 217.2 32.6% 17.5%;
@@ -79,6 +75,7 @@
     --border: 217.2 32.6% 17.5%;
     --input: 217.2 32.6% 17.5%;
     --ring: 212.7 26.8% 83.9%;
+    
     --sidebar-background: 240 5.9% 10%;
     --sidebar-foreground: 240 4.8% 95.9%;
     --sidebar-primary: 224.3 76.3% 48%;
@@ -94,8 +91,74 @@
   * {
     @apply border-border;
   }
-
+  
+  html, body {
+    height: 100%;
+    font-family: 'Inter', sans-serif;
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+    scroll-behavior: smooth;
+  }
+  
   body {
     @apply bg-background text-foreground;
+  }
+}
+
+@layer components {
+  .glass-card {
+    @apply bg-white/70 backdrop-blur-md border border-white/20 shadow-lg;
+  }
+  
+  .event-card {
+    @apply relative overflow-hidden rounded-xl transition-all duration-300 hover:shadow-xl transform hover:-translate-y-1;
+  }
+  
+  .btn-primary {
+    @apply bg-book-primary text-white font-medium py-3 px-6 rounded-lg hover:opacity-90 transition-all duration-300 focus:outline-none focus:ring-2 focus:ring-book-primary focus:ring-opacity-50;
+  }
+  
+  .btn-secondary {
+    @apply bg-white text-book-primary border border-book-primary font-medium py-3 px-6 rounded-lg hover:bg-book-primary/5 transition-all duration-300 focus:outline-none focus:ring-2 focus:ring-book-primary focus:ring-opacity-50;
+  }
+  
+  .btn-ghost {
+    @apply bg-transparent text-book-dark font-medium py-3 px-6 rounded-lg hover:bg-book-light-gray transition-all duration-300 focus:outline-none;
+  }
+  
+  .chip {
+    @apply inline-flex items-center px-3 py-1 rounded-full text-xs font-medium;
+  }
+  
+  .section-title {
+    @apply text-2xl font-bold text-book-dark mb-6;
+  }
+  
+  .navigation-item {
+    @apply flex flex-col items-center justify-center p-2 text-book-dark-gray hover:text-book-primary transition-colors;
+  }
+  
+  .page-container {
+    @apply container mx-auto px-4 py-6 max-w-7xl;
+  }
+  
+  .timer-warning {
+    @apply bg-purple-900/90 text-white text-center py-4 px-2;
+  }
+  
+  .category-filter {
+    @apply flex items-center justify-center gap-2 overflow-x-auto py-4 px-2;
+  }
+  
+  .price-badge {
+    @apply font-semibold text-lg;
+  }
+  
+  .fast-filling {
+    @apply text-orange-500 font-medium;
+  }
+  
+  .sold-out {
+    @apply text-gray-500 font-medium;
   }
 }
