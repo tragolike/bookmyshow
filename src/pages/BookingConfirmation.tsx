@@ -1,27 +1,34 @@
 
 import { useEffect } from 'react';
-import { Link, useLocation } from 'react-router-dom';
+import { Link, useLocation, useNavigate } from 'react-router-dom';
 import { CheckCircle, Download, ArrowLeft } from 'lucide-react';
 import { Header } from '@/components/Header';
 import Footer from '@/components/Footer';
+import { useAuth } from '@/contexts/AuthContext';
 
 interface BookingDetails {
+  bookingId: string;
   eventId: string;
   seats: number;
+  seatNumbers: string[];
   category: string;
   amount: number;
 }
 
 const BookingConfirmation = () => {
   const location = useLocation();
+  const navigate = useNavigate();
+  const { user } = useAuth();
   const bookingDetails = location.state as BookingDetails;
   
   useEffect(() => {
     window.scrollTo(0, 0);
-  }, []);
-  
-  // Generate a random booking ID
-  const bookingId = Math.random().toString(36).substring(2, 10).toUpperCase();
+    
+    // If user is not logged in or no booking details, redirect to home
+    if (!user || !bookingDetails) {
+      navigate('/', { replace: true });
+    }
+  }, [user, bookingDetails, navigate]);
   
   if (!bookingDetails) {
     return (
@@ -66,7 +73,7 @@ const BookingConfirmation = () => {
               <div className="p-6 border-b">
                 <div className="flex justify-between items-center mb-4">
                   <h2 className="text-xl font-bold">Booking Details</h2>
-                  <span className="text-sm text-gray-500">#{bookingId}</span>
+                  <span className="text-sm text-gray-500">#{bookingDetails.bookingId.slice(0, 8).toUpperCase()}</span>
                 </div>
                 
                 <div className="grid grid-cols-2 gap-6">
@@ -98,6 +105,17 @@ const BookingConfirmation = () => {
                   <div>
                     <div className="text-sm text-gray-500 mb-1">Amount Paid</div>
                     <div className="font-medium">₹{bookingDetails.amount.toLocaleString()}</div>
+                  </div>
+                </div>
+                
+                <div className="mt-6 pt-6 border-t">
+                  <div className="text-sm text-gray-500 mb-1">Seat Numbers</div>
+                  <div className="flex flex-wrap gap-2 mt-2">
+                    {bookingDetails.seatNumbers.map((seat, index) => (
+                      <span key={index} className="chip bg-gray-100 text-gray-800">
+                        {seat}
+                      </span>
+                    ))}
                   </div>
                 </div>
               </div>

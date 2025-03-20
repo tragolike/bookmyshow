@@ -1,60 +1,86 @@
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
+import { Plus, Minus } from 'lucide-react';
 
 interface TicketCounterProps {
-  maxTickets?: number;
+  maxTickets: number;
   onChange: (count: number) => void;
+  defaultValue?: number;
 }
 
-const TicketCounter = ({ maxTickets = 10, onChange }: TicketCounterProps) => {
-  const [ticketCount, setTicketCount] = useState(2);
+const TicketCounter = ({ 
+  maxTickets = 10, 
+  onChange,
+  defaultValue = 1 
+}: TicketCounterProps) => {
+  const [count, setCount] = useState(defaultValue);
   
-  const handleChange = (newCount: number) => {
-    if (newCount >= 1 && newCount <= maxTickets) {
-      setTicketCount(newCount);
+  useEffect(() => {
+    // Update count if defaultValue changes
+    setCount(defaultValue);
+  }, [defaultValue]);
+  
+  const increment = () => {
+    if (count < maxTickets) {
+      const newCount = count + 1;
+      setCount(newCount);
       onChange(newCount);
     }
   };
   
-  const ticketOptions = Array.from({ length: maxTickets }, (_, i) => i + 1);
+  const decrement = () => {
+    if (count > 1) {
+      const newCount = count - 1;
+      setCount(newCount);
+      onChange(newCount);
+    }
+  };
   
   return (
-    <div className="py-8">
-      <h3 className="text-xl text-center font-semibold mb-6">How many seats?</h3>
+    <div className="container mx-auto px-4 py-8">
+      <h2 className="text-2xl font-bold mb-6">How many tickets?</h2>
       
-      <div className="flex justify-center mb-6">
-        <img 
-          src="/lovable-uploads/eea662e5-9aaf-4417-a39c-fa0e1fb354e4.png" 
-          alt="Ticket Icon" 
-          className="h-24"
-        />
-      </div>
-      
-      <div className="flex justify-center gap-3 flex-wrap">
-        {ticketOptions.map(num => (
-          <button
-            key={num}
-            className={`w-12 h-12 rounded-full flex items-center justify-center text-lg font-medium transition-all ${
-              ticketCount === num 
-                ? 'bg-book-primary text-white' 
-                : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
-            }`}
-            onClick={() => handleChange(num)}
-          >
-            {num}
-          </button>
-        ))}
-      </div>
-      
-      <div className="text-center mt-6 text-gray-500 text-sm">
-        <span className="inline-flex items-center">
-          <svg className="w-4 h-4 mr-1" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-            <circle cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="1.5" />
-            <path d="M12 7V12" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" />
-            <circle cx="12" cy="16" r="1" fill="currentColor" />
-          </svg>
-          You can add upto {maxTickets} tickets.
-        </span>
+      <div className="max-w-md mx-auto">
+        <div className="glass-card rounded-lg p-6">
+          <p className="text-center mb-8 text-gray-600">
+            Select the number of tickets you want to book. You can book up to {maxTickets} tickets in a single transaction.
+          </p>
+          
+          <div className="flex items-center justify-center space-x-6">
+            <button
+              onClick={decrement}
+              disabled={count <= 1}
+              className={`w-12 h-12 rounded-full flex items-center justify-center ${
+                count <= 1 
+                  ? 'bg-gray-100 text-gray-400' 
+                  : 'bg-book-primary/10 text-book-primary hover:bg-book-primary/20'
+              }`}
+            >
+              <Minus className="w-6 h-6" />
+            </button>
+            
+            <div className="text-center">
+              <div className="text-4xl font-bold">{count}</div>
+              <div className="text-sm text-gray-500">Tickets</div>
+            </div>
+            
+            <button
+              onClick={increment}
+              disabled={count >= maxTickets}
+              className={`w-12 h-12 rounded-full flex items-center justify-center ${
+                count >= maxTickets
+                  ? 'bg-gray-100 text-gray-400'
+                  : 'bg-book-primary/10 text-book-primary hover:bg-book-primary/20'
+              }`}
+            >
+              <Plus className="w-6 h-6" />
+            </button>
+          </div>
+          
+          <div className="mt-8 text-center text-sm text-gray-500">
+            * You will select your seats in the next step
+          </div>
+        </div>
       </div>
     </div>
   );

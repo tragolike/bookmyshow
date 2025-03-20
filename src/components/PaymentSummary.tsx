@@ -1,116 +1,91 @@
 
-import { useState } from 'react';
-import { ChevronDown, ChevronUp, CreditCard, Wallet } from 'lucide-react';
-
-interface PaymentDetails {
-  ticketPrice: number;
-  ticketCount: number;
-  convenienceFee: number;
-  discount?: number;
-  total: number;
-}
+import { Loader2 } from 'lucide-react';
 
 interface PaymentSummaryProps {
-  details: PaymentDetails;
+  details: {
+    ticketPrice: number;
+    ticketCount: number;
+    convenienceFee: number;
+    total: number;
+  };
   onProceed: () => void;
+  isLoading?: boolean;
 }
 
-const PaymentSummary = ({ details, onProceed }: PaymentSummaryProps) => {
-  const [showDetails, setShowDetails] = useState(false);
-  const [selectedPayment, setSelectedPayment] = useState<string>('card');
-  
-  const paymentMethods = [
-    { id: 'card', name: 'Credit/Debit Card', icon: <CreditCard className="w-5 h-5" /> },
-    { id: 'upi', name: 'UPI', icon: <img src="https://upload.wikimedia.org/wikipedia/commons/thumb/e/e1/UPI-Logo-vector.svg/1200px-UPI-Logo-vector.svg.png" className="w-5 h-5" alt="UPI" /> },
-    { id: 'wallet', name: 'Wallet', icon: <Wallet className="w-5 h-5" /> },
-  ];
+const PaymentSummary = ({ details, onProceed, isLoading = false }: PaymentSummaryProps) => {
+  const { ticketPrice, ticketCount, convenienceFee, total } = details;
   
   return (
-    <div className="border rounded-lg overflow-hidden bg-white">
-      <div className="p-4 border-b">
-        <div className="flex items-center justify-between">
-          <h3 className="font-semibold">Booking Summary</h3>
-          <button 
-            className="text-book-primary flex items-center"
-            onClick={() => setShowDetails(!showDetails)}
-          >
-            {showDetails ? (
-              <>
-                <span className="text-sm mr-1">Hide Details</span>
-                <ChevronUp className="w-4 h-4" />
-              </>
-            ) : (
-              <>
-                <span className="text-sm mr-1">View Details</span>
-                <ChevronDown className="w-4 h-4" />
-              </>
-            )}
-          </button>
+    <div className="sticky top-20 rounded-lg border overflow-hidden">
+      <div className="p-4 bg-gray-50 border-b">
+        <h3 className="font-semibold">Price Summary</h3>
+      </div>
+      
+      <div className="p-4">
+        <div className="space-y-3 mb-4">
+          <div className="flex justify-between">
+            <span className="text-gray-600">Ticket Price</span>
+            <span className="font-medium">₹{ticketPrice.toLocaleString()}</span>
+          </div>
+          
+          <div className="flex justify-between">
+            <span className="text-gray-600">Quantity</span>
+            <span className="font-medium">{ticketCount}</span>
+          </div>
+          
+          <div className="flex justify-between">
+            <span className="text-gray-600">Subtotal</span>
+            <span className="font-medium">₹{(ticketPrice * ticketCount).toLocaleString()}</span>
+          </div>
+          
+          <div className="flex justify-between">
+            <span className="text-gray-600">Convenience Fee</span>
+            <span className="font-medium">₹{convenienceFee.toLocaleString()}</span>
+          </div>
         </div>
         
-        {showDetails && (
-          <div className="mt-4 space-y-3 text-sm">
-            <div className="flex items-center justify-between">
-              <span>{details.ticketPrice.toLocaleString()} × {details.ticketCount} Tickets</span>
-              <span>₹ {(details.ticketPrice * details.ticketCount).toLocaleString()}</span>
-            </div>
-            
-            <div className="flex items-center justify-between">
-              <span>Convenience Fee</span>
-              <span>₹ {details.convenienceFee.toLocaleString()}</span>
-            </div>
-            
-            {details.discount && (
-              <div className="flex items-center justify-between text-green-600">
-                <span>Discount</span>
-                <span>- ₹ {details.discount.toLocaleString()}</span>
-              </div>
-            )}
-          </div>
-        )}
-      </div>
-      
-      <div className="p-4 bg-gray-50 flex items-center justify-between">
-        <span className="font-semibold">Amount Payable</span>
-        <span className="font-bold text-lg">₹ {details.total.toLocaleString()}</span>
-      </div>
-      
-      <div className="p-4 border-t">
-        <h3 className="font-semibold mb-3">Payment Method</h3>
-        
-        <div className="space-y-2">
-          {paymentMethods.map(method => (
-            <div 
-              key={method.id}
-              className={`flex items-center justify-between p-3 border rounded-lg cursor-pointer ${
-                selectedPayment === method.id ? 'border-book-primary bg-book-primary/5' : 'border-gray-200'
-              }`}
-              onClick={() => setSelectedPayment(method.id)}
-            >
-              <div className="flex items-center gap-3">
-                <div className="flex items-center justify-center w-8 h-8 rounded-full bg-gray-100">
-                  {method.icon}
-                </div>
-                <span>{method.name}</span>
-              </div>
-              
-              <div className={`w-5 h-5 rounded-full border-2 flex items-center justify-center ${
-                selectedPayment === method.id ? 'border-book-primary' : 'border-gray-300'
-              }`}>
-                {selectedPayment === method.id && (
-                  <div className="w-3 h-3 rounded-full bg-book-primary" />
-                )}
-              </div>
-            </div>
-          ))}
+        <div className="flex justify-between pt-4 border-t mb-6">
+          <span className="font-semibold">Total Amount</span>
+          <span className="font-bold text-lg">₹{total.toLocaleString()}</span>
         </div>
         
         <button 
-          className="w-full btn-primary mt-6"
           onClick={onProceed}
+          disabled={isLoading}
+          className="btn-primary w-full flex items-center justify-center gap-2"
         >
-          Proceed to Pay
+          {isLoading ? (
+            <>
+              <Loader2 className="animate-spin -ml-1 mr-2 h-4 w-4" />
+              Processing...
+            </>
+          ) : (
+            'Proceed to Pay'
+          )}
         </button>
+        
+        <div className="flex items-center justify-center mt-4">
+          <img 
+            src="https://cdn.razorpay.com/static/assets/homepage/visa-card.png" 
+            alt="Visa" 
+            className="h-6 mx-1"
+          />
+          <img 
+            src="https://cdn.razorpay.com/static/assets/homepage/master-card.png" 
+            alt="MasterCard" 
+            className="h-6 mx-1"
+          />
+          <img 
+            src="https://cdn.razorpay.com/static/assets/homepage/rupay-card.png" 
+            alt="RuPay" 
+            className="h-6 mx-1"
+          />
+          <img 
+            src="https://cdn.razorpay.com/static/assets/homepage/upi.png" 
+            alt="UPI" 
+            className="h-6 mx-1"
+          />
+        </div>
       </div>
     </div>
   );

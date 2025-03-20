@@ -1,12 +1,15 @@
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { Header } from '@/components/Header';
 import Footer from '@/components/Footer';
 import SeatSelection from '@/components/SeatSelection';
 import TicketCounter from '@/components/TicketCounter';
 import PaymentSummary from '@/components/PaymentSummary';
+import { supabase } from '@/integrations/supabase/client';
+import { useAuth } from '@/contexts/AuthContext';
 import { toast } from 'sonner';
+import { Loader2 } from 'lucide-react';
 
 // Define steps for the booking process
 const BOOKING_STEPS = {
@@ -26,19 +29,12 @@ interface SeatCategory {
 const BookingPage = () => {
   const { id } = useParams();
   const navigate = useNavigate();
+  const { user } = useAuth();
   const [currentStep, setCurrentStep] = useState(BOOKING_STEPS.SELECT_CATEGORY);
   const [selectedCategory, setSelectedCategory] = useState<SeatCategory | null>(null);
   const [ticketCount, setTicketCount] = useState(2);
-  
-  // Mock event data
-  const event = {
-    id: 'kkr-vs-rcb',
-    title: 'Kolkata Knight Riders vs Royal Challengers Bengaluru',
-    date: 'Sat 22 Mar 2025',
-    time: '7:30 PM',
-    venue: 'Eden Gardens',
-    city: 'Kolkata',
-  };
+  const [isLoading, setIsLoading] = useState(true);
+  const [event, setEvent] = useState<any>(null);
   
   // Mock seat categories
   const seatCategories: SeatCategory[] = [
@@ -47,6 +43,32 @@ const BookingPage = () => {
     { id: 'gold', name: 'F Block - JIO PAVILION', price: 2000, color: 'bg-green-500', available: true },
     { id: 'silver', name: 'G Block - VIKRAM SOLAR PAVILION', price: 900, color: 'bg-purple-500', available: false },
   ];
+  
+  useEffect(() => {
+    const fetchEvent = async () => {
+      try {
+        setIsLoading(true);
+        const { data, error } = await supabase
+          .from('events')
+          .select('*')
+          .eq('id', id)
+          .single();
+        
+        if (error) {
+          throw error;
+        }
+        
+        setEvent(data);
+      } catch (error) {
+        console.error('Error fetching event details:', error);
+        toast.error('Failed to load event details');
+      } finally {
+        setIsLoading(false);
+      }
+    };
+    
+    fetchEvent();
+  }, [id]);
   
   const handleCategorySelect = (category: SeatCategory) => {
     setSelectedCategory(category);
@@ -58,23 +80,69 @@ const BookingPage = () => {
   };
   
   const handleProceedToPayment = () => {
+    if (!user) {
+      toast.error('Please log in to continue with your booking');
+      navigate('/login');
+      return;
+    }
     setCurrentStep(BOOKING_STEPS.PAYMENT);
   };
   
-  const handlePayment = () => {
-    toast.success('Booking successful! Redirecting to confirmation page...');
+  const handlePayment = async () => {
+    if (!user) {
+      toast.error('Please log in to continue with your booking');
+      navigate('/login');
+      return;
+    }
     
-    // In a real app, this would process payment and then redirect
-    setTimeout(() => {
+    try {
+      setIsLoading(true);
+      
+      // Generate fake seat numbers
+      const seatNumbers = Array.from({ length: ticketCount }, (_, i) => 
+        `${selectedCategory?.id.charAt(0).toUpperCase()}${Math.floor(Math.random() * 20) + 1}-${Math.floor(Math.random() * 20) + 1}`
+      );
+      
+      // Calculate total amount
+      const totalAmount = selectedCategory ? selectedCategory.price * ticketCount : 0;
+      
+      // Create booking in Supabase
+      const { data, error } = await supabase
+        .from('bookings')
+        .insert({
+          user_id: user.id,
+          event_id: id,
+          seat_numbers: seatNumbers,
+          total_amount: totalAmount,
+          payment_status: 'completed',
+          booking_status: 'confirmed'
+        })
+        .select()
+        .single();
+      
+      if (error) {
+        throw error;
+      }
+      
+      toast.success('Booking successful! Redirecting to confirmation page...');
+      
+      // Navigate to confirmation page with booking details
       navigate('/booking-confirmation', { 
         state: { 
+          bookingId: data.id,
           eventId: id,
           seats: ticketCount,
+          seatNumbers,
           category: selectedCategory?.name,
-          amount: selectedCategory ? selectedCategory.price * ticketCount : 0
+          amount: totalAmount
         } 
       });
-    }, 2000);
+    } catch (error) {
+      console.error('Error creating booking:', error);
+      toast.error('Something went wrong with the booking process. Please try again.');
+    } finally {
+      setIsLoading(false);
+    }
   };
   
   const getPaymentDetails = () => {
@@ -92,6 +160,41 @@ const BookingPage = () => {
       total
     };
   };
+  
+  if (isLoading) {
+    return (
+      <div className="min-h-screen flex flex-col">
+        <Header />
+        <main className="flex-1 flex justify-center items-center">
+          <div className="text-center">
+            <Loader2 className="w-12 h-12 animate-spin text-book-primary mx-auto mb-4" />
+            <h2 className="text-xl font-semibold">Loading booking details...</h2>
+          </div>
+        </main>
+        <Footer />
+      </div>
+    );
+  }
+  
+  if (!event) {
+    return (
+      <div className="min-h-screen flex flex-col">
+        <Header />
+        <main className="flex-1 flex justify-center items-center">
+          <div className="text-center">
+            <h2 className="text-xl font-semibold mb-4">Event not found</h2>
+            <button 
+              onClick={() => navigate('/')}
+              className="btn-primary"
+            >
+              Back to Home
+            </button>
+          </div>
+        </main>
+        <Footer />
+      </div>
+    );
+  }
   
   const renderCurrentStep = () => {
     switch (currentStep) {
@@ -111,6 +214,7 @@ const BookingPage = () => {
           <TicketCounter 
             maxTickets={10} 
             onChange={handleTicketCountChange} 
+            defaultValue={ticketCount}
           />
         );
         
@@ -179,7 +283,8 @@ const BookingPage = () => {
               <div>
                 <PaymentSummary 
                   details={paymentDetails} 
-                  onProceed={handlePayment} 
+                  onProceed={handlePayment}
+                  isLoading={isLoading}
                 />
               </div>
             </div>
