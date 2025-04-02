@@ -1,4 +1,3 @@
-
 import { useNavigate } from 'react-router-dom';
 import { supabase, db } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
@@ -16,8 +15,8 @@ export function useAuthMethods(fetchProfile: (userId: string) => Promise<void>) 
         return;
       }
 
-      // Check if the user is an admin after successful login
-      const isAdminUser = email.includes('admin@');
+      // Check if the user is an admin based on their email
+      const isAdminUser = email === 'ritikpaswal79984@gmail.com' || email.includes('admin@');
       
       toast.success('Signed in successfully');
       
