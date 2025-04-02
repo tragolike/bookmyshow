@@ -1,4 +1,3 @@
-
 import { createClient } from '@supabase/supabase-js';
 import { PostgrestError } from '@supabase/supabase-js';
 import { PaymentSettings } from '@/components/payment/types';

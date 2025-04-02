@@ -73,6 +73,36 @@ export type Database = {
           },
         ]
       }
+      brand_settings: {
+        Row: {
+          favicon_url: string | null
+          id: string
+          logo_url: string | null
+          primary_color: string | null
+          site_name: string
+          updated_at: string | null
+          updated_by: string | null
+        }
+        Insert: {
+          favicon_url?: string | null
+          id?: string
+          logo_url?: string | null
+          primary_color?: string | null
+          site_name?: string
+          updated_at?: string | null
+          updated_by?: string | null
+        }
+        Update: {
+          favicon_url?: string | null
+          id?: string
+          logo_url?: string | null
+          primary_color?: string | null
+          site_name?: string
+          updated_at?: string | null
+          updated_by?: string | null
+        }
+        Relationships: []
+      }
       cities: {
         Row: {
           country_id: number | null
@@ -195,6 +225,7 @@ export type Database = {
       payment_settings: {
         Row: {
           id: string
+          payment_instructions: string | null
           qr_code_url: string | null
           updated_at: string | null
           updated_by: string | null
@@ -202,6 +233,7 @@ export type Database = {
         }
         Insert: {
           id?: string
+          payment_instructions?: string | null
           qr_code_url?: string | null
           updated_at?: string | null
           updated_by?: string | null
@@ -209,6 +241,7 @@ export type Database = {
         }
         Update: {
           id?: string
+          payment_instructions?: string | null
           qr_code_url?: string | null
           updated_at?: string | null
           updated_by?: string | null
@@ -274,6 +307,33 @@ export type Database = {
             referencedColumns: ["id"]
           },
         ]
+      }
+      ticket_types: {
+        Row: {
+          base_price: number
+          category: string
+          color: string | null
+          created_at: string | null
+          id: string
+          surge_price: number | null
+        }
+        Insert: {
+          base_price: number
+          category: string
+          color?: string | null
+          created_at?: string | null
+          id?: string
+          surge_price?: number | null
+        }
+        Update: {
+          base_price?: number
+          category?: string
+          color?: string | null
+          created_at?: string | null
+          id?: string
+          surge_price?: number | null
+        }
+        Relationships: []
       }
     }
     Views: {
