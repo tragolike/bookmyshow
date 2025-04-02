@@ -276,6 +276,30 @@ export type Database = {
         }
         Relationships: []
       }
+      seat_categories: {
+        Row: {
+          color: string
+          created_at: string | null
+          id: string
+          name: string
+          price: number
+        }
+        Insert: {
+          color?: string
+          created_at?: string | null
+          id?: string
+          name: string
+          price: number
+        }
+        Update: {
+          color?: string
+          created_at?: string | null
+          id?: string
+          name?: string
+          price?: number
+        }
+        Relationships: []
+      }
       seat_layouts: {
         Row: {
           created_at: string | null
