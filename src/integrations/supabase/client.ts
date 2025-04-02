@@ -70,6 +70,7 @@ export const db = {
   cities: () => supabase.from('cities'),
   ticketTypes: () => supabase.from('ticket_types'),
   brandSettings: () => supabase.from('brand_settings'),
+  seatCategories: () => supabase.from('seat_categories'),
 };
 
 // Function to ensure a bucket exists
@@ -167,6 +168,7 @@ export const getPaymentSettings = async () => {
 export const updatePaymentSettings = async (data: PaymentSettings) => {
   try {
     console.log('Updating payment settings with data:', data);
+    
     // Check if any settings exist
     const { data: existingSettings, error: checkError } = await db.paymentSettings()
       .select('id')
@@ -177,28 +179,31 @@ export const updatePaymentSettings = async (data: PaymentSettings) => {
       console.error('Error checking existing settings:', checkError);
       return { error: checkError, data: null };
     }
+    
+    // Add timestamp to force update_at to change
+    const timestamp = new Date().toISOString();
+    const dataWithTimestamp = {
+      ...data,
+      updated_at: timestamp
+    };
 
     // If settings exist, update them, otherwise create a new one
     let result;
-    if (existingSettings) {
+    if (existingSettings?.id) {
       console.log('Updating existing payment settings with ID:', existingSettings.id);
+      
+      // Force a complete replacement to ensure all fields are updated
       result = await db.paymentSettings()
-        .update({
-          ...data,
-          updated_at: new Date().toISOString() // Force updated_at to change
-        })
+        .update(dataWithTimestamp)
         .eq('id', existingSettings.id)
-        .select()
-        .maybeSingle();
+        .select();
+        
     } else {
       console.log('Creating new payment settings entry');
+      
       result = await db.paymentSettings()
-        .insert({
-          ...data,
-          updated_at: new Date().toISOString() // Set explicit updated_at
-        })
-        .select()
-        .maybeSingle();
+        .insert(dataWithTimestamp)
+        .select();
     }
     
     if (result.error) {
@@ -353,6 +358,9 @@ export const getSeatLayoutByEventId = async (eventId: string) => {
 // Function to create or update seat layout
 export const upsertSeatLayout = async (eventId: string, layoutData: any) => {
   try {
+    console.log('Upserting seat layout for event:', eventId);
+    console.log('Layout data:', layoutData);
+    
     // Check if a layout already exists for this event
     const { data: existingLayout, error: checkError } = await db.seatLayouts()
       .select('id')
@@ -367,6 +375,7 @@ export const upsertSeatLayout = async (eventId: string, layoutData: any) => {
     // If the layout exists, update it, otherwise create a new one
     let result;
     if (existingLayout) {
+      console.log('Updating existing layout with ID:', existingLayout.id);
       result = await db.seatLayouts()
         .update({
           layout_data: layoutData,
@@ -378,6 +387,7 @@ export const upsertSeatLayout = async (eventId: string, layoutData: any) => {
         
       return { ...result, isNew: false };
     } else {
+      console.log('Creating new layout for event:', eventId);
       result = await db.seatLayouts()
         .insert({
           event_id: eventId,

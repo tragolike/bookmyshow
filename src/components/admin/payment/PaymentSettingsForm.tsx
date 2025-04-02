@@ -1,3 +1,4 @@
+
 import { useState, useEffect } from 'react';
 import { toast } from 'sonner';
 import { getPaymentSettings, updatePaymentSettings, uploadFile } from '@/integrations/supabase/client';
@@ -66,12 +67,24 @@ const PaymentSettingsForm = () => {
       updated_by: user?.id
     });
     
-    mutation.mutate({
-      upi_id: upiId,
-      qr_code_url: qrCodeUrl,
-      payment_instructions: instructions,
-      updated_by: user?.id
-    });
+    try {
+      const result = await updatePaymentSettings({
+        upi_id: upiId,
+        qr_code_url: qrCodeUrl,
+        payment_instructions: instructions,
+        updated_by: user?.id
+      });
+      
+      if (result.error) {
+        throw result.error;
+      }
+      
+      toast.success('Payment settings updated successfully');
+      queryClient.invalidateQueries({ queryKey: ['paymentSettings'] });
+    } catch (error: any) {
+      console.error('Error updating payment settings:', error);
+      toast.error(`Failed to update payment settings: ${error.message || 'Unknown error'}`);
+    }
   };
 
   const generateQRCode = async () => {
@@ -151,7 +164,7 @@ const PaymentSettingsForm = () => {
           <Button 
             type="submit" 
             disabled={mutation.isPending}
-            className="ml-auto"
+            className="ml-auto bg-[#ff2366] hover:bg-[#e01f59] text-white"
           >
             {mutation.isPending ? (
               <>
