@@ -174,7 +174,8 @@ const SeatLayoutEditor = ({ eventId }: SeatLayoutEditorProps) => {
       const lastRow = rows[rows.length - 1];
       
       // Get the new row letter (next in alphabet)
-      const nextRow = String.fromCharCode(lastRow.charCodeAt(0) + 1);
+      // Fix: Add type assertion to ensure lastRow is treated as a string
+      const nextRow = String.fromCharCode((lastRow as string).charCodeAt(0) + 1);
       
       // Get number of seats in the last row
       const seatsInLastRow = prev.seats.filter((seat: Seat) => seat.row === lastRow).length;
