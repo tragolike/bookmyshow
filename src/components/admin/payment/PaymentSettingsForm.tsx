@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from 'react';
 import { toast } from 'sonner';
 import { getPaymentSettings, updatePaymentSettings, uploadFile } from '@/integrations/supabase/client';
@@ -25,7 +24,7 @@ const PaymentSettingsForm = () => {
     queryFn: getPaymentSettings,
     refetchOnWindowFocus: true,
     staleTime: 0, // Don't use stale data
-    cacheTime: 5000, // Short cache time
+    gcTime: 5000, // Short cache time (renamed from cacheTime)
   });
   
   // Update local state when data is fetched
@@ -71,8 +70,7 @@ const PaymentSettingsForm = () => {
       upi_id: upiId,
       qr_code_url: qrCodeUrl,
       payment_instructions: instructions,
-      updated_by: user?.id,
-      updated_at: new Date().toISOString() // Force update timestamp
+      updated_by: user?.id
     });
   };
 

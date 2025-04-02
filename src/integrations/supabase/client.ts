@@ -178,7 +178,7 @@ export const updatePaymentSettings = async (data: PaymentSettings) => {
       return { error: checkError, data: null };
     }
 
-    // If settings exist, update them, otherwise insert new settings
+    // If settings exist, update them, otherwise create a new one
     let result;
     if (existingSettings) {
       console.log('Updating existing payment settings with ID:', existingSettings.id);

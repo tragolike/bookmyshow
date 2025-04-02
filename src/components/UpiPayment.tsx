@@ -35,7 +35,7 @@ const UpiPayment = ({ amount, reference, onComplete }: UpiPaymentProps) => {
     queryKey: ['paymentSettings', refreshTrigger],
     queryFn: getPaymentSettings,
     staleTime: 0, // Don't use stale data
-    cacheTime: 0, // Don't cache the result
+    gcTime: 0, // Don't cache the result (renamed from cacheTime)
     refetchOnWindowFocus: true, // Refresh when window gets focus
   });
   
