@@ -19,6 +19,7 @@ export const usePaymentSettings = (isManualFetch = false) => {
     enabled: !isManualFetch, // Only auto-fetch if not manually triggered
     staleTime: 1000 * 60 * 5, // 5 minutes
     gcTime: 1000 * 60 * 10, // 10 minutes
+    retry: 3,
   });
   
   useEffect(() => {
@@ -33,15 +34,22 @@ export const usePaymentSettings = (isManualFetch = false) => {
         qr_code_url: 'https://upload.wikimedia.org/wikipedia/commons/d/d0/QR_code_for_mobile_English_Wikipedia.svg',
         payment_instructions: 'Please make the payment using any UPI app and enter the UTR number for verification.'
       });
-      toast.error('Using default payment information');
+      
+      if (!isManualFetch) {
+        toast.error('Using default payment information');
+      }
     }
-  }, [data, error]);
+  }, [data, error, isManualFetch]);
   
   const refreshPaymentSettings = async () => {
-    toast.info('Refreshing payment information...');
-    
     try {
-      await refetch();
+      toast.info('Refreshing payment information...');
+      const result = await refetch();
+      
+      if (result.error) {
+        throw result.error;
+      }
+      
       return true;
     } catch (error) {
       console.error('Error refreshing payment settings:', error);

@@ -1,10 +1,11 @@
 
 import { useState, useEffect } from 'react';
-import { Link } from 'react-router-dom';
+import { Link, useNavigate } from 'react-router-dom';
 import { ChevronLeft, ChevronRight } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
 import { Button } from '@/components/ui/button';
 import { cn } from '@/lib/utils';
+import { toast } from 'sonner';
 
 interface HeroSlide {
   id: string;
@@ -21,11 +22,25 @@ const HeroSection = () => {
   const [isLoading, setIsLoading] = useState(true);
   const [currentSlide, setCurrentSlide] = useState(0);
   const [autoplay, setAutoplay] = useState(true);
+  const navigate = useNavigate();
 
   // Fetch slides from database
   useEffect(() => {
     const fetchSlides = async () => {
       try {
+        // Check if the hero_slides table exists
+        const { error: tableCheckError } = await supabase
+          .from('hero_slides')
+          .select('id')
+          .limit(1);
+          
+        if (tableCheckError && tableCheckError.code === '42P01') {
+          console.log('Hero slides table does not exist yet, using default slides');
+          setSlides(defaultSlides);
+          setIsLoading(false);
+          return;
+        }
+        
         const { data, error } = await supabase
           .from('hero_slides')
           .select('*')
@@ -34,9 +49,16 @@ const HeroSection = () => {
         
         if (error) throw error;
         
-        setSlides(data || []);
+        if (data && data.length > 0) {
+          setSlides(data);
+        } else {
+          // No active slides found, use defaults
+          setSlides(defaultSlides);
+        }
       } catch (error) {
         console.error('Error fetching hero slides:', error);
+        // Fallback to default slides on error
+        setSlides(defaultSlides);
       } finally {
         setIsLoading(false);
       }
@@ -71,6 +93,25 @@ const HeroSection = () => {
   const goToNext = () => {
     setCurrentSlide((prev) => (prev + 1) % slides.length);
   };
+  
+  const handleBookNowClick = (e: React.MouseEvent<HTMLAnchorElement>, link: string) => {
+    // Check if the link is a relative path or external URL
+    if (link.startsWith('http')) {
+      // External URL - let the default behavior handle it
+      return;
+    }
+    
+    e.preventDefault();
+    
+    // Handle navigation for internal links
+    try {
+      navigate(link);
+    } catch (error) {
+      console.error('Navigation error:', error);
+      toast.error('Unable to navigate to the requested page');
+      navigate('/');
+    }
+  };
 
   // Default slides for fallback
   const defaultSlides = [
@@ -97,7 +138,7 @@ const HeroSection = () => {
       title: 'Live Concert Experiences',
       subtitle: 'Don\'t miss out on your favorite artists',
       image_url: '/lovable-uploads/0717f399-6c25-40d2-ab0c-e8dce44e2e91.png',
-      link: '/events/concerts',
+      link: '/live-events',
       sort_order: 3,
       is_active: true
     }
@@ -150,10 +191,12 @@ const HeroSection = () => {
                 {slide.subtitle}
               </p>
             )}
-            <Link to={slide.link}>
-              <Button size="lg" className="bg-[#ff2366] hover:bg-[#e01f59] text-white">
-                Book Now
-              </Button>
+            <Link 
+              to={slide.link}
+              onClick={(e) => handleBookNowClick(e, slide.link)}
+              className="inline-flex items-center justify-center gap-2 bg-[#ff2366] hover:bg-[#e01f59] text-white px-6 py-3 rounded-full transition-colors"
+            >
+              Book Now
             </Link>
           </div>
         </div>

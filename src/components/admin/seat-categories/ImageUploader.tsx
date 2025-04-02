@@ -7,7 +7,6 @@ import { Label } from '@/components/ui/label';
 import { toast } from 'sonner';
 import { Upload, Image as ImageIcon, Loader2, Check } from 'lucide-react';
 import { uploadFile, ensureBucketExists } from '@/integrations/supabase/client';
-import { supabase } from '@/integrations/supabase/client';
 
 const ImageUploader = () => {
   const [selectedFile, setSelectedFile] = useState<File | null>(null);
@@ -40,27 +39,21 @@ const ImageUploader = () => {
     setUploadSuccess(false);
 
     try {
-      // First check if bucket exists in storage
-      await ensureBucketExists('venue_layouts', 'Venue Layouts');
+      // First make sure the bucket exists
+      const { success, error: bucketError } = await ensureBucketExists('venue_layouts', 'Venue Layouts');
       
-      // Upload the file with custom path
-      const timestamp = Date.now();
-      const fileName = `${timestamp}-${selectedFile.name}`;
+      if (!success) {
+        throw new Error('Failed to create storage bucket: ' + bucketError?.message);
+      }
       
+      // Upload the file to the now-confirmed bucket
       const result = await uploadFile(selectedFile, 'venue_layouts', 'layouts');
       
-      if (result.error) throw result.error;
+      if (result.error) {
+        throw result.error;
+      }
       
-      // Check if we have a direct URL or need to generate one from the path
-      let fileUrl = '';
-      if (result.url) {
-        fileUrl = result.url;
-      } else if (result.path) {
-        const { data: { publicUrl } } = supabase.storage
-          .from('venue_layouts')
-          .getPublicUrl(result.path);
-        fileUrl = publicUrl;
-      } else {
+      if (!result.url) {
         throw new Error('Failed to get upload URL');
       }
       
@@ -68,13 +61,13 @@ const ImageUploader = () => {
       setUploadSuccess(true);
       
       // Copy the URL to clipboard
-      navigator.clipboard.writeText(fileUrl)
+      navigator.clipboard.writeText(result.url)
         .then(() => toast.success('URL copied to clipboard'))
         .catch(() => toast.error('Failed to copy URL'));
       
     } catch (error: any) {
       console.error('Error uploading venue layout:', error);
-      toast.error(`Upload failed: ${error.message}`);
+      toast.error(`Upload failed: ${error.message || 'Unknown error'}`);
     } finally {
       setIsUploading(false);
     }

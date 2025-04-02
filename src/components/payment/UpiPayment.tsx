@@ -24,6 +24,13 @@ const UpiPayment = ({ amount, reference, onComplete }: UpiPaymentProps) => {
     refreshPaymentSettings 
   } = usePaymentSettings(isManualFetch);
   
+  // Format time as MM:SS
+  const formatTime = (seconds: number): string => {
+    const mins = Math.floor(seconds / 60);
+    const secs = seconds % 60;
+    return `${mins}:${secs < 10 ? '0' : ''}${secs}`;
+  };
+  
   // Handle countdown timer
   useEffect(() => {
     if (countdown <= 0) {
@@ -32,7 +39,7 @@ const UpiPayment = ({ amount, reference, onComplete }: UpiPaymentProps) => {
     }
     
     const timer = setInterval(() => {
-      setCountdown(prev => prev - 1);
+      setCountdown(prev => Math.max(0, prev - 1));
     }, 1000);
     
     return () => clearInterval(timer);
@@ -45,10 +52,17 @@ const UpiPayment = ({ amount, reference, onComplete }: UpiPaymentProps) => {
     
     if (!success) {
       toast.error('Failed to refresh payment information');
+    } else {
+      toast.success('Payment information refreshed');
     }
   };
   
   const verifyUtrAndComplete = (utrNumber: string) => {
+    if (!utrNumber.trim()) {
+      toast.error('Please enter a valid UTR number');
+      return;
+    }
+    
     // Simulate UTR verification
     toast.success('UTR verified successfully!');
     onComplete();
@@ -70,7 +84,7 @@ const UpiPayment = ({ amount, reference, onComplete }: UpiPaymentProps) => {
       <CardHeader className="bg-gradient-to-r from-indigo-600 to-purple-600 text-white">
         <CardTitle className="text-xl">Complete Your Payment</CardTitle>
         <p className="text-white/80 mt-1">
-          Time remaining: <span className="font-semibold">{Math.floor(countdown / 60)}:{countdown % 60 < 10 ? '0' : ''}{countdown % 60}</span>
+          Time remaining: <span className="font-semibold">{formatTime(countdown)}</span>
         </p>
         <div className="bg-white/20 backdrop-blur-sm rounded-full py-1 px-3 text-white mt-2">
           <span className="text-sm">Order ID: #{reference.slice(-8)}</span>
