@@ -1,55 +1,57 @@
-
 import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import AdminLayout from '@/components/admin/AdminLayout';
 import { useAuth } from '@/contexts/AuthContext';
-import { supabase } from '@/integrations/supabase/client';
+import { db, BookingStatus } from '@/integrations/supabase/client';
 import { 
-  Search, 
   Filter, 
-  Download, 
-  Edit, 
-  RefreshCw, 
-  MoreVertical 
+  Search, 
+  Mail, 
+  Phone, 
+  Calendar, 
+  Check, 
+  X,
+  MoreVertical,
+  Clock
 } from 'lucide-react';
 import { toast } from 'sonner';
 
+// Define proper types for bookings and related data
 interface Booking {
   id: string;
-  booking_date: string;
   user_id: string;
   event_id: string | null;
   movie_id: string | null;
   seat_numbers: string[];
   total_amount: number;
   payment_status: string;
-  booking_status: string;
-  events?: {
+  booking_status: BookingStatus;
+  booking_date: string;
+  created_at: string;
+  event?: {
     title: string;
     venue: string;
-    city: string;
     date: string;
     time: string;
-    image: string;
-  };
-  movies?: {
+  } | null;
+  movie?: {
     title: string;
-    image: string;
-  };
-  profiles?: {
+  } | null;
+  profiles: {
     first_name: string;
     last_name: string;
     phone_number: string | null;
   };
 }
 
-const AdminBookings = () => {
+interface AdminBookingsProps {}
+
+const AdminBookings = (props: AdminBookingsProps) => {
   const { user } = useAuth();
   const navigate = useNavigate();
   const [bookings, setBookings] = useState<Booking[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState('');
-  const [statusFilter, setStatusFilter] = useState<string | null>(null);
   
   useEffect(() => {
     const checkAdmin = async () => {
@@ -58,7 +60,7 @@ const AdminBookings = () => {
         return;
       }
       
-      // In a real app, you would check if the user has admin privileges
+      // In a real app, you would check if user has admin privileges
     };
     
     checkAdmin();
@@ -69,19 +71,35 @@ const AdminBookings = () => {
       try {
         setIsLoading(true);
         
-        const { data, error } = await supabase
-          .from('bookings')
+        // Get bookings with event and user data
+        const { data, error } = await db.bookings()
           .select(`
             *,
-            events:event_id (*),
-            movies:movie_id (*),
-            profiles:user_id (first_name, last_name, phone_number)
+            events(*),
+            movies(*),
+            profiles(*)
           `)
-          .order('booking_date', { ascending: false });
+          .order('created_at', { ascending: false });
           
         if (error) throw error;
         
-        setBookings(data || []);
+        // Transform data to match our Booking type
+        if (data) {
+          const formattedBookings = data.map(booking => {
+            return {
+              ...booking,
+              event: booking.events,
+              movie: booking.movies,
+              profiles: booking.profiles || {
+                first_name: 'Unknown',
+                last_name: 'User',
+                phone_number: null
+              }
+            } as Booking;
+          });
+          
+          setBookings(formattedBookings);
+        }
       } catch (error) {
         console.error('Error fetching bookings:', error);
         toast.error('Failed to load bookings');
@@ -95,38 +113,38 @@ const AdminBookings = () => {
     }
   }, [user]);
   
-  const filteredBookings = bookings.filter(booking => {
-    const searchMatch = 
-      booking.id.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      (booking.events?.title.toLowerCase().includes(searchTerm.toLowerCase()) || false) ||
-      (booking.movies?.title.toLowerCase().includes(searchTerm.toLowerCase()) || false) ||
-      (booking.profiles && 
-        `${booking.profiles.first_name} ${booking.profiles.last_name}`.toLowerCase().includes(searchTerm.toLowerCase()));
-        
-    const statusMatch = statusFilter ? booking.booking_status === statusFilter : true;
-    
-    return searchMatch && statusMatch;
-  });
-  
-  const handleUpdateStatus = async (bookingId: string, newStatus: string) => {
+  const handleUpdateStatus = async (id: string, status: BookingStatus) => {
     try {
-      const { error } = await supabase
-        .from('bookings')
-        .update({ booking_status: newStatus })
-        .eq('id', bookingId);
+      const { error } = await db.bookings()
+        .update({ booking_status: status })
+        .eq('id', id);
         
       if (error) throw error;
       
+      // Update local state
       setBookings(bookings.map(booking => 
-        booking.id === bookingId ? { ...booking, booking_status: newStatus } : booking
+        booking.id === id ? { ...booking, booking_status: status } : booking
       ));
       
-      toast.success(`Booking ${bookingId.slice(0, 8).toUpperCase()} updated to ${newStatus}`);
+      toast.success(`Booking status updated to ${status}`);
     } catch (error) {
       console.error('Error updating booking status:', error);
       toast.error('Failed to update booking status');
     }
   };
+  
+  const filteredBookings = bookings.filter(booking => {
+    const eventTitle = booking.event?.title?.toLowerCase() || '';
+    const movieTitle = booking.movie?.title?.toLowerCase() || '';
+    const userName = `${booking.profiles?.first_name} ${booking.profiles?.last_name}`.toLowerCase();
+    const bookingId = booking.id.toLowerCase();
+    const searchTermLower = searchTerm.toLowerCase();
+    
+    return eventTitle.includes(searchTermLower) ||
+           movieTitle.includes(searchTermLower) ||
+           userName.includes(searchTermLower) ||
+           bookingId.includes(searchTermLower);
+  });
   
   return (
     <AdminLayout title="Booking Management">
@@ -146,24 +164,10 @@ const AdminBookings = () => {
               />
             </div>
             
-            <div className="flex items-center gap-2 w-full sm:w-auto">
-              <select 
-                className="border rounded-lg px-3 py-2"
-                value={statusFilter || ''}
-                onChange={(e) => setStatusFilter(e.target.value || null)}
-              >
-                <option value="">All Statuses</option>
-                <option value="confirmed">Confirmed</option>
-                <option value="cancelled">Cancelled</option>
-                <option value="refunded">Refunded</option>
-                <option value="pending">Pending</option>
-              </select>
-              
-              <button className="btn-outline px-4 py-2 flex items-center gap-2">
-                <Filter className="h-4 w-4" />
-                <span>More Filters</span>
-              </button>
-            </div>
+            <button className="btn-outline px-4 py-2 flex items-center gap-2 w-full sm:w-auto">
+              <Filter className="h-4 w-4" />
+              <span>Filter</span>
+            </button>
           </div>
           
           {isLoading ? (
@@ -179,13 +183,13 @@ const AdminBookings = () => {
                       Booking ID
                     </th>
                     <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                      Customer
+                      User
                     </th>
                     <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                       Event/Movie
                     </th>
                     <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                      Date
+                      Booking Date
                     </th>
                     <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                       Amount
@@ -208,96 +212,93 @@ const AdminBookings = () => {
                   ) : (
                     filteredBookings.map((booking) => (
                       <tr key={booking.id}>
-                        <td className="px-4 py-4 whitespace-nowrap text-sm font-medium">
-                          #{booking.id.slice(0, 8).toUpperCase()}
-                        </td>
                         <td className="px-4 py-4 whitespace-nowrap">
-                          {booking.profiles ? (
-                            <div>
-                              <div className="font-medium">
-                                {booking.profiles.first_name} {booking.profiles.last_name}
-                              </div>
-                              <div className="text-gray-500 text-sm">
-                                {booking.profiles.phone_number || 'No phone'}
-                              </div>
-                            </div>
-                          ) : (
-                            <span className="text-gray-500">User not found</span>
-                          )}
+                          <div className="text-sm text-gray-900">
+                            {booking.id.slice(0, 8)}
+                          </div>
                         </td>
                         <td className="px-4 py-4 whitespace-nowrap">
                           <div className="flex items-center">
-                            <div className="flex-shrink-0 h-10 w-10 rounded-md overflow-hidden">
-                              {booking.events ? (
-                                <img 
-                                  src={booking.events.image} 
-                                  alt={booking.events.title}
-                                  className="h-10 w-10 object-cover"
-                                />
-                              ) : booking.movies ? (
-                                <img 
-                                  src={booking.movies.image} 
-                                  alt={booking.movies.title}
-                                  className="h-10 w-10 object-cover"
-                                />
-                              ) : (
-                                <div className="h-10 w-10 bg-gray-200"></div>
-                              )}
-                            </div>
-                            <div className="ml-4 max-w-xs truncate">
-                              <div className="font-medium">
-                                {booking.events?.title || booking.movies?.title || 'Unknown Event/Movie'}
+                            <div className="ml-4">
+                              <div className="font-medium text-gray-900">
+                                {booking.profiles?.first_name} {booking.profiles?.last_name}
                               </div>
-                              {booking.events && (
-                                <div className="text-gray-500 text-sm truncate">
-                                  {booking.events.venue}, {booking.events.city}
-                                </div>
-                              )}
+                              <div className="text-gray-500 text-sm">
+                                <Mail className="h-4 w-4 inline-block mr-1" />
+                                {booking.profiles?.phone_number || 'N/A'}
+                              </div>
                             </div>
                           </div>
                         </td>
-                        <td className="px-4 py-4 whitespace-nowrap text-sm">
-                          <div>
-                            {new Date(booking.booking_date).toLocaleDateString()}
-                          </div>
-                          <div className="text-gray-500">
-                            {new Date(booking.booking_date).toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'})}
+                        <td className="px-4 py-4 whitespace-nowrap">
+                          <div className="text-sm text-gray-900">
+                            {booking.event ? (
+                              <>
+                                <div>{booking.event.title}</div>
+                                <div className="text-gray-500 text-xs">
+                                  <Calendar className="h-3 w-3 inline-block mr-1" />
+                                  {booking.event.date}
+                                  <Clock className="h-3 w-3 inline-block mx-1" />
+                                  {booking.event.time}
+                                </div>
+                                <div className="text-gray-500 text-xs">
+                                  <MapPin className="h-3 w-3 inline-block mr-1" />
+                                  {booking.event.venue}
+                                </div>
+                              </>
+                            ) : booking.movie ? (
+                              <div>{booking.movie.title}</div>
+                            ) : (
+                              'N/A'
+                            )}
                           </div>
                         </td>
-                        <td className="px-4 py-4 whitespace-nowrap text-sm font-medium">
-                          ₹{booking.total_amount.toLocaleString()}
-                          <div className="text-gray-500 text-xs">
-                            {booking.seat_numbers.length} {booking.seat_numbers.length === 1 ? 'ticket' : 'tickets'}
+                        <td className="px-4 py-4 whitespace-nowrap text-sm text-gray-500">
+                          {new Date(booking.booking_date).toLocaleDateString()}
+                        </td>
+                        <td className="px-4 py-4 whitespace-nowrap">
+                          <div className="text-sm text-gray-900">
+                            ₹{booking.total_amount.toLocaleString()}
                           </div>
                         </td>
-                        <td className="px-4 py-4 whitespace-nowrap text-sm">
-                          <span className={`px-2 py-1 text-xs rounded-full ${
-                            booking.booking_status === 'confirmed' 
-                              ? 'bg-green-100 text-green-800' 
-                              : booking.booking_status === 'cancelled'
-                                ? 'bg-red-100 text-red-800'
-                                : booking.booking_status === 'refunded'
-                                  ? 'bg-blue-100 text-blue-800'
-                                  : 'bg-yellow-100 text-yellow-800'
+                        <td className="px-4 py-4 whitespace-nowrap">
+                          <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${
+                            booking.booking_status === 'confirmed' ? 'bg-green-100 text-green-800' :
+                            booking.booking_status === 'pending' ? 'bg-yellow-100 text-yellow-800' :
+                            'bg-red-100 text-red-800'
                           }`}>
-                            {booking.booking_status.charAt(0).toUpperCase() + booking.booking_status.slice(1)}
+                            {booking.booking_status === 'confirmed' && <Check className="w-3 h-3 mr-1" />}
+                            {booking.booking_status === 'pending' && <X className="w-3 h-3 mr-1" />}
+                            {booking.booking_status === 'cancelled' && <X className="w-3 h-3 mr-1" />}
+                            {booking.booking_status}
                           </span>
                         </td>
                         <td className="px-4 py-4 whitespace-nowrap text-sm text-gray-500">
                           <div className="flex items-center space-x-2">
-                            <button className="p-1 text-blue-600 hover:text-blue-800">
-                              <Edit className="h-4 w-4" />
+                            <button 
+                              className="p-1 text-green-600 hover:text-green-800"
+                              onClick={() => handleUpdateStatus(booking.id, 'confirmed')}
+                              disabled={booking.booking_status === 'confirmed'}
+                            >
+                              <Check className="h-4 w-4" />
                             </button>
-                            <button className="p-1 text-green-600 hover:text-green-800">
-                              <Download className="h-4 w-4" />
+                            <button 
+                              className="p-1 text-yellow-600 hover:text-yellow-800"
+                              onClick={() => handleUpdateStatus(booking.id, 'pending')}
+                              disabled={booking.booking_status === 'pending'}
+                            >
+                              <Clock className="h-4 w-4" />
                             </button>
-                            <div className="relative">
-                              <button className="p-1 text-gray-600 hover:text-gray-800">
-                                <MoreVertical className="h-4 w-4" />
-                              </button>
-                              
-                              {/* Dropdown menu would go here in a real app */}
-                            </div>
+                            <button 
+                              className="p-1 text-red-600 hover:text-red-800"
+                              onClick={() => handleUpdateStatus(booking.id, 'cancelled')}
+                              disabled={booking.booking_status === 'cancelled'}
+                            >
+                              <X className="h-4 w-4" />
+                            </button>
+                            <button className="p-1 text-gray-600 hover:text-gray-800">
+                              <MoreVertical className="h-4 w-4" />
+                            </button>
                           </div>
                         </td>
                       </tr>

@@ -1,3 +1,4 @@
+
 import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import AdminLayout from '@/components/admin/AdminLayout';
@@ -100,6 +101,18 @@ const AdminUsers = () => {
       toast.error('Failed to delete user');
     }
   };
+  
+  // Add filtered users logic
+  const filteredUsers = users.filter(user => {
+    const fullName = `${user.first_name || ''} ${user.last_name || ''}`.toLowerCase();
+    const email = user.email?.toLowerCase() || '';
+    const phone = user.phone_number?.toLowerCase() || '';
+    const searchLower = searchTerm.toLowerCase();
+    
+    return fullName.includes(searchLower) || 
+           email.includes(searchLower) || 
+           phone.includes(searchLower);
+  });
   
   return (
     <AdminLayout title="User Management">

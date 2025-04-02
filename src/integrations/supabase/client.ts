@@ -20,6 +20,13 @@ export const db = {
   events: () => supabase.from('events'),
   movies: () => supabase.from('movies'),
   bookings: () => supabase.from('bookings'),
-  cities: () => supabase.from('cities'),
-  countries: () => supabase.from('countries')
+  // For cities and countries, we need to temporarily use any typing since these tables
+  // need to be added to our database schema later
+  cities: () => (supabase.from('cities') as any),
+  countries: () => (supabase.from('countries') as any)
 };
+
+// Type definitions for common data types
+export type BookingStatus = 'confirmed' | 'pending' | 'cancelled';
+export type PaymentStatus = 'completed' | 'pending' | 'failed';
+export type EventStatus = 'fast-filling' | 'sold-out' | 'available';

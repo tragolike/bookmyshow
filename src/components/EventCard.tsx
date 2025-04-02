@@ -1,6 +1,7 @@
 
 import { Link } from 'react-router-dom';
 import { Clock, MapPin, Calendar } from 'lucide-react';
+import { EventStatus } from '@/integrations/supabase/client';
 
 export interface EventProps {
   id: string;
@@ -12,7 +13,7 @@ export interface EventProps {
   city: string;
   category: string;
   price: number;
-  status?: 'fast-filling' | 'sold-out' | 'available';
+  status?: EventStatus;
   interested?: number;
 }
 

@@ -5,7 +5,7 @@ import Footer from '@/components/Footer';
 import EventCard, { EventProps } from '@/components/EventCard';
 import CitySelector from '@/components/CitySelector';
 import { Search, Filter, ChevronLeft, ChevronRight } from 'lucide-react';
-import { db } from '@/integrations/supabase/client';
+import { db, EventStatus } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
 
 interface CategoryProps {
@@ -59,7 +59,7 @@ const LiveEventsPage = () => {
             city: event.city,
             category: event.category,
             price: event.price,
-            status: event.status || 'available',
+            status: (event.status as EventStatus) || 'available',
             interested: event.interested || 0
           }));
           

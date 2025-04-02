@@ -1,3 +1,4 @@
+
 import { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
 import { Film, Music, Ticket, Calendar, ChevronRight } from 'lucide-react';
@@ -8,7 +9,7 @@ import EventCard, { EventProps } from '@/components/EventCard';
 import MovieCard, { MovieProps } from '@/components/MovieCard';
 import CategoryFilter from '@/components/CategoryFilter';
 import LanguageSelector from '@/components/LanguageSelector';
-import { db } from '@/integrations/supabase/client';
+import { db, EventStatus } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
 
 const Index = () => {
@@ -59,7 +60,15 @@ const Index = () => {
           
         if (moviesError) throw moviesError;
         
-        setEvents(eventsData || []);
+        // Set events with proper type casting for status
+        if (eventsData) {
+          const typedEvents = eventsData.map(event => ({
+            ...event,
+            status: (event.status as EventStatus) || 'available'
+          }));
+          setEvents(typedEvents);
+        }
+        
         setMovies(moviesData || []);
       } catch (error) {
         console.error('Error fetching data:', error);
