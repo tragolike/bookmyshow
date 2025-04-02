@@ -8,6 +8,7 @@ import TicketTypeManager from '@/components/admin/TicketTypeManager';
 import NotificationSettings from '@/components/admin/NotificationSettings';
 import SystemSettings from '@/components/admin/SystemSettings';
 import SeatCategoryManager from '@/components/admin/SeatCategoryManager';
+import HeroSectionSettings from '@/components/admin/HeroSectionSettings';
 
 const AdminSettings = () => {
   const [activeTab, setActiveTab] = useState('branding');
@@ -26,6 +27,13 @@ const AdminSettings = () => {
               className="rounded-sm data-[state=active]:bg-background data-[state=active]:text-foreground"
             >
               Branding
+            </TabsTrigger>
+            
+            <TabsTrigger
+              value="hero"
+              className="rounded-sm data-[state=active]:bg-background data-[state=active]:text-foreground"
+            >
+              Hero Section
             </TabsTrigger>
             
             <TabsTrigger
@@ -60,6 +68,10 @@ const AdminSettings = () => {
         
         <TabsContent value="branding" className="space-y-6">
           <BrandingSettings />
+        </TabsContent>
+        
+        <TabsContent value="hero" className="space-y-6">
+          <HeroSectionSettings />
         </TabsContent>
         
         <TabsContent value="payment" className="space-y-6">

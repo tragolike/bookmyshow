@@ -60,7 +60,6 @@ const BookingPage = () => {
         
         setEvent(data);
         
-        // Check if user is admin
         if (user && user.email) {
           setIsAdmin(isUserAdmin(user.email));
         }
@@ -77,7 +76,6 @@ const BookingPage = () => {
 
   const handleCategorySelect = (category: any) => {
     setSelectedCategory(category);
-    // Reset selected seats when changing categories
     setSelectedSeats([]);
   };
   
@@ -119,7 +117,6 @@ const BookingPage = () => {
       return;
     }
     
-    // Navigate to payment with the booking details
     navigate(`/payment`, {
       state: {
         eventId,
@@ -208,7 +205,7 @@ const BookingPage = () => {
                 <div className="p-4 bg-white border border-gray-200 rounded-b-lg">
                   <div className="mb-4">
                     <TicketCounter
-                      count={ticketCount}
+                      value={ticketCount}
                       onChange={handleTicketCountChange}
                       max={10}
                     />

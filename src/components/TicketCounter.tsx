@@ -1,86 +1,52 @@
 
-import { useState, useEffect } from 'react';
+import { useState } from 'react';
 import { Plus, Minus } from 'lucide-react';
 
-interface TicketCounterProps {
-  maxTickets: number;
+export interface TicketCounterProps {
+  value: number; // Changed from 'count' to 'value' for consistency
   onChange: (count: number) => void;
-  defaultValue?: number;
+  max: number;
+  min?: number;
 }
 
-const TicketCounter = ({ 
-  maxTickets = 10, 
-  onChange,
-  defaultValue = 1 
-}: TicketCounterProps) => {
-  const [count, setCount] = useState(defaultValue);
-  
-  useEffect(() => {
-    // Update count if defaultValue changes
-    setCount(defaultValue);
-  }, [defaultValue]);
-  
+const TicketCounter = ({ value, onChange, max, min = 1 }: TicketCounterProps) => {
   const increment = () => {
-    if (count < maxTickets) {
-      const newCount = count + 1;
-      setCount(newCount);
-      onChange(newCount);
+    if (value < max) {
+      onChange(value + 1);
     }
   };
   
   const decrement = () => {
-    if (count > 1) {
-      const newCount = count - 1;
-      setCount(newCount);
-      onChange(newCount);
+    if (value > min) {
+      onChange(value - 1);
     }
   };
   
   return (
-    <div className="container mx-auto px-4 py-8">
-      <h2 className="text-2xl font-bold mb-6">How many tickets?</h2>
-      
-      <div className="max-w-md mx-auto">
-        <div className="glass-card rounded-lg p-6">
-          <p className="text-center mb-8 text-gray-600">
-            Select the number of tickets you want to book. You can book up to {maxTickets} tickets in a single transaction.
-          </p>
-          
-          <div className="flex items-center justify-center space-x-6">
-            <button
-              onClick={decrement}
-              disabled={count <= 1}
-              className={`w-12 h-12 rounded-full flex items-center justify-center ${
-                count <= 1 
-                  ? 'bg-gray-100 text-gray-400' 
-                  : 'bg-book-primary/10 text-book-primary hover:bg-book-primary/20'
-              }`}
-            >
-              <Minus className="w-6 h-6" />
-            </button>
-            
-            <div className="text-center">
-              <div className="text-4xl font-bold">{count}</div>
-              <div className="text-sm text-gray-500">Tickets</div>
-            </div>
-            
-            <button
-              onClick={increment}
-              disabled={count >= maxTickets}
-              className={`w-12 h-12 rounded-full flex items-center justify-center ${
-                count >= maxTickets
-                  ? 'bg-gray-100 text-gray-400'
-                  : 'bg-book-primary/10 text-book-primary hover:bg-book-primary/20'
-              }`}
-            >
-              <Plus className="w-6 h-6" />
-            </button>
-          </div>
-          
-          <div className="mt-8 text-center text-sm text-gray-500">
-            * You will select your seats in the next step
-          </div>
-        </div>
+    <div className="flex items-center">
+      <span className="mr-3 text-sm font-medium">Number of tickets:</span>
+      <div className="flex items-center border border-gray-300 rounded-md">
+        <button
+          type="button"
+          onClick={decrement}
+          disabled={value <= min}
+          className="p-2 text-gray-600 hover:text-gray-900 disabled:opacity-50 disabled:cursor-not-allowed"
+          aria-label="Decrease ticket count"
+        >
+          <Minus className="h-4 w-4" />
+        </button>
+        
+        <span className="px-4 py-1 text-center min-w-[3rem]">{value}</span>
+        
+        <button
+          type="button"
+          onClick={increment}
+          disabled={value >= max}
+          className="p-2 text-gray-600 hover:text-gray-900 disabled:opacity-50 disabled:cursor-not-allowed"
+          aria-label="Increase ticket count"
+        >
+          <Plus className="h-4 w-4" />
+        </button>
       </div>
     </div>
   );

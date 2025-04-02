@@ -2,9 +2,11 @@
 import { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
 import { Search, ArrowRight } from 'lucide-react';
+import { supabase } from '@/integrations/supabase/client';
 
 const HeroSection = () => {
   const [currentSlide, setCurrentSlide] = useState(0);
+  const [overlayOpacity, setOverlayOpacity] = useState(0.6); // Default to 60%
   
   const slides = [
     {
@@ -30,6 +32,33 @@ const HeroSection = () => {
     },
   ];
   
+  // Fetch overlay opacity from database
+  useEffect(() => {
+    const fetchOverlayOpacity = async () => {
+      try {
+        const { data, error } = await supabase
+          .from('site_settings')
+          .select('value')
+          .eq('key', 'hero_overlay_opacity')
+          .single();
+        
+        if (error) {
+          console.error('Error fetching overlay opacity:', error);
+          return;
+        }
+        
+        if (data) {
+          // Convert percentage to decimal (e.g., 60% -> 0.6)
+          setOverlayOpacity(parseInt(data.value) / 100);
+        }
+      } catch (error) {
+        console.error('Error:', error);
+      }
+    };
+    
+    fetchOverlayOpacity();
+  }, []);
+  
   useEffect(() => {
     const interval = setInterval(() => {
       setCurrentSlide((prev) => (prev === slides.length - 1 ? 0 : prev + 1));
@@ -49,7 +78,10 @@ const HeroSection = () => {
               index === currentSlide ? "opacity-100" : "opacity-0"
             }`}
           >
-            <div className="absolute inset-0 bg-book-dark/60 z-10" />
+            <div 
+              className="absolute inset-0 z-10" 
+              style={{ backgroundColor: `rgba(0, 0, 0, ${overlayOpacity})` }}
+            />
             <img
               src={slide.image}
               alt={slide.title}
