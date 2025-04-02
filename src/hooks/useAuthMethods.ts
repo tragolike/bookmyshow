@@ -82,7 +82,8 @@ export function useAuthMethods(fetchProfile: (userId: string) => Promise<void>) 
   const resetPassword = async (email: string) => {
     try {
       // Use explicit URL with origin for complete path
-      const resetUrl = `${window.location.origin}/reset-password-confirm`;
+      const origin = window.location.origin;
+      const resetUrl = `${origin}/reset-password-confirm`;
       console.log('Reset password redirect URL:', resetUrl);
       
       const { error } = await supabase.auth.resetPasswordForEmail(email, {

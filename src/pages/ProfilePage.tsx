@@ -7,6 +7,18 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { useAuth } from '@/contexts/AuthContext';
 import { Loader2, User, Mail, Phone } from 'lucide-react';
+import { 
+  Dialog,
+  DialogTrigger,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogFooter,
+  DialogDescription,
+} from '@/components/ui/dialog';
+import { Button } from '@/components/ui/button';
+import { toast } from 'sonner';
+import { supabase } from '@/integrations/supabase/client';
 
 const ProfilePage = () => {
   const { user, profile, updateProfile, isLoading } = useAuth();
@@ -18,14 +30,86 @@ const ProfilePage = () => {
     phone_number: profile?.phone_number || '',
   });
   
+  const [passwordData, setPasswordData] = useState({
+    currentPassword: '',
+    newPassword: '',
+    confirmPassword: '',
+  });
+  
+  const [isChangingPassword, setIsChangingPassword] = useState(false);
+  const [showPasswordDialog, setShowPasswordDialog] = useState(false);
+  
   const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const { name, value } = e.target;
     setFormData(prev => ({ ...prev, [name]: value }));
   };
   
+  const handlePasswordChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const { name, value } = e.target;
+    setPasswordData(prev => ({ ...prev, [name]: value }));
+  };
+  
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     await updateProfile(formData);
+  };
+  
+  const handlePasswordSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    
+    if (passwordData.newPassword !== passwordData.confirmPassword) {
+      toast.error("New passwords don't match");
+      return;
+    }
+    
+    if (passwordData.newPassword.length < 6) {
+      toast.error("New password must be at least 6 characters long");
+      return;
+    }
+    
+    try {
+      setIsChangingPassword(true);
+      
+      // First validate the current password by trying to sign in
+      const { error: signInError } = await supabase.auth.signInWithPassword({
+        email: user?.email || '',
+        password: passwordData.currentPassword,
+      });
+      
+      if (signInError) {
+        toast.error("Current password is incorrect");
+        setIsChangingPassword(false);
+        return;
+      }
+      
+      // Update to the new password
+      const { error } = await supabase.auth.updateUser({
+        password: passwordData.newPassword,
+      });
+      
+      if (error) {
+        toast.error(error.message || "Failed to update password");
+        return;
+      }
+      
+      toast.success("Password updated successfully");
+      setShowPasswordDialog(false);
+      setPasswordData({
+        currentPassword: '',
+        newPassword: '',
+        confirmPassword: '',
+      });
+      
+    } catch (error: any) {
+      toast.error(error.message || "An error occurred while updating your password");
+    } finally {
+      setIsChangingPassword(false);
+    }
+  };
+  
+  const handlePasswordReset = () => {
+    // This will directly redirect to the password reset page
+    navigate('/password-reset');
   };
   
   if (!user) {
@@ -150,12 +234,93 @@ const ProfilePage = () => {
                     <h3 className="font-medium">Change Password</h3>
                     <p className="text-sm text-gray-500">Update your password regularly for better security</p>
                   </div>
-                  <button 
-                    type="button" 
-                    className="text-book-primary font-medium hover:text-book-primary/80"
-                  >
-                    Change
-                  </button>
+                  <Dialog open={showPasswordDialog} onOpenChange={setShowPasswordDialog}>
+                    <DialogTrigger asChild>
+                      <button 
+                        type="button" 
+                        className="text-book-primary font-medium hover:text-book-primary/80"
+                      >
+                        Change
+                      </button>
+                    </DialogTrigger>
+                    <DialogContent>
+                      <DialogHeader>
+                        <DialogTitle>Change Your Password</DialogTitle>
+                        <DialogDescription>
+                          Enter your current password and a new password below.
+                        </DialogDescription>
+                      </DialogHeader>
+                      
+                      <form onSubmit={handlePasswordSubmit} className="space-y-4 py-4">
+                        <div>
+                          <Label htmlFor="currentPassword">Current Password</Label>
+                          <Input
+                            id="currentPassword"
+                            name="currentPassword"
+                            type="password"
+                            value={passwordData.currentPassword}
+                            onChange={handlePasswordChange}
+                            required
+                          />
+                        </div>
+                        
+                        <div>
+                          <Label htmlFor="newPassword">New Password</Label>
+                          <Input
+                            id="newPassword"
+                            name="newPassword"
+                            type="password"
+                            value={passwordData.newPassword}
+                            onChange={handlePasswordChange}
+                            required
+                          />
+                          <p className="text-xs text-gray-500 mt-1">
+                            Password must be at least 6 characters long
+                          </p>
+                        </div>
+                        
+                        <div>
+                          <Label htmlFor="confirmPassword">Confirm New Password</Label>
+                          <Input
+                            id="confirmPassword"
+                            name="confirmPassword"
+                            type="password"
+                            value={passwordData.confirmPassword}
+                            onChange={handlePasswordChange}
+                            required
+                          />
+                        </div>
+                        
+                        <DialogFooter>
+                          <Button
+                            type="button"
+                            variant="outline"
+                            onClick={() => setShowPasswordDialog(false)}
+                          >
+                            Cancel
+                          </Button>
+                          <Button 
+                            type="submit"
+                            disabled={isChangingPassword}
+                            isLoading={isChangingPassword}
+                          >
+                            Update Password
+                          </Button>
+                        </DialogFooter>
+                      </form>
+                      
+                      <div className="border-t pt-4 text-center">
+                        <p className="text-sm text-gray-500 mb-2">Forgot your password?</p>
+                        <Button 
+                          variant="link" 
+                          onClick={handlePasswordReset}
+                          className="text-book-primary"
+                        >
+                          Reset your password
+                        </Button>
+                      </div>
+                    </DialogContent>
+                  </Dialog>
                 </div>
                 
                 <div className="flex justify-between items-center py-3 border-b">
