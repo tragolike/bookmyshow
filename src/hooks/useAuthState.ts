@@ -14,6 +14,7 @@ export function useAuthState() {
   // Fetch the user profile
   const fetchProfile = async (userId: string) => {
     try {
+      console.log('Fetching profile for user:', userId);
       const { data, error } = await supabase
         .from('profiles')
         .select('*')
@@ -25,44 +26,62 @@ export function useAuthState() {
         return;
       }
 
+      console.log('Profile data:', data);
       setProfile(data);
     } catch (error) {
-      console.error('Error fetching profile:', error);
+      console.error('Exception fetching profile:', error);
     }
   };
 
   useEffect(() => {
+    console.log('Setting up auth state listener');
+    setIsLoading(true);
+    
     // Set up auth state listener
     const { data: { subscription } } = supabase.auth.onAuthStateChange(
       async (event, currentSession) => {
+        console.log('Auth state changed:', event);
         setSession(currentSession);
         setUser(currentSession?.user ?? null);
         setIsAdmin(isUserAdmin(currentSession?.user?.email));
-        setIsLoading(false);
-
+        
         if (currentSession?.user) {
           await fetchProfile(currentSession.user.id);
+        } else {
+          setProfile(null);
         }
+        
+        setIsLoading(false);
       }
     );
 
     // Initial session fetch
     const initAuth = async () => {
-      const { data: { session: initialSession } } = await supabase.auth.getSession();
-      setSession(initialSession);
-      setUser(initialSession?.user ?? null);
-      setIsAdmin(isUserAdmin(initialSession?.user?.email));
+      try {
+        console.log('Initializing auth state');
+        const { data: { session: initialSession } } = await supabase.auth.getSession();
+        console.log('Initial session:', initialSession ? 'exists' : 'null');
+        
+        setSession(initialSession);
+        setUser(initialSession?.user ?? null);
+        setIsAdmin(isUserAdmin(initialSession?.user?.email));
 
-      if (initialSession?.user) {
-        await fetchProfile(initialSession.user.id);
+        if (initialSession?.user) {
+          await fetchProfile(initialSession.user.id);
+        }
+      } catch (error) {
+        console.error('Error initializing auth:', error);
+      } finally {
+        setIsLoading(false);
       }
-      
-      setIsLoading(false);
     };
 
     initAuth();
 
-    return () => subscription.unsubscribe();
+    return () => {
+      console.log('Cleaning up auth subscription');
+      subscription.unsubscribe();
+    };
   }, []);
 
   return {

@@ -28,6 +28,7 @@ export function useAuthMethods(fetchProfile: (userId: string) => Promise<void>) 
         navigate('/');
       }
     } catch (error: any) {
+      console.error('Sign in error:', error);
       toast.error(error.message || 'An error occurred during sign in');
     }
   };
@@ -54,6 +55,7 @@ export function useAuthMethods(fetchProfile: (userId: string) => Promise<void>) 
       toast.success('Account created successfully. Please verify your email.');
       navigate('/login');
     } catch (error: any) {
+      console.error('Sign up error:', error);
       toast.error(error.message || 'An error occurred during sign up');
     }
   };
@@ -71,6 +73,7 @@ export function useAuthMethods(fetchProfile: (userId: string) => Promise<void>) 
       toast.success('Signed out successfully');
       navigate('/');
     } catch (error: any) {
+      console.error('Sign out error:', error);
       toast.error(error.message || 'An error occurred during sign out');
     }
   };
@@ -93,6 +96,7 @@ export function useAuthMethods(fetchProfile: (userId: string) => Promise<void>) 
       
       toast.success('Password reset link sent to your email');
     } catch (error: any) {
+      console.error('Password reset error:', error);
       toast.error(error.message || 'An error occurred during password reset');
     }
   };
@@ -119,6 +123,7 @@ export function useAuthMethods(fetchProfile: (userId: string) => Promise<void>) 
       await fetchProfile(user.id);
       toast.success('Profile updated successfully');
     } catch (error: any) {
+      console.error('Profile update error:', error);
       toast.error(error.message || 'An error occurred while updating profile');
     }
   };

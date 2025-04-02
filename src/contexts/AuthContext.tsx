@@ -4,12 +4,15 @@ import { AuthContextType } from '@/types/auth';
 import { useAuthState } from '@/hooks/useAuthState';
 import { useAuthMethods } from '@/hooks/useAuthMethods';
 
+// Create the context with undefined as default
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
 export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
+  // Get auth state and methods
   const { session, user, profile, isLoading, isAdmin, fetchProfile } = useAuthState();
   const { signIn, signUp, signOut, resetPassword, updateProfile } = useAuthMethods(fetchProfile);
 
+  // Create the auth context value
   const authValue: AuthContextType = {
     session,
     user,
@@ -23,9 +26,15 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
     updateProfile,
   };
 
-  return <AuthContext.Provider value={authValue}>{children}</AuthContext.Provider>;
+  // Provide the auth context to children
+  return (
+    <AuthContext.Provider value={authValue}>
+      {children}
+    </AuthContext.Provider>
+  );
 };
 
+// Custom hook to use the auth context
 export const useAuth = () => {
   const context = useContext(AuthContext);
   if (context === undefined) {
