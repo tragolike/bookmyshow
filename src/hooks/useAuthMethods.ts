@@ -81,17 +81,19 @@ export function useAuthMethods(fetchProfile: (userId: string) => Promise<void>) 
   // Reset password
   const resetPassword = async (email: string) => {
     try {
-      // Use explicit URL with origin for complete path
+      // Get absolute URL for reset page - ensure we get the full URL including protocol
       const origin = window.location.origin;
       const resetUrl = `${origin}/reset-password-confirm`;
-      console.log('Reset password redirect URL:', resetUrl);
+      
+      console.log('Password reset redirect URL:', resetUrl);
       
       const { error } = await supabase.auth.resetPasswordForEmail(email, {
         redirectTo: resetUrl,
       });
       
       if (error) {
-        toast.error(error.message);
+        console.error('Password reset error:', error);
+        toast.error(error.message || 'Failed to send reset email');
         return;
       }
       
@@ -99,6 +101,28 @@ export function useAuthMethods(fetchProfile: (userId: string) => Promise<void>) 
     } catch (error: any) {
       console.error('Password reset error:', error);
       toast.error(error.message || 'An error occurred during password reset');
+    }
+  };
+  
+  // Update password (when already logged in)
+  const updatePassword = async (password: string) => {
+    try {
+      const { error } = await supabase.auth.updateUser({
+        password: password,
+      });
+      
+      if (error) {
+        console.error('Password update error:', error);
+        toast.error(error.message || 'Failed to update password');
+        return false;
+      }
+      
+      toast.success('Password updated successfully');
+      return true;
+    } catch (error: any) {
+      console.error('Password update error:', error);
+      toast.error(error.message || 'An error occurred while updating password');
+      return false;
     }
   };
 
@@ -134,6 +158,7 @@ export function useAuthMethods(fetchProfile: (userId: string) => Promise<void>) 
     signUp,
     signOut,
     resetPassword,
+    updatePassword,
     updateProfile
   };
 }

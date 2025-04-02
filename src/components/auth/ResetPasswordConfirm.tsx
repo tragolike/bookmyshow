@@ -1,7 +1,7 @@
 
 import { useState, useEffect } from 'react';
-import { useNavigate } from 'react-router-dom';
-import { Lock, EyeOff, Eye, Check, Shield } from 'lucide-react';
+import { useNavigate, useLocation } from 'react-router-dom';
+import { Lock, EyeOff, Eye, Check, Shield, AlertTriangle } from 'lucide-react';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Alert, AlertDescription } from '@/components/ui/alert';
@@ -16,46 +16,72 @@ const ResetPasswordConfirm = () => {
   const [isLoading, setIsLoading] = useState(false);
   const [isSuccess, setIsSuccess] = useState(false);
   const [hasTokenError, setHasTokenError] = useState(false);
+  const [tokenProcessing, setTokenProcessing] = useState(true);
   const navigate = useNavigate();
+  const location = useLocation();
 
-  useEffect(() => {
-    // Check if we have a hash parameter in the URL
-    const hashParams = new URLSearchParams(window.location.hash.substring(1));
-    const accessToken = hashParams.get('access_token');
-    const type = hashParams.get('type');
+  // Function to parse JWT token and extract access_token
+  const extractTokenFromHash = () => {
+    // Get the hash fragment (everything after #)
+    const hash = window.location.hash.substring(1);
+    console.log('URL hash:', hash);
     
-    console.log('Hash params:', { accessToken: !!accessToken, type });
+    if (!hash) return null;
     
-    if (!accessToken || type !== 'recovery') {
-      console.log('Invalid reset link - token missing or incorrect type');
-      setHasTokenError(true);
-      toast.error('Invalid or expired reset link');
-      return;
+    // Parse the hash as URL parameters
+    const params = new URLSearchParams(hash);
+    const accessToken = params.get('access_token');
+    const type = params.get('type');
+    
+    console.log('Extracted params:', { accessToken: !!accessToken, type });
+    
+    if (accessToken && type === 'recovery') {
+      return accessToken;
     }
     
-    console.log('Access token found in URL');
-    // Set the access token for the session
-    const setSession = async () => {
+    return null;
+  };
+
+  useEffect(() => {
+    const initializeReset = async () => {
       try {
+        setTokenProcessing(true);
+        
+        // Extract token from URL hash
+        const accessToken = extractTokenFromHash();
+        
+        if (!accessToken) {
+          console.log('No valid token found in URL');
+          setHasTokenError(true);
+          setTokenProcessing(false);
+          return;
+        }
+        
+        console.log('Setting Supabase session with token');
+        // Set the session with the access token
         const { error } = await supabase.auth.setSession({
           access_token: accessToken,
           refresh_token: '',
         });
         
         if (error) {
-          console.error('Error setting session:', error);
+          console.error('Session error:', error);
           setHasTokenError(true);
-          toast.error('Invalid or expired reset link');
+          toast.error('Invalid or expired password reset link');
+        } else {
+          console.log('Session set successfully');
         }
       } catch (err) {
-        console.error('Exception setting session:', err);
+        console.error('Error processing token:', err);
         setHasTokenError(true);
-        toast.error('Something went wrong processing your reset link');
+        toast.error('Error processing your reset link');
+      } finally {
+        setTokenProcessing(false);
       }
     };
     
-    setSession();
-  }, []);
+    initializeReset();
+  }, [location]);
 
   const handleResetPassword = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
@@ -73,16 +99,18 @@ const ResetPasswordConfirm = () => {
     try {
       setIsLoading(true);
       
+      console.log('Updating password');
       const { error } = await supabase.auth.updateUser({
         password,
       });
       
       if (error) {
-        console.error('Password reset error:', error);
+        console.error('Password update error:', error);
         toast.error(error.message || 'Failed to reset password');
         return;
       }
       
+      console.log('Password updated successfully');
       setIsSuccess(true);
       toast.success('Password reset successfully');
       
@@ -101,13 +129,35 @@ const ResetPasswordConfirm = () => {
     }
   };
 
+  if (tokenProcessing) {
+    return (
+      <div className="min-h-screen flex flex-col">
+        <main className="flex-1 flex items-center justify-center bg-gray-50 py-12 px-4 sm:px-6 lg:px-8">
+          <div className="max-w-md w-full space-y-8 text-center">
+            <div className="inline-flex items-center justify-center w-16 h-16 rounded-full bg-blue-100 mb-4">
+              <Lock className="h-8 w-8 text-blue-600" />
+            </div>
+            <h2 className="text-2xl font-bold">Validating your reset link</h2>
+            <p className="text-gray-500">Please wait while we verify your password reset link...</p>
+            <div className="flex justify-center mt-4">
+              <div className="animate-spin rounded-full h-8 w-8 border-t-2 border-b-2 border-book-primary"></div>
+            </div>
+          </div>
+        </main>
+      </div>
+    );
+  }
+
   if (hasTokenError) {
     return (
       <div className="min-h-screen flex flex-col">
         <main className="flex-1 flex items-center justify-center bg-gray-50 py-12 px-4 sm:px-6 lg:px-8">
           <div className="max-w-md w-full space-y-8">
             <div className="text-center">
-              <h2 className="mt-6 text-3xl font-extrabold text-gray-900">Invalid Reset Link</h2>
+              <div className="inline-flex items-center justify-center w-16 h-16 rounded-full bg-red-100 mb-4">
+                <AlertTriangle className="h-8 w-8 text-red-600" />
+              </div>
+              <h2 className="mt-4 text-3xl font-extrabold text-gray-900">Invalid Reset Link</h2>
               <p className="mt-2 text-sm text-gray-600">
                 The password reset link is invalid or has expired.
               </p>
