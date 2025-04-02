@@ -1,8 +1,8 @@
-
 import { useState, useEffect } from 'react';
-import { getSeatLayoutByEventId, supabase } from '@/integrations/supabase/client';
+import { supabase, getSeatLayoutByEventId } from '@/integrations/supabase/client';
 import { Loader2, AlertCircle } from 'lucide-react';
 import { toast } from 'sonner';
+import { Seat } from '@/types/events';
 
 interface SeatMapProps {
   eventId: string;
@@ -10,15 +10,6 @@ interface SeatMapProps {
   onSeatSelect: (seatIds: string[]) => void;
   maxSeats: number;
   isAdmin?: boolean;
-}
-
-interface Seat {
-  id: string;
-  row: string;
-  number: number;
-  status: 'available' | 'unavailable' | 'selected' | 'booked';
-  price: number;
-  category: string;
 }
 
 const SeatMap = ({ eventId, selectedCategory, onSeatSelect, maxSeats, isAdmin = false }: SeatMapProps) => {

@@ -1,6 +1,14 @@
+
 import { useNavigate } from 'react-router-dom';
 import { supabase, db, isUserAdmin } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
+import { 
+  LoginCredentials, 
+  SignUpCredentials, 
+  ResetPasswordCredentials,
+  UpdatePasswordCredentials,
+  UpdateProfileData
+} from '@/types/auth';
 
 export function useAuthMethods(fetchProfile: (userId: string) => Promise<void>) {
   const navigate = useNavigate();
@@ -53,15 +61,17 @@ export function useAuthMethods(fetchProfile: (userId: string) => Promise<void>) 
   };
 
   // Sign up with email and password
-  const signUp = async (email: string, password: string, firstName: string, lastName: string) => {
+  const signUp = async (credentials: SignUpCredentials) => {
     try {
+      const { email, password, first_name, last_name } = credentials;
+      
       const { error } = await supabase.auth.signUp({
         email,
         password,
         options: {
           data: {
-            first_name: firstName,
-            last_name: lastName,
+            first_name,
+            last_name,
           },
         },
       });
@@ -152,7 +162,7 @@ export function useAuthMethods(fetchProfile: (userId: string) => Promise<void>) 
   };
 
   // Update profile
-  const updateProfile = async (data: { first_name?: string; last_name?: string; phone_number?: string; avatar_url?: string }) => {
+  const updateProfile = async (data: UpdateProfileData) => {
     try {
       const { data: { user } } = await supabase.auth.getUser();
       
@@ -161,7 +171,8 @@ export function useAuthMethods(fetchProfile: (userId: string) => Promise<void>) 
         return false;
       }
 
-      const { error } = await db.profiles()
+      const { error } = await supabase
+        .from('profiles')
         .update(data)
         .eq('id', user.id);
 

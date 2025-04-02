@@ -7,6 +7,32 @@ const supabaseKey = import.meta.env.VITE_SUPABASE_ANON_KEY || 'your-anon-key';
 
 export const supabase = createClient(supabaseUrl, supabaseKey);
 
+// Types
+export type EventStatus = 'available' | 'fast-filling' | 'sold-out';
+
+// Database interface
+export const db = {
+  events: () => supabase.from('events'),
+  bookings: () => supabase.from('bookings'),
+  movies: () => supabase.from('movies'),
+  profiles: () => supabase.from('profiles'),
+  cities: () => supabase.from('cities'),
+  countries: () => supabase.from('countries'),
+  ticketTypes: () => supabase.from('ticket_types'),
+  seatCategories: () => supabase.from('seat_categories'),
+  seatLayouts: () => supabase.from('seat_layouts'),
+  heroSlides: () => supabase.from('hero_slides'),
+  brandSettings: () => supabase.from('brand_settings'),
+  paymentSettings: () => supabase.from('payment_settings')
+};
+
+// Function to check if a user is an admin
+export const isUserAdmin = (email?: string | null): boolean => {
+  if (!email) return false;
+  const adminEmails = ['admin@showtix.com', 'admin@example.com', 'ritikpaswal79984@gmail.com'];
+  return adminEmails.includes(email.toLowerCase());
+};
+
 // Function to ensure a bucket exists before uploading
 export const ensureBucketExists = async (bucketId: string, bucketName: string) => {
   try {
@@ -152,7 +178,7 @@ export const updateBrandSettings = async (settings: any) => {
   }
 };
 
-// Custom function to fetch payment settings
+// Get payment settings
 export const getPaymentSettings = async () => {
   try {
     const { data, error } = await supabase
@@ -188,5 +214,163 @@ export const getPaymentSettings = async () => {
       }, 
       error: null 
     };
+  }
+};
+
+// Get event by ID
+export const getEventById = async (eventId: string) => {
+  try {
+    const { data, error } = await supabase
+      .from('events')
+      .select('*')
+      .eq('id', eventId)
+      .single();
+      
+    if (error) throw error;
+    
+    return { data, error: null };
+  } catch (error) {
+    console.error('Error fetching event:', error);
+    return { data: null, error };
+  }
+};
+
+// Get events by city
+export const getEventsByCity = async (city?: string) => {
+  try {
+    let query = supabase.from('events').select('*');
+    
+    if (city && city !== 'all') {
+      query = query.eq('city', city);
+    }
+    
+    const { data, error } = await query;
+    
+    if (error) throw error;
+    
+    return { data, error: null };
+  } catch (error) {
+    console.error('Error fetching events by city:', error);
+    return { data: null, error };
+  }
+};
+
+// Get seat layout by event ID
+export const getSeatLayoutByEventId = async (eventId: string) => {
+  try {
+    const { data, error } = await supabase
+      .from('seat_layouts')
+      .select('*')
+      .eq('event_id', eventId)
+      .maybeSingle();
+      
+    if (error) throw error;
+    
+    return { data, error: null };
+  } catch (error) {
+    console.error('Error fetching seat layout:', error);
+    return { data: null, error };
+  }
+};
+
+// Get ticket types
+export const getTicketTypes = async () => {
+  try {
+    const { data, error } = await supabase
+      .from('ticket_types')
+      .select('*')
+      .order('price', { ascending: false });
+      
+    if (error) throw error;
+    
+    return { data, error: null };
+  } catch (error) {
+    console.error('Error fetching ticket types:', error);
+    return { data: null, error };
+  }
+};
+
+// Upsert ticket type
+export const upsertTicketType = async (typeData: any) => {
+  try {
+    let result;
+    
+    if (typeData.id) {
+      // Update existing type
+      result = await supabase
+        .from('ticket_types')
+        .update({
+          category: typeData.category,
+          base_price: typeData.base_price,
+          surge_price: typeData.surge_price,
+          color: typeData.color
+        })
+        .eq('id', typeData.id)
+        .select();
+    } else {
+      // Insert new type
+      result = await supabase
+        .from('ticket_types')
+        .insert({
+          category: typeData.category,
+          base_price: typeData.base_price,
+          surge_price: typeData.surge_price,
+          color: typeData.color
+        })
+        .select();
+    }
+    
+    if (result.error) throw result.error;
+    
+    return { data: result.data[0], error: null };
+  } catch (error) {
+    console.error('Error upserting ticket type:', error);
+    return { data: null, error };
+  }
+};
+
+// Upsert seat layout
+export const upsertSeatLayout = async (eventId: string, layoutData: any) => {
+  try {
+    // Check if the layout already exists
+    const { data: existingLayout, error: checkError } = await supabase
+      .from('seat_layouts')
+      .select('id')
+      .eq('event_id', eventId)
+      .maybeSingle();
+      
+    if (checkError) throw checkError;
+    
+    let result;
+    let isNew = false;
+    
+    if (existingLayout?.id) {
+      // Update the existing layout
+      result = await supabase
+        .from('seat_layouts')
+        .update({
+          layout_data: layoutData,
+          updated_at: new Date().toISOString()
+        })
+        .eq('id', existingLayout.id)
+        .select();
+    } else {
+      // Create a new layout
+      isNew = true;
+      result = await supabase
+        .from('seat_layouts')
+        .insert({
+          event_id: eventId,
+          layout_data: layoutData
+        })
+        .select();
+    }
+    
+    if (result.error) throw result.error;
+    
+    return { data: result.data[0], error: null, isNew };
+  } catch (error) {
+    console.error('Error upserting seat layout:', error);
+    return { data: null, error, isNew: false };
   }
 };
