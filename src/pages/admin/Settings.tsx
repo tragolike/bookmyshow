@@ -1,68 +1,80 @@
 
 import { useState } from 'react';
-import AdminLayout from "@/components/admin/AdminLayout";
-import PaymentSettings from "@/components/admin/PaymentSettings";
-import NotificationSettings from "@/components/admin/NotificationSettings";
-import SystemSettings from "@/components/admin/SystemSettings";
-import TicketTypeManager from "@/components/admin/TicketTypeManager";
-import BrandingSettings from "@/components/admin/BrandingSettings";
+import AdminLayout from '@/components/admin/AdminLayout';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { CreditCard, Bell, Settings2, Ticket, PaintBucket } from "lucide-react";
+import BrandingSettings from '@/components/admin/BrandingSettings';
+import PaymentSettings from '@/components/admin/PaymentSettings';
+import TicketTypeManager from '@/components/admin/TicketTypeManager';
+import NotificationSettings from '@/components/admin/NotificationSettings';
+import SystemSettings from '@/components/admin/SystemSettings';
+import SeatCategoryManager from '@/components/admin/SeatCategoryManager';
 
-const AdminSettingsPage = () => {
-  const [activeTab, setActiveTab] = useState("payment");
+const AdminSettings = () => {
+  const [activeTab, setActiveTab] = useState('branding');
 
   return (
-    <AdminLayout
-      title="Settings"
-      subtitle="Configure your booking platform"
-    >
-      <Tabs
-        defaultValue="payment"
-        value={activeTab}
+    <AdminLayout title="Settings">
+      <Tabs 
+        value={activeTab} 
         onValueChange={setActiveTab}
-        className="w-full"
+        className="space-y-6"
       >
-        <TabsList className="mb-8 w-full max-w-full overflow-x-auto justify-start">
-          <TabsTrigger value="payment" className="flex items-center gap-2">
-            <CreditCard className="h-4 w-4" />
-            <span>Payment</span>
-          </TabsTrigger>
-          <TabsTrigger value="tickets" className="flex items-center gap-2">
-            <Ticket className="h-4 w-4" />
-            <span>Ticket Types</span>
-          </TabsTrigger>
-          <TabsTrigger value="branding" className="flex items-center gap-2">
-            <PaintBucket className="h-4 w-4" />
-            <span>Branding</span>
-          </TabsTrigger>
-          <TabsTrigger value="notifications" className="flex items-center gap-2">
-            <Bell className="h-4 w-4" />
-            <span>Notifications</span>
-          </TabsTrigger>
-          <TabsTrigger value="system" className="flex items-center gap-2">
-            <Settings2 className="h-4 w-4" />
-            <span>System</span>
-          </TabsTrigger>
+        <TabsList className="w-full sm:w-auto bg-transparent p-0 mb-4">
+          <div className="inline-flex h-10 items-center justify-center rounded-md bg-muted p-1 text-muted-foreground overflow-auto sm:overflow-visible">
+            <TabsTrigger
+              value="branding"
+              className="rounded-sm data-[state=active]:bg-background data-[state=active]:text-foreground"
+            >
+              Branding
+            </TabsTrigger>
+            
+            <TabsTrigger
+              value="payment"
+              className="rounded-sm data-[state=active]:bg-background data-[state=active]:text-foreground"
+            >
+              Payment
+            </TabsTrigger>
+            
+            <TabsTrigger
+              value="seating"
+              className="rounded-sm data-[state=active]:bg-background data-[state=active]:text-foreground"
+            >
+              Seat Categories
+            </TabsTrigger>
+            
+            <TabsTrigger
+              value="notifications"
+              className="rounded-sm data-[state=active]:bg-background data-[state=active]:text-foreground"
+            >
+              Notifications
+            </TabsTrigger>
+            
+            <TabsTrigger
+              value="system"
+              className="rounded-sm data-[state=active]:bg-background data-[state=active]:text-foreground"
+            >
+              System
+            </TabsTrigger>
+          </div>
         </TabsList>
-
-        <TabsContent value="payment" className="space-y-4">
+        
+        <TabsContent value="branding" className="space-y-6">
+          <BrandingSettings />
+        </TabsContent>
+        
+        <TabsContent value="payment" className="space-y-6">
           <PaymentSettings />
         </TabsContent>
         
-        <TabsContent value="tickets" className="space-y-4">
-          <TicketTypeManager />
+        <TabsContent value="seating" className="space-y-6">
+          <SeatCategoryManager />
         </TabsContent>
         
-        <TabsContent value="branding" className="space-y-4">
-          <BrandingSettings />
-        </TabsContent>
-
-        <TabsContent value="notifications" className="space-y-4">
+        <TabsContent value="notifications" className="space-y-6">
           <NotificationSettings />
         </TabsContent>
-
-        <TabsContent value="system" className="space-y-4">
+        
+        <TabsContent value="system" className="space-y-6">
           <SystemSettings />
         </TabsContent>
       </Tabs>
@@ -70,4 +82,4 @@ const AdminSettingsPage = () => {
   );
 };
 
-export default AdminSettingsPage;
+export default AdminSettings;
