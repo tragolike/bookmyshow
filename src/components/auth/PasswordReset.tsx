@@ -42,7 +42,7 @@ const PasswordReset = () => {
         return;
       }
       
-      console.log('Password reset email sent:', data);
+      console.log('Password reset email sent successfully');
       setIsSuccess(true);
       toast.success('Password reset link sent to your email');
     } catch (error: any) {

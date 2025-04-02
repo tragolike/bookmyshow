@@ -19,22 +19,30 @@ const ResetPasswordConfirm = () => {
   const [tokenProcessing, setTokenProcessing] = useState(true);
   const navigate = useNavigate();
 
-  // Function to parse JWT token and extract access_token
-  const extractTokenFromHash = () => {
-    // Get the hash fragment (everything after #)
+  // Function to parse URL parameters
+  const extractTokenFromURL = () => {
+    // First try to get from hash (fragment)
     const hash = window.location.hash.substring(1);
-    console.log('URL hash:', hash);
+    if (hash) {
+      const hashParams = new URLSearchParams(hash);
+      const accessToken = hashParams.get('access_token');
+      const type = hashParams.get('type');
+      
+      console.log('Hash params:', { accessToken: !!accessToken, type });
+      
+      if (accessToken && type === 'recovery') {
+        return accessToken;
+      }
+    }
     
-    if (!hash) return null;
+    // If not in hash, try to get from query parameters
+    const queryParams = new URLSearchParams(window.location.search);
+    const accessToken = queryParams.get('access_token') || queryParams.get('token');
+    const type = queryParams.get('type');
     
-    // Parse the hash as URL parameters
-    const params = new URLSearchParams(hash);
-    const accessToken = params.get('access_token');
-    const type = params.get('type');
+    console.log('Query params:', { accessToken: !!accessToken, type });
     
-    console.log('Extracted params:', { accessToken: !!accessToken, type });
-    
-    if (accessToken && type === 'recovery') {
+    if (accessToken && (type === 'recovery' || !type)) {
       return accessToken;
     }
     
@@ -46,9 +54,10 @@ const ResetPasswordConfirm = () => {
       try {
         setTokenProcessing(true);
         console.log('Initializing password reset page');
+        console.log('Current URL:', window.location.href);
         
-        // Extract token from URL hash
-        const accessToken = extractTokenFromHash();
+        // Extract token from URL
+        const accessToken = extractTokenFromURL();
         
         if (!accessToken) {
           console.log('No valid token found in URL');

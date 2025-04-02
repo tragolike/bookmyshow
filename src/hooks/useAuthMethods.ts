@@ -156,7 +156,8 @@ export function useAuthMethods(fetchProfile: (userId: string) => Promise<void>) 
   // Google sign in
   const signInWithGoogle = async () => {
     try {
-      const { error } = await supabase.auth.signInWithOAuth({
+      console.log('Attempting to sign in with Google...');
+      const { error, data } = await supabase.auth.signInWithOAuth({
         provider: 'google',
         options: {
           redirectTo: `${window.location.origin}/`
@@ -164,10 +165,12 @@ export function useAuthMethods(fetchProfile: (userId: string) => Promise<void>) 
       });
       
       if (error) {
+        console.error('Google sign-in error:', error);
         toast.error(error.message || 'Failed to sign in with Google');
         return;
       }
       
+      console.log('Google authentication initiated:', data);
       // The redirect to Google happens automatically
     } catch (error: any) {
       console.error('Google sign in error:', error);

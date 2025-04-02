@@ -18,10 +18,16 @@ window.addEventListener('unhandledrejection', (event) => {
   }
 });
 
+// Add special handler for Supabase authentication issues
+window.addEventListener('supabaseAuthError', (event: any) => {
+  console.error('Supabase Auth Error:', event.detail);
+});
+
 // Log additional debugging information on page load
 console.info('App initializing...');
 console.info('Environment:', import.meta.env.MODE);
 console.info('Browser:', navigator.userAgent);
+console.info('Base URL:', window.location.origin);
 
 // Mount app with error boundary
 try {
