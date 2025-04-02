@@ -3,30 +3,25 @@ import { createClient } from '@supabase/supabase-js';
 import { PostgrestError } from '@supabase/supabase-js';
 
 // Get Supabase URL and Anon Key from environment variables
-// Ensure these values are always strings and never empty/undefined
-const supabaseUrl = import.meta.env.VITE_SUPABASE_URL || 'https://gfmxvjxgjswbxbtkseap.supabase.co';
-const supabaseAnonKey = import.meta.env.VITE_SUPABASE_ANON_KEY || 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImdmbXh2anhnanN3YnhidGtzZWFwIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NDM1OTg2OTEsImV4cCI6MjA1OTE3NDY5MX0.ajBWfE7Ici2KiCBL3Hnl24ocJS4-1MZLX8ehvHX9b6c';
+const envSupabaseUrl = import.meta.env.VITE_SUPABASE_URL;
+const envSupabaseKey = import.meta.env.VITE_SUPABASE_ANON_KEY;
+
+// Fallback values in case environment variables are not available
+const fallbackUrl = 'https://gfmxvjxgjswbxbtkseap.supabase.co';
+const fallbackKey = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImdmbXh2anhnanN3YnhidGtzZWFwIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NDM1OTg2OTEsImV4cCI6MjA1OTE3NDY5MX0.ajBWfE7Ici2KiCBL3Hnl24ocJS4-1MZLX8ehvHX9b6c';
+
+// Validate and use appropriate values
+const supabaseUrl = (envSupabaseUrl && typeof envSupabaseUrl === 'string' && envSupabaseUrl.startsWith('http')) 
+  ? envSupabaseUrl 
+  : fallbackUrl;
+
+const supabaseAnonKey = (envSupabaseKey && typeof envSupabaseKey === 'string') 
+  ? envSupabaseKey 
+  : fallbackKey;
 
 // Log the Supabase URL and key being used for debugging purposes
 console.info('Initializing Supabase with URL:', supabaseUrl);
-console.info('Using Supabase Anon Key:', supabaseAnonKey ? (supabaseAnonKey.substring(0, 10) + '...') : 'undefined');
-
-// Verify URL is valid before initializing
-if (!supabaseUrl || typeof supabaseUrl !== 'string' || !supabaseUrl.startsWith('http')) {
-  console.error('Invalid Supabase URL:', supabaseUrl);
-  // Use hardcoded fallback in case environment variable fails
-  const fallbackUrl = 'https://gfmxvjxgjswbxbtkseap.supabase.co';
-  console.info('Using fallback Supabase URL:', fallbackUrl);
-  supabaseUrl = fallbackUrl;
-}
-
-if (!supabaseAnonKey || typeof supabaseAnonKey !== 'string') {
-  console.error('Invalid Supabase Anon Key');
-  // Use hardcoded fallback in case environment variable fails
-  const fallbackKey = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImdmbXh2anhnanN3YnhidGtzZWFwIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NDM1OTg2OTEsImV4cCI6MjA1OTE3NDY5MX0.ajBWfE7Ici2KiCBL3Hnl24ocJS4-1MZLX8ehvHX9b6c';
-  console.info('Using fallback Supabase Anon Key:', fallbackKey.substring(0, 10) + '...');
-  supabaseAnonKey = fallbackKey;
-}
+console.info('Using Supabase Anon Key:', supabaseAnonKey.substring(0, 10) + '...');
 
 // Initialize the Supabase client with options to ensure consistent auth behavior
 export const supabase = createClient(supabaseUrl, supabaseAnonKey, {
