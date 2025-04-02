@@ -1,3 +1,4 @@
+
 import { useState, useEffect } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
 import { Mail, Lock, Info } from 'lucide-react';
@@ -32,10 +33,13 @@ const AdminLoginPage = () => {
     
     try {
       console.log('Admin login attempt:', { email });
-      await signIn(email, password);
+      const success = await signIn(email, password);
       
-      // The redirect to admin dashboard is handled in the AuthContext
-      // if the user is an admin
+      // Only log success or failure, the redirect is handled in the AuthContext
+      if (!success) {
+        console.error('Admin login failed');
+        // Toast already shown in signIn method
+      }
     } catch (error: any) {
       console.error('Admin login error:', error);
       toast.error('Failed to log in. Please check your credentials.');
