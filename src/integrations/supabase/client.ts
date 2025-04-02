@@ -1,14 +1,11 @@
-
 import { createClient } from '@supabase/supabase-js';
+import { EventStatus } from '@/types/events';
 
 // Initialize the Supabase client
 const supabaseUrl = import.meta.env.VITE_SUPABASE_URL || 'https://your-project-url.supabase.co';
 const supabaseKey = import.meta.env.VITE_SUPABASE_ANON_KEY || 'your-anon-key';
 
 export const supabase = createClient(supabaseUrl, supabaseKey);
-
-// Types
-export type EventStatus = 'available' | 'fast-filling' | 'sold-out';
 
 // Database interface
 export const db = {
