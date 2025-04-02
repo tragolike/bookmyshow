@@ -3,16 +3,8 @@ import { Button } from '@/components/ui/button';
 import UpiQrCode from './UpiQrCode';
 import UpiIdDisplay from './UpiIdDisplay';
 import PaymentSummaryCard from './PaymentSummaryCard';
-import { PaymentSettings } from './types';
-import { ArrowRight, AlertTriangle, ExternalLink } from 'lucide-react';
-
-interface UpiPaymentViewProps {
-  paymentSettings: PaymentSettings;
-  amount: number;
-  reference: string;
-  upiLink: string;
-  onContinue: () => void;
-}
+import { UpiPaymentViewProps } from './types';
+import { ArrowRight, ExternalLink } from 'lucide-react';
 
 const UpiPaymentView = ({ 
   paymentSettings, 

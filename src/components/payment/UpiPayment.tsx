@@ -1,46 +1,31 @@
 
-import { useEffect, useState } from 'react';
-import { Loader2, Copy, CheckCircle2, AlertTriangle, RefreshCw, Download, QrCode, Clock, ExternalLink } from 'lucide-react';
+import { useState } from 'react';
+import { CheckCircle2 } from 'lucide-react';
 import { toast } from 'sonner';
 import { Card, CardContent, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
-import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { getPaymentSettings } from '@/integrations/supabase/client';
+import { UpiPaymentProps } from './types';
 import PaymentErrorState from './PaymentErrorState';
 import UpiPaymentView from './UpiPaymentView';
 import UtrVerification from './UtrVerification';
-import { UpiPaymentProps, PaymentSettings } from './types';
-import { useQuery } from '@tanstack/react-query';
+import PaymentLoader from './PaymentLoader';
+import PaymentMethodTabs from './PaymentMethodTabs';
+import { usePaymentSettings } from '@/hooks/usePaymentSettings';
 
 const UpiPayment = ({ amount, reference, onComplete }: UpiPaymentProps) => {
-  const [paymentSettings, setPaymentSettings] = useState<PaymentSettings | null>(null);
   const [isManualFetch, setIsManualFetch] = useState(false);
   const [countdown, setCountdown] = useState(900); // 15 minutes countdown
   const [paymentMethod, setPaymentMethod] = useState<'upi' | 'manual'>('upi');
   
-  const { data, isLoading, error, refetch } = useQuery({
-    queryKey: ['paymentSettings'],
-    queryFn: getPaymentSettings,
-    enabled: !isManualFetch, // Only auto-fetch if not manually triggered
-  });
+  const { 
+    paymentSettings, 
+    isLoading, 
+    error, 
+    refreshPaymentSettings 
+  } = usePaymentSettings(isManualFetch);
   
-  useEffect(() => {
-    if (data?.data) {
-      setPaymentSettings(data.data);
-      console.log('Loaded payment settings from database:', data.data);
-    } else if (error) {
-      console.error('Error fetching payment settings:', error);
-      // Set fallback values on error
-      setPaymentSettings({
-        upi_id: 'showtix@upi',
-        qr_code_url: 'https://upload.wikimedia.org/wikipedia/commons/d/d0/QR_code_for_mobile_English_Wikipedia.svg',
-        payment_instructions: 'Please make the payment using any UPI app and enter the UTR number for verification.'
-      });
-      toast.error('Using default payment information');
-    }
-  }, [data, error]);
-  
-  useEffect(() => {
+  // Handle countdown timer
+  useState(() => {
     if (countdown <= 0) {
       toast.error('Payment time expired. Please try again.');
       return;
@@ -51,18 +36,15 @@ const UpiPayment = ({ amount, reference, onComplete }: UpiPaymentProps) => {
     }, 1000);
     
     return () => clearTimeout(timer);
-  }, [countdown]);
+  });
   
-  const refreshPaymentSettings = async () => {
+  const refreshPaymentInfo = async () => {
     setIsManualFetch(true);
-    toast.info('Refreshing payment information...');
+    const success = await refreshPaymentSettings();
+    setIsManualFetch(false);
     
-    try {
-      await refetch();
-      setIsManualFetch(false);
-    } catch (error) {
-      console.error('Error refreshing payment settings:', error);
-      setIsManualFetch(false);
+    if (!success) {
+      toast.error('Failed to refresh payment information');
     }
   };
   
@@ -73,17 +55,12 @@ const UpiPayment = ({ amount, reference, onComplete }: UpiPaymentProps) => {
   };
   
   if (isLoading && !isManualFetch) {
-    return (
-      <div className="flex flex-col items-center justify-center p-8 space-y-4">
-        <Loader2 className="h-8 w-8 animate-spin text-book-primary" />
-        <p>Loading payment details...</p>
-      </div>
-    );
+    return <PaymentLoader />;
   }
   
   // If payment settings are not properly configured, show a refresh option
   if (!paymentSettings || !paymentSettings.upi_id) {
-    return <PaymentErrorState onRefresh={refreshPaymentSettings} />;
+    return <PaymentErrorState onRefresh={refreshPaymentInfo} />;
   }
   
   const upiLink = `upi://pay?pa=${paymentSettings.upi_id}&pn=ShowTix&am=${amount}&cu=INR&tn=${reference}`;
@@ -91,34 +68,20 @@ const UpiPayment = ({ amount, reference, onComplete }: UpiPaymentProps) => {
   return (
     <Card className="bg-white shadow-lg overflow-hidden border-0">
       <CardHeader className="bg-gradient-to-r from-indigo-600 to-purple-600 text-white">
-        <div className="flex items-center justify-between">
-          <div>
-            <CardTitle className="text-xl">Complete Your Payment</CardTitle>
-            <p className="text-white/80 mt-1">
-              <Clock className="inline-block h-4 w-4 mr-1 align-text-bottom" />
-              Time remaining: <span className="font-semibold">{Math.floor(countdown / 60)}:{countdown % 60 < 10 ? '0' : ''}{countdown % 60}</span>
-            </p>
-          </div>
-          <div className="bg-white/20 backdrop-blur-sm rounded-full py-1 px-3 text-white">
-            <span className="text-sm">Order ID: #{reference.slice(-8)}</span>
-          </div>
+        <CardTitle className="text-xl">Complete Your Payment</CardTitle>
+        <p className="text-white/80 mt-1">
+          Time remaining: <span className="font-semibold">{Math.floor(countdown / 60)}:{countdown % 60 < 10 ? '0' : ''}{countdown % 60}</span>
+        </p>
+        <div className="bg-white/20 backdrop-blur-sm rounded-full py-1 px-3 text-white mt-2">
+          <span className="text-sm">Order ID: #{reference.slice(-8)}</span>
         </div>
       </CardHeader>
       
       <CardContent className="pt-6">
-        <Tabs defaultValue="upi" onValueChange={(value) => setPaymentMethod(value as 'upi' | 'manual')}>
-          <TabsList className="grid grid-cols-2 mb-6">
-            <TabsTrigger value="upi">
-              <QrCode className="h-4 w-4 mr-2" />
-              UPI Payment
-            </TabsTrigger>
-            <TabsTrigger value="manual">
-              <CheckCircle2 className="h-4 w-4 mr-2" />
-              Manual Verification
-            </TabsTrigger>
-          </TabsList>
-          
-          <TabsContent value="upi">
+        <PaymentMethodTabs
+          defaultValue="upi"
+          onValueChange={(value) => setPaymentMethod(value as 'upi' | 'manual')}
+          upiContent={
             <UpiPaymentView 
               paymentSettings={paymentSettings}
               amount={amount}
@@ -126,17 +89,16 @@ const UpiPayment = ({ amount, reference, onComplete }: UpiPaymentProps) => {
               upiLink={upiLink}
               onContinue={() => setPaymentMethod('manual')}
             />
-          </TabsContent>
-          
-          <TabsContent value="manual">
+          }
+          manualContent={
             <UtrVerification 
               amount={amount}
               upiId={paymentSettings.upi_id}
               countdown={countdown}
               onVerify={verifyUtrAndComplete}
             />
-          </TabsContent>
-        </Tabs>
+          }
+        />
       </CardContent>
       
       <CardFooter className="flex flex-col gap-4">

@@ -1,18 +1,12 @@
 
 import { useState } from 'react';
-import { Loader2, Clock, AlertTriangle, CheckCircle2 } from 'lucide-react';
+import { Loader2, AlertTriangle, CheckCircle2 } from 'lucide-react';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Button } from '@/components/ui/button';
 import { Alert, AlertTitle, AlertDescription } from '@/components/ui/alert';
 import PaymentCountdown from './PaymentCountdown';
-
-interface UtrVerificationProps {
-  amount: number;
-  upiId: string;
-  countdown: number;
-  onVerify: (utrNumber: string) => void;
-}
+import { UtrVerificationProps } from './types';
 
 const UtrVerification = ({ amount, upiId, countdown, onVerify }: UtrVerificationProps) => {
   const [utrNumber, setUtrNumber] = useState('');
@@ -82,10 +76,7 @@ const UtrVerification = ({ amount, upiId, countdown, onVerify }: UtrVerification
           </div>
           
           <div className="flex items-center justify-between">
-            <div className="flex items-center">
-              <Clock className="h-4 w-4 mr-1 text-amber-600" />
-              <span className="text-sm text-amber-700">Time remaining: {Math.floor(countdown / 60)}:{countdown % 60 < 10 ? '0' : ''}{countdown % 60}</span>
-            </div>
+            <PaymentCountdown initialTime={countdown} />
             <span className="text-sm text-gray-500">Payment Amount: ₹{amount.toLocaleString()}</span>
           </div>
         </div>
