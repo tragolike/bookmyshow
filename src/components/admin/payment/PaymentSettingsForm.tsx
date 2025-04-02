@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { toast } from 'sonner';
-import { supabase } from '@/integrations/supabase/client';
+import { supabase, uploadFile } from '@/integrations/supabase/client';
 import { Button } from '@/components/ui/button';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Loader2 } from 'lucide-react';
@@ -167,16 +167,11 @@ const PaymentSettingsForm = () => {
     
     try {
       toast.info('Uploading QR code...');
-      const { url, error } = await supabase.storage
-        .from('brand_assets')
-        .upload(`qr_codes/${file.name}`, file, {
-          cacheControl: '3600',
-          upsert: false
-        });
+      const result = await uploadFile(file, 'brand_assets', 'qr_codes');
       
-      if (error) throw error;
+      if (result.error) throw result.error;
       
-      setQrCodeUrl(url);
+      setQrCodeUrl(result.url || '');
       toast.success('QR code uploaded successfully');
     } catch (error) {
       console.error('QR code upload error:', error);

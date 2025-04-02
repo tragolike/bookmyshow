@@ -34,7 +34,7 @@ const AdminSettings = () => {
               value="hero"
               className="rounded-sm data-[state=active]:bg-background data-[state=active]:text-foreground"
             >
-              Hero Section
+              Hero Slider
             </TabsTrigger>
             
             <TabsTrigger
@@ -72,7 +72,6 @@ const AdminSettings = () => {
         </TabsContent>
         
         <TabsContent value="hero" className="space-y-6">
-          <HeroSectionSettings />
           <HeroSliderManager />
         </TabsContent>
         
