@@ -80,7 +80,7 @@ export const getLatestEvents = async (limit = 6) => {
 
 // For now - hardcoded admin emails since we don't have a roles table
 // In a real app, this would be stored in a database table
-const ADMIN_EMAILS = ['admin@showtix.com', 'admin@example.com'];
+const ADMIN_EMAILS = ['admin@showtix.com', 'admin@example.com', 'ritikpaswal79984@gmail.com'];
 
 // Helper function to check if a user is an admin
 export const isUserAdmin = (email: string | undefined): boolean => {
