@@ -1,0 +1,128 @@
+
+import { useState } from 'react';
+import { useNavigate } from 'react-router-dom';
+import { Mail, Lock, Loader2, Info } from 'lucide-react';
+import { Input } from '@/components/ui/input';
+import { Label } from '@/components/ui/label';
+import { Alert, AlertDescription } from '@/components/ui/alert';
+import { useAuth } from '@/contexts/AuthContext';
+import { toast } from 'sonner';
+
+const AdminLoginPage = () => {
+  const [email, setEmail] = useState('');
+  const [password, setPassword] = useState('');
+  const { signIn, isLoading } = useAuth();
+  const navigate = useNavigate();
+
+  const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
+    e.preventDefault();
+    
+    try {
+      await signIn(email, password);
+      
+      // The redirect to admin dashboard is handled in the AuthContext
+      // if the user is an admin
+    } catch (error) {
+      toast.error('Failed to log in. Please check your credentials.');
+    }
+  };
+
+  return (
+    <div className="min-h-screen flex flex-col bg-gray-100">
+      <div className="flex-1 flex items-center justify-center py-12 px-4 sm:px-6 lg:px-8">
+        <div className="max-w-md w-full space-y-8">
+          <div className="text-center">
+            <h2 className="mt-6 text-3xl font-extrabold text-gray-900">Admin Login</h2>
+            <p className="mt-2 text-sm text-gray-600">
+              Enter your credentials to access the admin panel
+            </p>
+          </div>
+          
+          <div className="mt-4">
+            <Alert className="bg-blue-50 border-blue-200">
+              <Info className="h-4 w-4 text-blue-500" />
+              <AlertDescription className="text-sm text-blue-700">
+                Use <strong>admin@showtix.com</strong> with your password to access the admin panel.
+              </AlertDescription>
+            </Alert>
+          </div>
+          
+          <div className="mt-8 sm:mx-auto sm:w-full sm:max-w-md">
+            <div className="bg-white py-8 px-4 shadow sm:rounded-lg sm:px-10">
+              <form className="space-y-6" onSubmit={handleSubmit}>
+                <div>
+                  <Label htmlFor="admin-email">Admin Email</Label>
+                  <div className="mt-1 relative rounded-md shadow-sm">
+                    <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+                      <Mail className="h-5 w-5 text-gray-400" />
+                    </div>
+                    <Input
+                      id="admin-email"
+                      name="email"
+                      type="email"
+                      autoComplete="email"
+                      required
+                      value={email}
+                      onChange={(e) => setEmail(e.target.value)}
+                      className="pl-10"
+                      placeholder="admin@showtix.com"
+                    />
+                  </div>
+                </div>
+
+                <div>
+                  <Label htmlFor="admin-password">Password</Label>
+                  <div className="mt-1 relative rounded-md shadow-sm">
+                    <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+                      <Lock className="h-5 w-5 text-gray-400" />
+                    </div>
+                    <Input
+                      id="admin-password"
+                      name="password"
+                      type="password"
+                      autoComplete="current-password"
+                      required
+                      value={password}
+                      onChange={(e) => setPassword(e.target.value)}
+                      className="pl-10"
+                      placeholder="Enter your password"
+                    />
+                  </div>
+                </div>
+
+                <div>
+                  <button
+                    type="submit"
+                    disabled={isLoading}
+                    className="w-full flex justify-center py-2 px-4 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-indigo-600 hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500"
+                  >
+                    {isLoading ? (
+                      <>
+                        <Loader2 className="animate-spin -ml-1 mr-2 h-4 w-4" />
+                        Signing in...
+                      </>
+                    ) : (
+                      'Sign in to Admin Panel'
+                    )}
+                  </button>
+                </div>
+              </form>
+
+              <div className="mt-6 text-center">
+                <a href="/" className="text-sm text-indigo-600 hover:text-indigo-500">
+                  Return to main website
+                </a>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+      
+      <footer className="py-4 text-center text-sm text-gray-500">
+        &copy; {new Date().getFullYear()} ShowTix Admin Portal. All rights reserved.
+      </footer>
+    </div>
+  );
+};
+
+export default AdminLoginPage;

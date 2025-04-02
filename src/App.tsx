@@ -20,10 +20,25 @@ import AdminEvents from "./pages/admin/Events";
 import AdminUsers from "./pages/admin/Users";
 import AdminBookings from "./pages/admin/Bookings";
 import AdminReports from "./pages/admin/Reports";
+import AdminLoginPage from "./pages/admin/LoginPage";
 import NotFound from "./pages/NotFound";
+import { useAuth } from "./contexts/AuthContext";
 
 // Create a wrapper component for admin routes
 const AdminRoute = ({ element }: { element: React.ReactNode }) => {
+  const { isAdmin, isLoading } = useAuth();
+  
+  // If still loading auth state, show nothing yet
+  if (isLoading) {
+    return null;
+  }
+  
+  // If not an admin, redirect to admin login
+  if (!isAdmin) {
+    return <Navigate to="/admin/login" replace />;
+  }
+  
+  // If admin, show the requested page
   return element;
 };
 
@@ -48,6 +63,9 @@ const App = () => (
             <Route path="/my-bookings" element={<MyBookings />} />
             <Route path="/movies" element={<MoviesPage />} />
             <Route path="/live-events" element={<LiveEventsPage />} />
+            
+            {/* Admin login route */}
+            <Route path="/admin/login" element={<AdminLoginPage />} />
             
             {/* Admin routes */}
             <Route path="/admin" element={<AdminRoute element={<AdminDashboard />} />} />

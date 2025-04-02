@@ -1,7 +1,7 @@
 
 import { useState, useEffect } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
-import { Bell, Search, Menu, User, LogOut } from 'lucide-react';
+import { Bell, Search, Menu, User, LogOut, Shield } from 'lucide-react';
 import { useAuth } from '@/contexts/AuthContext';
 import MainNavigation from '@/components/MainNavigation';
 import CitySelector from '@/components/CitySelector';
@@ -11,7 +11,7 @@ interface HeaderProps {
 }
 
 export const Header = ({ transparent = false }: HeaderProps) => {
-  const { user, profile, signOut } = useAuth();
+  const { user, profile, signOut, isAdmin } = useAuth();
   const [isScrolled, setIsScrolled] = useState(false);
   const [isMenuOpen, setIsMenuOpen] = useState(false);
   const [showCitySelector, setShowCitySelector] = useState(false);
@@ -112,6 +112,18 @@ export const Header = ({ transparent = false }: HeaderProps) => {
                       >
                         My Bookings
                       </Link>
+                      {isAdmin && (
+                        <Link
+                          to="/admin"
+                          className="block px-4 py-2 text-sm text-indigo-600 hover:bg-gray-100"
+                          onClick={() => setIsMenuOpen(false)}
+                        >
+                          <div className="flex items-center">
+                            <Shield className="w-4 h-4 mr-2" />
+                            Admin Panel
+                          </div>
+                        </Link>
+                      )}
                       <button
                         onClick={handleSignOut}
                         className="block w-full text-left px-4 py-2 text-sm text-red-500 hover:bg-gray-100"
@@ -122,9 +134,15 @@ export const Header = ({ transparent = false }: HeaderProps) => {
                   )}
                 </div>
               ) : (
-                <Link to="/login" className="btn-primary">
-                  Sign In
-                </Link>
+                <div className="flex items-center gap-2">
+                  <Link to="/login" className="btn-primary">
+                    Sign In
+                  </Link>
+                  <Link to="/admin/login" className="text-sm text-gray-600 hover:text-indigo-600 flex items-center">
+                    <Shield className="w-4 h-4 mr-1" />
+                    Admin
+                  </Link>
+                </div>
               )}
             </div>
             
@@ -152,9 +170,14 @@ export const Header = ({ transparent = false }: HeaderProps) => {
                   )}
                 </button>
               ) : (
-                <Link to="/login" className="btn-primary text-sm py-1 px-3">
-                  Sign In
-                </Link>
+                <div className="flex items-center gap-2">
+                  <Link to="/login" className="btn-primary text-sm py-1 px-3">
+                    Sign In
+                  </Link>
+                  <Link to="/admin/login" className="p-1">
+                    <Shield className="w-4 h-4 text-gray-600" />
+                  </Link>
+                </div>
               )}
             </div>
           </div>
