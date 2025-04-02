@@ -1,5 +1,6 @@
 
-import { Alert, AlertDescription, AlertTitle, AlertTriangle } from '@/components/ui/alert';
+import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
+import { AlertTriangle } from 'lucide-react';
 
 interface PaymentSummaryCardProps {
   amount: number;
