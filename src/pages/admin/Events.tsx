@@ -1,9 +1,9 @@
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
 import AdminLayout from '@/components/admin/AdminLayout';
 import { useAuth } from '@/contexts/AuthContext';
-import { supabase, db } from '@/integrations/supabase/client';
+import { db } from '@/integrations/supabase/client';
 import EventEditor from '@/components/admin/EventEditor';
 import { 
   Plus, 
@@ -18,6 +18,7 @@ import {
 } from 'lucide-react';
 import { toast } from 'sonner';
 import { Card } from '@/components/ui/card';
+import { Button } from '@/components/ui/button';
 
 interface Event {
   id: string;
@@ -49,71 +50,81 @@ const AdminEvents = () => {
   const navigate = useNavigate();
   const [searchParams, setSearchParams] = useSearchParams();
   const editMode = searchParams.get('edit');
+  const addMode = searchParams.get('add');
   const [activeTab, setActiveTab] = useState('events');
   const [events, setEvents] = useState<Event[]>([]);
   const [movies, setMovies] = useState<Movie[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState('');
   
+  const fetchEvents = useCallback(async () => {
+    try {
+      setIsLoading(true);
+      const { data, error } = await db.events()
+        .select('*')
+        .order('created_at', { ascending: false });
+        
+      if (error) throw error;
+      setEvents(data || []);
+    } catch (error) {
+      console.error('Error fetching events:', error);
+      toast.error('Failed to load events');
+    } finally {
+      setIsLoading(false);
+    }
+  }, []);
+
+  const fetchMovies = useCallback(async () => {
+    try {
+      setIsLoading(true);
+      const { data, error } = await db.movies()
+        .select('*')
+        .order('created_at', { ascending: false });
+        
+      if (error) throw error;
+      setMovies(data || []);
+    } catch (error) {
+      console.error('Error fetching movies:', error);
+      toast.error('Failed to load movies');
+    } finally {
+      setIsLoading(false);
+    }
+  }, []);
+  
   useEffect(() => {
-    const checkAdmin = async () => {
-      if (!user) {
-        navigate('/login');
-        return;
-      }
-      
-      // In a real app, you would check if the user has admin privileges
-    };
-    
-    checkAdmin();
+    if (!user) {
+      navigate('/login');
+      return;
+    }
   }, [user, navigate]);
   
   useEffect(() => {
-    const fetchData = async () => {
-      try {
-        setIsLoading(true);
-        
-        if (activeTab === 'events') {
-          const { data, error } = await db.events()
-            .select('*')
-            .order('created_at', { ascending: false });
-            
-          if (error) throw error;
-          setEvents(data || []);
-        } else {
-          const { data, error } = await db.movies()
-            .select('*')
-            .order('created_at', { ascending: false });
-            
-          if (error) throw error;
-          setMovies(data || []);
-        }
-      } catch (error) {
-        console.error(`Error fetching ${activeTab}:`, error);
-        toast.error(`Failed to load ${activeTab}`);
-      } finally {
-        setIsLoading(false);
-      }
-    };
-    
     if (user) {
-      fetchData();
+      if (activeTab === 'events') {
+        fetchEvents();
+      } else {
+        fetchMovies();
+      }
     }
-  }, [user, activeTab]);
+  }, [user, activeTab, fetchEvents, fetchMovies]);
   
   const filteredEvents = events.filter(event => 
-    event.title.toLowerCase().includes(searchTerm.toLowerCase()) ||
-    event.category.toLowerCase().includes(searchTerm.toLowerCase()) ||
-    event.city.toLowerCase().includes(searchTerm.toLowerCase())
+    event.title?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+    event.category?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+    event.city?.toLowerCase().includes(searchTerm.toLowerCase())
   );
   
   const filteredMovies = movies.filter(movie => 
-    movie.title.toLowerCase().includes(searchTerm.toLowerCase()) ||
-    movie.genre.toLowerCase().includes(searchTerm.toLowerCase()) ||
-    movie.language.toLowerCase().includes(searchTerm.toLowerCase())
+    movie.title?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+    movie.genre?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+    movie.language?.toLowerCase().includes(searchTerm.toLowerCase())
   );
   
   const handleDeleteEvent = async (id: string) => {
+    if (!window.confirm('Are you sure you want to delete this event?')) {
+      return;
+    }
+    
     try {
       const { error } = await db.events()
         .delete()
@@ -130,6 +141,10 @@ const AdminEvents = () => {
   };
   
   const handleDeleteMovie = async (id: string) => {
+    if (!window.confirm('Are you sure you want to delete this movie?')) {
+      return;
+    }
+    
     try {
       const { error } = await db.movies()
         .delete()
@@ -162,49 +177,19 @@ const AdminEvents = () => {
       fetchMovies();
     }
   };
-
-  const fetchEvents = async () => {
-    try {
-      setIsLoading(true);
-      const { data, error } = await db.events()
-        .select('*')
-        .order('created_at', { ascending: false });
-        
-      if (error) throw error;
-      setEvents(data || []);
-    } catch (error) {
-      console.error('Error fetching events:', error);
-      toast.error('Failed to load events');
-    } finally {
-      setIsLoading(false);
-    }
-  };
-
-  const fetchMovies = async () => {
-    try {
-      setIsLoading(true);
-      const { data, error } = await db.movies()
-        .select('*')
-        .order('created_at', { ascending: false });
-        
-      if (error) throw error;
-      setMovies(data || []);
-    } finally {
-      setIsLoading(false);
-    }
-  };
   
   // If we're in edit mode or add mode, show the editor
-  if (editMode || searchParams.get('add')) {
+  if (editMode || addMode) {
     return (
       <AdminLayout title={editMode ? "Edit Event" : "Add New Event"}>
         <div className="mb-4">
-          <button 
+          <Button 
             onClick={closeEditor}
+            variant="ghost"
             className="text-blue-600 hover:text-blue-800 flex items-center gap-2"
           >
             ← Back to Events
-          </button>
+          </Button>
         </div>
         <EventEditor eventId={editMode || undefined} />
       </AdminLayout>
@@ -255,18 +240,21 @@ const AdminEvents = () => {
             </div>
             
             <div className="flex items-center gap-2 w-full sm:w-auto">
-              <button className="btn-outline px-4 py-2 flex items-center gap-2 border rounded-lg">
+              <Button 
+                variant="outline" 
+                className="px-4 py-2 flex items-center gap-2 border rounded-lg"
+              >
                 <Filter className="h-4 w-4" />
                 <span>Filter</span>
-              </button>
+              </Button>
               
-              <button 
-                className="btn-primary px-4 py-2 flex items-center gap-2 bg-[#ff2366] hover:bg-[#e01f59] text-white rounded-lg"
+              <Button 
+                className="bg-[#ff2366] hover:bg-[#e01f59] text-white px-4 py-2 flex items-center gap-2 rounded-lg"
                 onClick={handleAddEvent}
               >
                 <Plus className="h-4 w-4" />
                 <span>{activeTab === 'events' ? 'Add Event' : 'Add Movie'}</span>
-              </button>
+              </Button>
             </div>
           </div>
           
@@ -364,21 +352,29 @@ const AdminEvents = () => {
                         </td>
                         <td className="px-4 py-4 whitespace-nowrap text-sm text-gray-500">
                           <div className="flex items-center space-x-2">
-                            <button 
+                            <Button
+                              variant="ghost" 
+                              size="sm"
                               className="p-1 text-blue-600 hover:text-blue-800"
                               onClick={() => handleEditEvent(event.id)}
                             >
                               <Edit className="h-4 w-4" />
-                            </button>
-                            <button 
+                            </Button>
+                            <Button
+                              variant="ghost"
+                              size="sm" 
                               className="p-1 text-red-600 hover:text-red-800"
                               onClick={() => handleDeleteEvent(event.id)}
                             >
                               <Trash2 className="h-4 w-4" />
-                            </button>
-                            <button className="p-1 text-gray-600 hover:text-gray-800">
+                            </Button>
+                            <Button
+                              variant="ghost"
+                              size="sm"
+                              className="p-1 text-gray-600 hover:text-gray-800"
+                            >
                               <MoreVertical className="h-4 w-4" />
-                            </button>
+                            </Button>
                           </div>
                         </td>
                       </tr>
@@ -415,7 +411,7 @@ const AdminEvents = () => {
                 <tbody className="divide-y divide-gray-200">
                   {filteredMovies.length === 0 ? (
                     <tr>
-                      <td colSpan={7} className="px-4 py-6 text-center text-gray-500">
+                      <td colSpan={6} className="px-4 py-6 text-center text-gray-500">
                         No movies found
                       </td>
                     </tr>
@@ -465,18 +461,28 @@ const AdminEvents = () => {
                         </td>
                         <td className="px-4 py-4 whitespace-nowrap text-sm text-gray-500">
                           <div className="flex items-center space-x-2">
-                            <button className="p-1 text-blue-600 hover:text-blue-800">
+                            <Button
+                              variant="ghost" 
+                              size="sm"
+                              className="p-1 text-blue-600 hover:text-blue-800"
+                            >
                               <Edit className="h-4 w-4" />
-                            </button>
-                            <button 
+                            </Button>
+                            <Button
+                              variant="ghost"
+                              size="sm" 
                               className="p-1 text-red-600 hover:text-red-800"
                               onClick={() => handleDeleteMovie(movie.id)}
                             >
                               <Trash2 className="h-4 w-4" />
-                            </button>
-                            <button className="p-1 text-gray-600 hover:text-gray-800">
+                            </Button>
+                            <Button
+                              variant="ghost"
+                              size="sm"
+                              className="p-1 text-gray-600 hover:text-gray-800"
+                            >
                               <MoreVertical className="h-4 w-4" />
-                            </button>
+                            </Button>
                           </div>
                         </td>
                       </tr>

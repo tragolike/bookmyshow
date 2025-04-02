@@ -17,6 +17,8 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import SeatLayoutEditor from './SeatLayoutEditor';
+import { useForm } from 'react-hook-form';
+import { Form, FormControl, FormField, FormItem, FormLabel } from '@/components/ui/form';
 
 interface EventEditorProps {
   eventId?: string;
@@ -26,7 +28,7 @@ const EventEditor = ({ eventId }: EventEditorProps) => {
   const navigate = useNavigate();
   const [isLoading, setIsLoading] = useState(false);
   const [isSaving, setIsSaving] = useState(false);
-  const [event, setEvent] = useState({
+  const [initialEvent, setInitialEvent] = useState({
     title: '',
     category: 'concert',
     date: '',
@@ -94,7 +96,7 @@ const EventEditor = ({ eventId }: EventEditorProps) => {
         if (error) throw error;
         
         if (data) {
-          setEvent(data);
+          setInitialEvent(data);
         } else {
           toast.error('Event not found');
           navigate('/admin/events');
@@ -111,7 +113,14 @@ const EventEditor = ({ eventId }: EventEditorProps) => {
     fetchEvent();
   }, [eventId, navigate]);
   
-  const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) => {
+  const [event, setEvent] = useState(initialEvent);
+  
+  // Update event state when initialEvent changes
+  useEffect(() => {
+    setEvent(initialEvent);
+  }, [initialEvent]);
+  
+  const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const { name, value } = e.target;
     
     setEvent(prev => ({
@@ -130,6 +139,11 @@ const EventEditor = ({ eventId }: EventEditorProps) => {
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     
+    if (!event.title || !event.date || !event.time || !event.venue || !event.city || !event.image) {
+      toast.error('Please fill in all required fields');
+      return;
+    }
+    
     setIsSaving(true);
     try {
       if (eventId) {
@@ -141,7 +155,6 @@ const EventEditor = ({ eventId }: EventEditorProps) => {
         if (error) throw error;
         
         toast.success('Event updated successfully');
-        navigate('/admin/events');
       } else {
         // Create new event
         const { data, error } = await db.events()
@@ -152,8 +165,16 @@ const EventEditor = ({ eventId }: EventEditorProps) => {
         if (error) throw error;
         
         toast.success('Event created successfully');
-        navigate('/admin/events?edit=' + data.id);
+        
+        if (data) {
+          // Go to event edit page with newly created event
+          navigate(`/admin/events?edit=${data.id}`);
+          return;
+        }
       }
+      
+      // Go back to events list
+      navigate('/admin/events');
     } catch (error) {
       console.error('Error saving event:', error);
       toast.error('Failed to save event');
@@ -339,7 +360,7 @@ const EventEditor = ({ eventId }: EventEditorProps) => {
               <Button
                 type="submit"
                 disabled={isSaving}
-                className="bg-[#ff2366] hover:bg-[#e01f59]"
+                className="bg-[#ff2366] hover:bg-[#e01f59] text-white"
               >
                 {isSaving ? (
                   <>
