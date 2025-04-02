@@ -1,7 +1,6 @@
-
 import { useState, useEffect } from 'react';
 import { toast } from 'sonner';
-import { getPaymentSettings, updatePaymentSettings, uploadFile } from '@/integrations/supabase/client';
+import { supabase } from '@/integrations/supabase/client';
 import { Button } from '@/components/ui/button';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Loader2 } from 'lucide-react';
@@ -19,13 +18,32 @@ const PaymentSettingsForm = () => {
   const { user } = useAuth();
   const queryClient = useQueryClient();
   
-  // Use React Query with cache busting to ensure we get latest data
+  // Use a direct database query for guaranteed fresh data
+  const fetchSettings = async () => {
+    console.log('Fetching payment settings directly from database...');
+    const { data, error } = await supabase
+      .from('payment_settings')
+      .select('*')
+      .order('updated_at', { ascending: false })
+      .limit(1)
+      .single();
+      
+    if (error) {
+      console.error('Direct SQL error fetching payment settings:', error);
+      throw error;
+    }
+    
+    console.log('Direct SQL payment settings fetched:', data);
+    return { data };
+  };
+  
+  // Use React Query with cache busting
   const { data, isLoading, error } = useQuery({
-    queryKey: ['paymentSettings'],
-    queryFn: getPaymentSettings,
+    queryKey: ['paymentSettings', Date.now()], // Add timestamp to force refresh
+    queryFn: fetchSettings,
     refetchOnWindowFocus: true,
-    staleTime: 0, // Don't use stale data
-    gcTime: 5000, // Short cache time (renamed from cacheTime)
+    staleTime: 0, // Always fetch fresh data
+    gcTime: 0, // Don't cache the data
   });
   
   // Update local state when data is fetched
@@ -38,19 +56,6 @@ const PaymentSettingsForm = () => {
     }
   }, [data]);
   
-  const mutation = useMutation({
-    mutationFn: updatePaymentSettings,
-    onSuccess: () => {
-      toast.success('Payment settings updated successfully');
-      // Force refresh of payment settings data
-      queryClient.invalidateQueries({ queryKey: ['paymentSettings'] });
-    },
-    onError: (error) => {
-      console.error('Failed to update payment settings:', error);
-      toast.error('Failed to update payment settings. Please try again.');
-    }
-  });
-
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     
@@ -59,31 +64,75 @@ const PaymentSettingsForm = () => {
       return;
     }
     
-    // Explicitly log what we're sending to the server
-    console.log('Submitting payment settings:', {
-      upi_id: upiId,
-      qr_code_url: qrCodeUrl,
-      payment_instructions: instructions,
-      updated_by: user?.id
-    });
-    
-    try {
-      const result = await updatePaymentSettings({
+    // Direct database update for guaranteed write
+    const saveSettings = async () => {
+      console.log('Saving payment settings directly to database...');
+      
+      // Check if settings exist
+      const { data: existingData, error: checkError } = await supabase
+        .from('payment_settings')
+        .select('id')
+        .limit(1)
+        .single();
+      
+      if (checkError && checkError.code !== 'PGRST116') {
+        // If error is not "no rows returned", it's a real error
+        console.error('Error checking payment settings:', checkError);
+        throw checkError;
+      }
+      
+      const settingsData = {
         upi_id: upiId,
         qr_code_url: qrCodeUrl,
         payment_instructions: instructions,
-        updated_by: user?.id
-      });
+        updated_by: user?.id,
+        updated_at: new Date().toISOString() // Force update timestamp
+      };
+      
+      let result;
+      // If settings exist, update them
+      if (existingData?.id) {
+        console.log('Updating existing settings with ID:', existingData.id);
+        result = await supabase
+          .from('payment_settings')
+          .update(settingsData)
+          .eq('id', existingData.id)
+          .select();
+      } else {
+        // Otherwise, insert new settings
+        console.log('Creating new payment settings');
+        result = await supabase
+          .from('payment_settings')
+          .insert(settingsData)
+          .select();
+      }
       
       if (result.error) {
+        console.error('Error saving payment settings:', result.error);
         throw result.error;
       }
       
-      toast.success('Payment settings updated successfully');
+      console.log('Payment settings saved successfully:', result.data);
+      return result.data;
+    };
+    
+    try {
+      toast.loading('Saving payment settings...');
+      await saveSettings();
+      toast.dismiss();
+      toast.success('Payment settings saved successfully');
+      
+      // Force refresh all payment settings data
       queryClient.invalidateQueries({ queryKey: ['paymentSettings'] });
+      
+      // Wait a moment to ensure the database update is complete
+      setTimeout(() => {
+        queryClient.invalidateQueries({ queryKey: ['paymentSettings'] });
+      }, 1000);
     } catch (error: any) {
-      console.error('Error updating payment settings:', error);
-      toast.error(`Failed to update payment settings: ${error.message || 'Unknown error'}`);
+      toast.dismiss();
+      console.error('Failed to save payment settings:', error);
+      toast.error(`Failed to save settings: ${error.message || 'Unknown error'}`);
     }
   };
 
@@ -94,8 +143,7 @@ const PaymentSettingsForm = () => {
     }
     
     try {
-      // In a real app, this would call an API to generate a QR code
-      // For now, we'll use an external QR code generator
+      // Use an external QR code generator
       const qrCodeApiUrl = `https://api.qrserver.com/v1/create-qr-code/?size=200x200&data=upi://pay?pa=${encodeURIComponent(upiId)}&pn=ShowTix&cache=${Date.now()}`;
       
       setQrCodeUrl(qrCodeApiUrl);
@@ -119,13 +167,17 @@ const PaymentSettingsForm = () => {
     
     try {
       toast.info('Uploading QR code...');
-      const { url, error } = await uploadFile(file, 'brand_assets', 'qr_codes');
+      const { url, error } = await supabase.storage
+        .from('brand_assets')
+        .upload(`qr_codes/${file.name}`, file, {
+          cacheControl: '3600',
+          upsert: false
+        });
+      
       if (error) throw error;
-      if (url) {
-        console.log('QR code uploaded successfully to:', url);
-        setQrCodeUrl(url);
-        toast.success('QR code uploaded successfully');
-      }
+      
+      setQrCodeUrl(url);
+      toast.success('QR code uploaded successfully');
     } catch (error) {
       console.error('QR code upload error:', error);
       toast.error('Failed to upload QR code');
@@ -163,17 +215,9 @@ const PaymentSettingsForm = () => {
           
           <Button 
             type="submit" 
-            disabled={mutation.isPending}
             className="ml-auto bg-[#ff2366] hover:bg-[#e01f59] text-white"
           >
-            {mutation.isPending ? (
-              <>
-                <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                Saving...
-              </>
-            ) : (
-              'Save Settings'
-            )}
+            Save Settings
           </Button>
         </div>
       

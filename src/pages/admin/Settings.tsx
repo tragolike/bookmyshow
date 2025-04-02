@@ -9,6 +9,7 @@ import NotificationSettings from '@/components/admin/NotificationSettings';
 import SystemSettings from '@/components/admin/SystemSettings';
 import SeatCategoryManager from '@/components/admin/SeatCategoryManager';
 import HeroSectionSettings from '@/components/admin/HeroSectionSettings';
+import HeroSliderManager from '@/components/admin/HeroSliderManager';
 
 const AdminSettings = () => {
   const [activeTab, setActiveTab] = useState('branding');
@@ -72,6 +73,7 @@ const AdminSettings = () => {
         
         <TabsContent value="hero" className="space-y-6">
           <HeroSectionSettings />
+          <HeroSliderManager />
         </TabsContent>
         
         <TabsContent value="payment" className="space-y-6">
