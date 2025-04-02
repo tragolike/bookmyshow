@@ -263,7 +263,7 @@ const PaymentSettings = () => {
                 </div>
               </div>
               
-              <Alert variant="info">
+              <Alert>
                 <Info className="h-4 w-4" />
                 <AlertTitle>Important Note</AlertTitle>
                 <AlertDescription>
@@ -300,7 +300,7 @@ const PaymentSettings = () => {
               </div>
               
               <div className="mt-6">
-                <Alert variant="warning">
+                <Alert>
                   <HelpCircle className="h-4 w-4" />
                   <AlertTitle>UTR Verification Process</AlertTitle>
                   <AlertDescription>

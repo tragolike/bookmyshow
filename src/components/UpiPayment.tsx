@@ -228,7 +228,7 @@ const UpiPayment = ({ amount, reference, onComplete }: UpiPaymentProps) => {
                   </div>
                 </div>
                 
-                <Alert variant="warning">
+                <Alert>
                   <AlertTriangle className="h-4 w-4" />
                   <AlertTitle>Important</AlertTitle>
                   <AlertDescription>
