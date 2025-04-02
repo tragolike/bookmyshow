@@ -20,13 +20,59 @@ export const db = {
   events: () => supabase.from('events'),
   movies: () => supabase.from('movies'),
   bookings: () => supabase.from('bookings'),
-  // For cities and countries, we need to temporarily use any typing since these tables
-  // need to be added to our database schema later
-  cities: () => (supabase.from('cities') as any),
-  countries: () => (supabase.from('countries') as any)
+  // For cities and countries, we need proper type definitions
+  cities: () => supabase.from('cities') as any,
+  countries: () => supabase.from('countries') as any
 };
 
 // Type definitions for common data types
 export type BookingStatus = 'confirmed' | 'pending' | 'cancelled';
 export type PaymentStatus = 'completed' | 'pending' | 'failed';
 export type EventStatus = 'fast-filling' | 'sold-out' | 'available';
+
+// Helper function to get event by ID - centralized logic to prevent 404 errors
+export const getEventById = async (id: string) => {
+  try {
+    const { data, error } = await db.events()
+      .select('*')
+      .eq('id', id)
+      .single();
+      
+    if (error) throw error;
+    return { data, error: null };
+  } catch (error) {
+    console.error('Error fetching event by ID:', error);
+    return { data: null, error };
+  }
+};
+
+// Helper function to get events by city - to fix city-based filtering
+export const getEventsByCity = async (city: string) => {
+  try {
+    const { data, error } = await db.events()
+      .select('*')
+      .eq('city', city);
+      
+    if (error) throw error;
+    return { data, error: null };
+  } catch (error) {
+    console.error('Error fetching events by city:', error);
+    return { data: null, error };
+  }
+};
+
+// Helper function to get latest events - for homepage
+export const getLatestEvents = async (limit = 6) => {
+  try {
+    const { data, error } = await db.events()
+      .select('*')
+      .order('created_at', { ascending: false })
+      .limit(limit);
+      
+    if (error) throw error;
+    return { data, error: null };
+  } catch (error) {
+    console.error('Error fetching latest events:', error);
+    return { data: null, error };
+  }
+};

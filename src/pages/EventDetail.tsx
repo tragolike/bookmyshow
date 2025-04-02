@@ -1,18 +1,128 @@
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { Calendar, Clock, MapPin, Share2, Heart, ChevronRight, Users, Info } from 'lucide-react';
 import { Header } from '@/components/Header';
 import Footer from '@/components/Footer';
 import { toast } from 'sonner';
+import { getEventById } from '@/integrations/supabase/client';
+import { Skeleton } from '@/components/ui/skeleton';
 
 const EventDetail = () => {
   const { id } = useParams();
   const navigate = useNavigate();
   const [isInterested, setIsInterested] = useState(false);
+  const [event, setEvent] = useState(null);
+  const [isLoading, setIsLoading] = useState(true);
+  const [error, setError] = useState(null);
   
-  // Mock event data (in a real app, this would come from an API)
-  const event = {
+  useEffect(() => {
+    const fetchEventDetails = async () => {
+      if (!id) return;
+      
+      setIsLoading(true);
+      const { data, error } = await getEventById(id);
+      
+      if (error || !data) {
+        console.error('Error fetching event:', error);
+        setError('Event not found or an error occurred');
+        toast.error('Could not load event details');
+      } else {
+        setEvent(data);
+      }
+      
+      setIsLoading(false);
+    };
+    
+    fetchEventDetails();
+  }, [id]);
+  
+  const handleToggleInterest = () => {
+    setIsInterested(!isInterested);
+    toast.success(`${isInterested ? 'Removed from' : 'Added to'} your interests`);
+  };
+  
+  const handleShare = () => {
+    if (navigator.share) {
+      navigator.share({
+        title: event?.title,
+        text: event?.subtitle,
+        url: window.location.href,
+      }).catch(err => {
+        console.error('Error sharing:', err);
+      });
+    } else {
+      // Fallback copy to clipboard
+      navigator.clipboard.writeText(window.location.href);
+      toast.success('Link copied to clipboard!');
+    }
+  };
+  
+  const handleBookNow = () => {
+    navigate(`/events/${id}/booking`);
+  };
+  
+  // Show loading state
+  if (isLoading) {
+    return (
+      <div className="min-h-screen flex flex-col">
+        <Header />
+        <main className="flex-1 container mx-auto px-4 py-8">
+          <div className="animate-pulse">
+            <div className="flex flex-col md:flex-row gap-8">
+              <div className="md:w-1/3">
+                <div className="aspect-[3/4] bg-gray-300 rounded-xl"></div>
+              </div>
+              <div className="md:w-2/3 space-y-4">
+                <div className="h-8 bg-gray-300 rounded w-3/4"></div>
+                <div className="h-4 bg-gray-200 rounded w-full"></div>
+                <div className="h-4 bg-gray-200 rounded w-5/6"></div>
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mt-8">
+                  <div className="space-y-2">
+                    {[1, 2, 3].map(i => (
+                      <div key={i} className="flex items-start gap-3">
+                        <div className="w-5 h-5 bg-gray-300 rounded"></div>
+                        <div className="space-y-1">
+                          <div className="h-4 bg-gray-300 rounded w-24"></div>
+                          <div className="h-3 bg-gray-200 rounded w-16"></div>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </main>
+        <Footer />
+      </div>
+    );
+  }
+  
+  // Show error state
+  if (error || !event) {
+    return (
+      <div className="min-h-screen flex flex-col">
+        <Header />
+        <main className="flex-1 container mx-auto px-4 py-8">
+          <div className="text-center py-16">
+            <h1 className="text-3xl font-bold text-gray-800 mb-4">Event Not Found</h1>
+            <p className="text-gray-600 mb-8">The event you're looking for doesn't exist or has been removed.</p>
+            <button 
+              onClick={() => navigate('/live-events')}
+              className="btn-primary"
+            >
+              Browse All Events
+            </button>
+          </div>
+        </main>
+        <Footer />
+      </div>
+    );
+  }
+  
+  // Render the mock data for demo purposes if there's no actual data yet
+  const eventData = event || {
     id: 'kkr-vs-rcb',
     title: 'Kolkata Knight Riders vs Royal Challengers Bengaluru',
     subtitle: 'The Champions are back! The IPL 2025 season opener sees the champions face the Royal Challengers Bengaluru at Eden Gardens.',
@@ -33,29 +143,6 @@ const EventDetail = () => {
     status: 'fast-filling'
   };
   
-  const handleToggleInterest = () => {
-    setIsInterested(!isInterested);
-    toast.success(`${isInterested ? 'Removed from' : 'Added to'} your interests`);
-  };
-  
-  const handleShare = () => {
-    if (navigator.share) {
-      navigator.share({
-        title: event.title,
-        text: event.subtitle,
-        url: window.location.href,
-      }).catch(err => {
-        console.error('Error sharing:', err);
-      });
-    } else {
-      toast.success('Link copied to clipboard!');
-    }
-  };
-  
-  const handleBookNow = () => {
-    navigate(`/events/${id}/booking`);
-  };
-  
   return (
     <div className="min-h-screen flex flex-col">
       <Header />
@@ -65,9 +152,12 @@ const EventDetail = () => {
         <div className="relative bg-book-dark">
           <div className="absolute inset-0 overflow-hidden">
             <img 
-              src={event.image} 
-              alt={event.title} 
+              src={eventData.image} 
+              alt={eventData.title} 
               className="w-full h-full object-cover opacity-40"
+              onError={(e) => {
+                (e.target as HTMLImageElement).src = "/placeholder.svg";
+              }}
             />
             <div className="absolute inset-0 bg-gradient-to-t from-book-dark to-transparent" />
           </div>
@@ -78,9 +168,12 @@ const EventDetail = () => {
               <div className="md:w-1/3 flex-shrink-0">
                 <div className="rounded-xl overflow-hidden shadow-xl aspect-[3/4] bg-white/5 backdrop-blur-sm border border-white/10">
                   <img 
-                    src={event.image} 
-                    alt={event.title} 
+                    src={eventData.image} 
+                    alt={eventData.title} 
                     className="w-full h-full object-cover"
+                    onError={(e) => {
+                      (e.target as HTMLImageElement).src = "/placeholder.svg";
+                    }}
                   />
                 </div>
               </div>
@@ -89,13 +182,13 @@ const EventDetail = () => {
               <div className="md:w-2/3 text-white">
                 <div className="mb-6">
                   <span className="chip bg-book-primary mb-3">
-                    {event.category}
+                    {eventData.category}
                   </span>
                   <h1 className="text-3xl md:text-4xl font-bold mb-4">
-                    {event.title}
+                    {eventData.title}
                   </h1>
                   <p className="text-lg text-white/80 mb-6">
-                    {event.subtitle}
+                    {eventData.subtitle}
                   </p>
                 </div>
                 
@@ -105,7 +198,7 @@ const EventDetail = () => {
                     <div className="flex items-start gap-3">
                       <Calendar className="w-5 h-5 text-book-primary mt-0.5" />
                       <div>
-                        <div className="font-semibold">{event.date}</div>
+                        <div className="font-semibold">{eventData.date}</div>
                         <div className="text-sm text-white/70">Date</div>
                       </div>
                     </div>
@@ -113,7 +206,7 @@ const EventDetail = () => {
                     <div className="flex items-start gap-3">
                       <Clock className="w-5 h-5 text-book-primary mt-0.5" />
                       <div>
-                        <div className="font-semibold">{event.time}</div>
+                        <div className="font-semibold">{eventData.time}</div>
                         <div className="text-sm text-white/70">Time</div>
                       </div>
                     </div>
@@ -121,8 +214,8 @@ const EventDetail = () => {
                     <div className="flex items-start gap-3">
                       <MapPin className="w-5 h-5 text-book-primary mt-0.5" />
                       <div>
-                        <div className="font-semibold">{event.venue}</div>
-                        <div className="text-sm text-white/70">{event.city}</div>
+                        <div className="font-semibold">{eventData.venue}</div>
+                        <div className="text-sm text-white/70">{eventData.city}</div>
                       </div>
                     </div>
                   </div>
@@ -131,7 +224,7 @@ const EventDetail = () => {
                     <div className="flex items-start gap-3">
                       <Users className="w-5 h-5 text-book-primary mt-0.5" />
                       <div>
-                        <div className="font-semibold">{event.ageLimit}</div>
+                        <div className="font-semibold">{eventData.ageLimit}</div>
                         <div className="text-sm text-white/70">Age Limit</div>
                       </div>
                     </div>
@@ -141,7 +234,7 @@ const EventDetail = () => {
                         <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 5h12M9 3v2m1.048 9.5A18.022 18.022 0 016.412 9m6.088 9h7M11 21l5-10 5 10M12.751 5C11.783 10.77 8.07 15.61 3 18.129" />
                       </svg>
                       <div>
-                        <div className="font-semibold">{event.language}</div>
+                        <div className="font-semibold">{eventData.language}</div>
                         <div className="text-sm text-white/70">Language</div>
                       </div>
                     </div>
@@ -151,7 +244,7 @@ const EventDetail = () => {
                         <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
                       </svg>
                       <div>
-                        <div className="font-semibold">{event.duration}</div>
+                        <div className="font-semibold">{eventData.duration}</div>
                         <div className="text-sm text-white/70">Duration</div>
                       </div>
                     </div>
@@ -163,7 +256,7 @@ const EventDetail = () => {
                   <div>
                     <div className="text-lg">Ticket Price</div>
                     <div className="text-2xl font-bold">
-                      ₹{event.price.min.toLocaleString()} - ₹{event.price.max.toLocaleString()}
+                      ₹{eventData.price?.min?.toLocaleString()} - ₹{eventData.price?.max?.toLocaleString()}
                     </div>
                   </div>
                   
@@ -188,10 +281,10 @@ const EventDetail = () => {
                 
                 {/* Book Now */}
                 <div className="mt-auto">
-                  {event.status === 'fast-filling' && (
+                  {eventData.status === 'fast-filling' && (
                     <p className="text-yellow-400 flex items-center gap-2 mb-4">
                       <Info className="w-4 h-4" />
-                      <span>Bookings are filling fast for {event.city}</span>
+                      <span>Bookings are filling fast for {eventData.city}</span>
                     </p>
                   )}
                   
