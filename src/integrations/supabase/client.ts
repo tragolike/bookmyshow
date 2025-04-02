@@ -1,3 +1,4 @@
+
 import { createClient } from '@supabase/supabase-js';
 import { PostgrestError } from '@supabase/supabase-js';
 
@@ -173,24 +174,40 @@ export const createBooking = async (bookingData: {
   booking_status: BookingStatus;
   utr_number?: string;
 }) => {
-  return await db.bookings()
-    .insert(bookingData)
-    .select()
-    .single();
+  try {
+    const { data, error } = await db.bookings()
+      .insert(bookingData)
+      .select()
+      .single();
+      
+    if (error) throw error;
+    return { data, error: null };
+  } catch (error) {
+    console.error('Error creating booking:', error);
+    return { data: null, error: error as PostgrestError };
+  }
 };
 
 // Function to verify UTR and confirm booking
 export const verifyUtrAndConfirmBooking = async (bookingId: string, utrNumber: string) => {
-  return await db.bookings()
-    .update({
-      payment_status: 'completed',
-      booking_status: 'confirmed', 
-      utr_number: utrNumber,
-      verified_at: new Date().toISOString()
-    })
-    .eq('id', bookingId)
-    .select()
-    .single();
+  try {
+    const { data, error } = await db.bookings()
+      .update({
+        payment_status: 'completed',
+        booking_status: 'confirmed', 
+        utr_number: utrNumber,
+        verified_at: new Date().toISOString()
+      })
+      .eq('id', bookingId)
+      .select()
+      .single();
+      
+    if (error) throw error;
+    return { data, error: null };
+  } catch (error) {
+    console.error('Error verifying UTR:', error);
+    return { data: null, error: error as PostgrestError };
+  }
 };
 
 // Get all ticket types

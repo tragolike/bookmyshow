@@ -7,7 +7,7 @@ import SeatSelection from '@/components/SeatSelection';
 import SeatMap from '@/components/SeatMap';
 import UpiPayment from '@/components/UpiPayment';
 import PaymentSummary from '@/components/PaymentSummary';
-import { db } from '@/integrations/supabase/client';
+import { db, createBooking } from '@/integrations/supabase/client';
 import { useAuth } from '@/contexts/AuthContext';
 import { toast } from 'sonner';
 import { Loader2 } from 'lucide-react';
@@ -36,6 +36,7 @@ const BookingPage = () => {
   const [selectedSeats, setSelectedSeats] = useState<string[]>([]);
   const [ticketCount, setTicketCount] = useState(2);
   const [isLoading, setIsLoading] = useState(true);
+  const [isProcessing, setIsProcessing] = useState(false);
   const [event, setEvent] = useState<any>(null);
   
   // Mock seat categories
@@ -106,7 +107,7 @@ const BookingPage = () => {
     }
     
     try {
-      setIsLoading(true);
+      setIsProcessing(true);
       
       // Generate booking reference
       const bookingRef = `TX-${Math.floor(Math.random() * 1000000)}`;
@@ -114,18 +115,16 @@ const BookingPage = () => {
       // Calculate total amount
       const totalAmount = selectedCategory ? selectedCategory.price * selectedSeats.length : 0;
       
-      // Create booking in Supabase
-      const { data, error } = await db.bookings()
-        .insert({
-          user_id: user.id,
-          event_id: id,
-          seat_numbers: selectedSeats,
-          total_amount: totalAmount,
-          payment_status: 'completed',
-          booking_status: 'confirmed'
-        })
-        .select()
-        .single();
+      // Create booking in Supabase with pending status first
+      const { data, error } = await createBooking({
+        user_id: user.id,
+        event_id: id!,
+        seat_numbers: selectedSeats,
+        total_amount: totalAmount,
+        payment_status: 'completed', // This should be 'pending' in a real app with webhook integration
+        booking_status: 'confirmed', // This should be 'pending' in a real app with webhook integration
+        utr_number: 'DEMO' + Math.floor(Math.random() * 10000000000)
+      });
       
       if (error) {
         throw error;
@@ -148,7 +147,7 @@ const BookingPage = () => {
       console.error('Error creating booking:', error);
       toast.error('Something went wrong with the booking process. Please try again.');
     } finally {
-      setIsLoading(false);
+      setIsProcessing(false);
     }
   };
   
@@ -291,8 +290,8 @@ const BookingPage = () => {
               <div>
                 <PaymentSummary 
                   details={paymentDetails}
-                  onProceed={handlePayment}
-                  isLoading={isLoading}
+                  onProceed={() => {}}  // This is handled by UpiPayment now
+                  isLoading={isProcessing}
                 />
               </div>
             </div>

@@ -35,11 +35,33 @@ const UpiPayment = ({ amount, reference, onComplete }: UpiPaymentProps) => {
       try {
         setIsLoading(true);
         const { data, error } = await getPaymentSettings();
-        if (error) throw error;
-        setPaymentSettings(data);
+        
+        if (error) {
+          console.error('Error fetching payment settings:', error);
+          throw error;
+        }
+        
+        // If no data is returned or UPI ID is missing, use fallback values
+        if (!data || !data.upi_id) {
+          setPaymentSettings({
+            upi_id: 'showtix@upi',
+            qr_code_url: 'https://upload.wikimedia.org/wikipedia/commons/d/d0/QR_code_for_mobile_English_Wikipedia.svg',
+            payment_instructions: 'Please make the payment using any UPI app and enter the UTR number for verification.'
+          });
+          console.log('Using fallback payment settings');
+        } else {
+          setPaymentSettings(data);
+          console.log('Loaded payment settings from database:', data);
+        }
       } catch (error) {
         console.error('Error fetching payment settings:', error);
-        toast.error('Failed to load payment information');
+        // Set fallback values on error
+        setPaymentSettings({
+          upi_id: 'showtix@upi',
+          qr_code_url: 'https://upload.wikimedia.org/wikipedia/commons/d/d0/QR_code_for_mobile_English_Wikipedia.svg',
+          payment_instructions: 'Please make the payment using any UPI app and enter the UTR number for verification.'
+        });
+        toast.error('Using default payment information');
       } finally {
         setIsLoading(false);
       }
@@ -124,12 +146,12 @@ const UpiPayment = ({ amount, reference, onComplete }: UpiPaymentProps) => {
     );
   }
   
-  // If payment settings are not properly configured
+  // If payment settings are not properly configured, show a refresh option
   if (!paymentSettings || !paymentSettings.upi_id) {
     return (
       <div className="p-6 text-center border border-red-200 rounded-lg bg-red-50">
         <AlertTriangle className="h-10 w-10 text-red-500 mx-auto mb-2" />
-        <p className="text-red-600 mb-3">Payment system is not properly configured. Please contact support.</p>
+        <p className="text-red-600 mb-3">Payment system is not properly configured. Please refresh or contact support.</p>
         <Button 
           variant="outline" 
           size="sm" 
@@ -329,7 +351,7 @@ const UpiPayment = ({ amount, reference, onComplete }: UpiPaymentProps) => {
           </Button>
         ) : (
           <Button 
-            onClick={onComplete}
+            onClick={() => setPaymentMethod('manual')}
             className="w-full bg-green-600 hover:bg-green-700 text-white"
             size="lg"
           >
