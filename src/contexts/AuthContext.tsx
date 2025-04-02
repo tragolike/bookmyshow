@@ -10,7 +10,7 @@ const AuthContext = createContext<AuthContextType | undefined>(undefined);
 export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
   // Get auth state and methods
   const { session, user, profile, isLoading, isAdmin, fetchProfile } = useAuthState();
-  const { signIn, signUp, signOut, resetPassword, updateProfile } = useAuthMethods(fetchProfile);
+  const { signIn, signUp, signOut, resetPassword, updatePassword, updateProfile, signInWithGoogle } = useAuthMethods(fetchProfile);
 
   // Create the auth context value
   const authValue: AuthContextType = {
@@ -23,7 +23,9 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
     signUp,
     signOut,
     resetPassword,
+    updatePassword,
     updateProfile,
+    signInWithGoogle,
   };
 
   // Provide the auth context to children
