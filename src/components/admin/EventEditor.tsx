@@ -46,10 +46,33 @@ const EventEditor = ({ eventId }: EventEditorProps) => {
       try {
         const { data, error } = await db.cities().select('*');
         if (error) throw error;
-        setCities(data);
+        
+        if (!data || data.length === 0) {
+          // Fallback cities in case the DB doesn't have them
+          setCities([
+            { id: 1, name: 'Mumbai' },
+            { id: 2, name: 'Delhi' },
+            { id: 3, name: 'Bangalore' },
+            { id: 4, name: 'Chennai' },
+            { id: 5, name: 'Kolkata' },
+            { id: 6, name: 'Hyderabad' }
+          ]);
+        } else {
+          setCities(data);
+        }
       } catch (error) {
         console.error('Error fetching cities:', error);
-        toast.error('Failed to load cities');
+        toast.error('Failed to load cities, using defaults');
+        
+        // Fallback cities
+        setCities([
+          { id: 1, name: 'Mumbai' },
+          { id: 2, name: 'Delhi' },
+          { id: 3, name: 'Bangalore' },
+          { id: 4, name: 'Chennai' },
+          { id: 5, name: 'Kolkata' },
+          { id: 6, name: 'Hyderabad' }
+        ]);
       }
     };
     
@@ -70,17 +93,23 @@ const EventEditor = ({ eventId }: EventEditorProps) => {
           
         if (error) throw error;
         
-        setEvent(data);
+        if (data) {
+          setEvent(data);
+        } else {
+          toast.error('Event not found');
+          navigate('/admin/events');
+        }
       } catch (error) {
         console.error('Error fetching event:', error);
         toast.error('Failed to load event details');
+        navigate('/admin/events');
       } finally {
         setIsLoading(false);
       }
     };
     
     fetchEvent();
-  }, [eventId]);
+  }, [eventId, navigate]);
   
   const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) => {
     const { name, value } = e.target;
@@ -112,6 +141,7 @@ const EventEditor = ({ eventId }: EventEditorProps) => {
         if (error) throw error;
         
         toast.success('Event updated successfully');
+        navigate('/admin/events');
       } else {
         // Create new event
         const { data, error } = await db.events()
@@ -122,7 +152,7 @@ const EventEditor = ({ eventId }: EventEditorProps) => {
         if (error) throw error;
         
         toast.success('Event created successfully');
-        navigate(`/admin/events?edit=${data.id}`);
+        navigate('/admin/events?edit=' + data.id);
       }
     } catch (error) {
       console.error('Error saving event:', error);
@@ -135,7 +165,10 @@ const EventEditor = ({ eventId }: EventEditorProps) => {
   if (isLoading) {
     return (
       <div className="flex justify-center items-center p-8">
-        <Loader2 className="w-8 h-8 animate-spin text-book-primary" />
+        <div className="flex flex-col items-center">
+          <Loader2 className="w-8 h-8 animate-spin text-book-primary" />
+          <p className="mt-2">Loading event details...</p>
+        </div>
       </div>
     );
   }
@@ -285,6 +318,9 @@ const EventEditor = ({ eventId }: EventEditorProps) => {
                       src={event.image} 
                       alt={event.title}
                       className="w-full h-auto rounded"
+                      onError={(e) => {
+                        (e.target as HTMLImageElement).src = '/placeholder.svg';
+                      }}
                     />
                   </div>
                 )}
@@ -303,6 +339,7 @@ const EventEditor = ({ eventId }: EventEditorProps) => {
               <Button
                 type="submit"
                 disabled={isSaving}
+                className="bg-[#ff2366] hover:bg-[#e01f59]"
               >
                 {isSaving ? (
                   <>

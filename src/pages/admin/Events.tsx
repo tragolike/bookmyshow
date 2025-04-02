@@ -1,9 +1,10 @@
 
 import { useState, useEffect } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useSearchParams } from 'react-router-dom';
 import AdminLayout from '@/components/admin/AdminLayout';
 import { useAuth } from '@/contexts/AuthContext';
-import { supabase } from '@/integrations/supabase/client';
+import { supabase, db } from '@/integrations/supabase/client';
+import EventEditor from '@/components/admin/EventEditor';
 import { 
   Plus, 
   Search, 
@@ -12,9 +13,11 @@ import {
   Trash2, 
   MoreVertical, 
   FilmIcon, 
-  Calendar 
+  Calendar,
+  Loader2
 } from 'lucide-react';
 import { toast } from 'sonner';
+import { Card } from '@/components/ui/card';
 
 interface Event {
   id: string;
@@ -44,6 +47,8 @@ interface Movie {
 const AdminEvents = () => {
   const { user } = useAuth();
   const navigate = useNavigate();
+  const [searchParams, setSearchParams] = useSearchParams();
+  const editMode = searchParams.get('edit');
   const [activeTab, setActiveTab] = useState('events');
   const [events, setEvents] = useState<Event[]>([]);
   const [movies, setMovies] = useState<Movie[]>([]);
@@ -69,16 +74,14 @@ const AdminEvents = () => {
         setIsLoading(true);
         
         if (activeTab === 'events') {
-          const { data, error } = await supabase
-            .from('events')
+          const { data, error } = await db.events()
             .select('*')
             .order('created_at', { ascending: false });
             
           if (error) throw error;
           setEvents(data || []);
         } else {
-          const { data, error } = await supabase
-            .from('movies')
+          const { data, error } = await db.movies()
             .select('*')
             .order('created_at', { ascending: false });
             
@@ -112,8 +115,7 @@ const AdminEvents = () => {
   
   const handleDeleteEvent = async (id: string) => {
     try {
-      const { error } = await supabase
-        .from('events')
+      const { error } = await db.events()
         .delete()
         .eq('id', id);
         
@@ -129,8 +131,7 @@ const AdminEvents = () => {
   
   const handleDeleteMovie = async (id: string) => {
     try {
-      const { error } = await supabase
-        .from('movies')
+      const { error } = await db.movies()
         .delete()
         .eq('id', id);
         
@@ -143,6 +144,72 @@ const AdminEvents = () => {
       toast.error('Failed to delete movie');
     }
   };
+
+  const handleEditEvent = (eventId: string) => {
+    setSearchParams({ edit: eventId });
+  };
+
+  const handleAddEvent = () => {
+    setSearchParams({ add: 'true' });
+  };
+
+  const closeEditor = () => {
+    setSearchParams({});
+    // Refresh the events list
+    if (activeTab === 'events') {
+      fetchEvents();
+    } else {
+      fetchMovies();
+    }
+  };
+
+  const fetchEvents = async () => {
+    try {
+      setIsLoading(true);
+      const { data, error } = await db.events()
+        .select('*')
+        .order('created_at', { ascending: false });
+        
+      if (error) throw error;
+      setEvents(data || []);
+    } catch (error) {
+      console.error('Error fetching events:', error);
+      toast.error('Failed to load events');
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  const fetchMovies = async () => {
+    try {
+      setIsLoading(true);
+      const { data, error } = await db.movies()
+        .select('*')
+        .order('created_at', { ascending: false });
+        
+      if (error) throw error;
+      setMovies(data || []);
+    } finally {
+      setIsLoading(false);
+    }
+  };
+  
+  // If we're in edit mode or add mode, show the editor
+  if (editMode || searchParams.get('add')) {
+    return (
+      <AdminLayout title={editMode ? "Edit Event" : "Add New Event"}>
+        <div className="mb-4">
+          <button 
+            onClick={closeEditor}
+            className="text-blue-600 hover:text-blue-800 flex items-center gap-2"
+          >
+            ← Back to Events
+          </button>
+        </div>
+        <EventEditor eventId={editMode || undefined} />
+      </AdminLayout>
+    );
+  }
   
   return (
     <AdminLayout title="Events & Movies Management">
@@ -188,12 +255,15 @@ const AdminEvents = () => {
             </div>
             
             <div className="flex items-center gap-2 w-full sm:w-auto">
-              <button className="btn-outline px-4 py-2 flex items-center gap-2">
+              <button className="btn-outline px-4 py-2 flex items-center gap-2 border rounded-lg">
                 <Filter className="h-4 w-4" />
                 <span>Filter</span>
               </button>
               
-              <button className="btn-primary px-4 py-2 flex items-center gap-2">
+              <button 
+                className="btn-primary px-4 py-2 flex items-center gap-2 bg-[#ff2366] hover:bg-[#e01f59] text-white rounded-lg"
+                onClick={handleAddEvent}
+              >
                 <Plus className="h-4 w-4" />
                 <span>{activeTab === 'events' ? 'Add Event' : 'Add Movie'}</span>
               </button>
@@ -202,7 +272,10 @@ const AdminEvents = () => {
           
           {isLoading ? (
             <div className="flex justify-center items-center h-64">
-              <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-book-primary"></div>
+              <div className="flex flex-col items-center">
+                <Loader2 className="h-12 w-12 animate-spin text-book-primary" />
+                <p className="mt-2 text-gray-500">Loading {activeTab}...</p>
+              </div>
             </div>
           ) : activeTab === 'events' ? (
             <div className="overflow-x-auto">
@@ -249,6 +322,9 @@ const AdminEvents = () => {
                                 src={event.image} 
                                 alt={event.title}
                                 className="h-10 w-10 object-cover"
+                                onError={(e) => {
+                                  (e.target as HTMLImageElement).src = '/placeholder.svg';
+                                }}
                               />
                             </div>
                             <div className="ml-4">
@@ -288,7 +364,10 @@ const AdminEvents = () => {
                         </td>
                         <td className="px-4 py-4 whitespace-nowrap text-sm text-gray-500">
                           <div className="flex items-center space-x-2">
-                            <button className="p-1 text-blue-600 hover:text-blue-800">
+                            <button 
+                              className="p-1 text-blue-600 hover:text-blue-800"
+                              onClick={() => handleEditEvent(event.id)}
+                            >
                               <Edit className="h-4 w-4" />
                             </button>
                             <button 
@@ -350,6 +429,9 @@ const AdminEvents = () => {
                                 src={movie.image} 
                                 alt={movie.title}
                                 className="h-12 w-8 object-cover"
+                                onError={(e) => {
+                                  (e.target as HTMLImageElement).src = '/placeholder.svg';
+                                }}
                               />
                             </div>
                             <div className="ml-4">
