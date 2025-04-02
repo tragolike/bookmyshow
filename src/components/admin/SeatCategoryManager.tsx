@@ -1,5 +1,6 @@
+
 import { useState, useEffect } from 'react';
-import { Plus, Edit, Trash2, Upload, Check, X } from 'lucide-react';
+import { Plus, Edit, Trash2, Upload, Check, X, Loader } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
@@ -164,7 +165,8 @@ const SeatCategoryManager = () => {
         throw error;
       }
 
-      const imageUrl = `${process.env.NEXT_PUBLIC_SUPABASE_URL}/storage/v1/object/public/${data.Key}`;
+      // Fixed: Correctly access the path property instead of Key
+      const imageUrl = `${process.env.NEXT_PUBLIC_SUPABASE_URL}/storage/v1/object/public/images/${data.path}`;
       toast.success('Image uploaded successfully!');
     } catch (error: any) {
       toast.error(`Error uploading image: ${error.message}`);
@@ -309,7 +311,7 @@ const SeatCategoryManager = () => {
             <Input type="file" id="image" onChange={handleImageChange} />
             <Button onClick={uploadImage} disabled={uploading}>
               {uploading ? (
-                <>Uploading... <Loader2 className="w-4 h-4 ml-2 animate-spin" /></>
+                <>Uploading... <Loader className="w-4 h-4 ml-2 animate-spin" /></>
               ) : (
                 <>Upload Image <Upload className="w-4 h-4 ml-2" /></>
               )}
