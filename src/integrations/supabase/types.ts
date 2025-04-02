@@ -18,6 +18,7 @@ export type Database = {
           id: string
           movie_id: string | null
           payment_status: string
+          seat_layout_id: string | null
           seat_numbers: string[]
           total_amount: number
           user_id: string
@@ -30,6 +31,7 @@ export type Database = {
           id?: string
           movie_id?: string | null
           payment_status?: string
+          seat_layout_id?: string | null
           seat_numbers: string[]
           total_amount: number
           user_id: string
@@ -42,6 +44,7 @@ export type Database = {
           id?: string
           movie_id?: string | null
           payment_status?: string
+          seat_layout_id?: string | null
           seat_numbers?: string[]
           total_amount?: number
           user_id?: string
@@ -59,6 +62,13 @@ export type Database = {
             columns: ["movie_id"]
             isOneToOne: false
             referencedRelation: "movies"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "bookings_seat_layout_id_fkey"
+            columns: ["seat_layout_id"]
+            isOneToOne: false
+            referencedRelation: "seat_layouts"
             referencedColumns: ["id"]
           },
         ]
@@ -182,6 +192,30 @@ export type Database = {
         }
         Relationships: []
       }
+      payment_settings: {
+        Row: {
+          id: string
+          qr_code_url: string | null
+          updated_at: string | null
+          updated_by: string | null
+          upi_id: string
+        }
+        Insert: {
+          id?: string
+          qr_code_url?: string | null
+          updated_at?: string | null
+          updated_by?: string | null
+          upi_id: string
+        }
+        Update: {
+          id?: string
+          qr_code_url?: string | null
+          updated_at?: string | null
+          updated_by?: string | null
+          upi_id?: string
+        }
+        Relationships: []
+      }
       profiles: {
         Row: {
           avatar_url: string | null
@@ -209,12 +243,47 @@ export type Database = {
         }
         Relationships: []
       }
+      seat_layouts: {
+        Row: {
+          created_at: string | null
+          event_id: string | null
+          id: string
+          layout_data: Json
+          updated_at: string | null
+        }
+        Insert: {
+          created_at?: string | null
+          event_id?: string | null
+          id?: string
+          layout_data: Json
+          updated_at?: string | null
+        }
+        Update: {
+          created_at?: string | null
+          event_id?: string | null
+          id?: string
+          layout_data?: Json
+          updated_at?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "seat_layouts_event_id_fkey"
+            columns: ["event_id"]
+            isOneToOne: false
+            referencedRelation: "events"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
     }
     Views: {
       [_ in never]: never
     }
     Functions: {
-      [_ in never]: never
+      is_admin: {
+        Args: Record<PropertyKey, never>
+        Returns: boolean
+      }
     }
     Enums: {
       [_ in never]: never

@@ -4,7 +4,8 @@ import { useParams, useNavigate } from 'react-router-dom';
 import { Header } from '@/components/Header';
 import Footer from '@/components/Footer';
 import SeatSelection from '@/components/SeatSelection';
-import TicketCounter from '@/components/TicketCounter';
+import SeatMap from '@/components/SeatMap';
+import UpiPayment from '@/components/UpiPayment';
 import PaymentSummary from '@/components/PaymentSummary';
 import { db } from '@/integrations/supabase/client';
 import { useAuth } from '@/contexts/AuthContext';
@@ -32,6 +33,7 @@ const BookingPage = () => {
   const { user } = useAuth();
   const [currentStep, setCurrentStep] = useState(BOOKING_STEPS.SELECT_CATEGORY);
   const [selectedCategory, setSelectedCategory] = useState<SeatCategory | null>(null);
+  const [selectedSeats, setSelectedSeats] = useState<string[]>([]);
   const [ticketCount, setTicketCount] = useState(2);
   const [isLoading, setIsLoading] = useState(true);
   const [event, setEvent] = useState<any>(null);
@@ -76,16 +78,23 @@ const BookingPage = () => {
     setCurrentStep(BOOKING_STEPS.SELECT_SEATS);
   };
   
-  const handleTicketCountChange = (count: number) => {
-    setTicketCount(count);
+  const handleSeatSelect = (seatIds: string[]) => {
+    setSelectedSeats(seatIds);
+    setTicketCount(seatIds.length);
   };
   
   const handleProceedToPayment = () => {
+    if (!selectedSeats.length) {
+      toast.error('Please select at least one seat to continue');
+      return;
+    }
+    
     if (!user) {
       toast.error('Please log in to continue with your booking');
       navigate('/login');
       return;
     }
+    
     setCurrentStep(BOOKING_STEPS.PAYMENT);
   };
   
@@ -99,20 +108,18 @@ const BookingPage = () => {
     try {
       setIsLoading(true);
       
-      // Generate fake seat numbers
-      const seatNumbers = Array.from({ length: ticketCount }, (_, i) => 
-        `${selectedCategory?.id.charAt(0).toUpperCase()}${Math.floor(Math.random() * 20) + 1}-${Math.floor(Math.random() * 20) + 1}`
-      );
+      // Generate booking reference
+      const bookingRef = `TX-${Math.floor(Math.random() * 1000000)}`;
       
       // Calculate total amount
-      const totalAmount = selectedCategory ? selectedCategory.price * ticketCount : 0;
+      const totalAmount = selectedCategory ? selectedCategory.price * selectedSeats.length : 0;
       
       // Create booking in Supabase
       const { data, error } = await db.bookings()
         .insert({
           user_id: user.id,
           event_id: id,
-          seat_numbers: seatNumbers,
+          seat_numbers: selectedSeats,
           total_amount: totalAmount,
           payment_status: 'completed',
           booking_status: 'confirmed'
@@ -131,8 +138,8 @@ const BookingPage = () => {
         state: { 
           bookingId: data?.id,
           eventId: id,
-          seats: ticketCount,
-          seatNumbers,
+          seats: selectedSeats.length,
+          seatNumbers: selectedSeats,
           category: selectedCategory?.name,
           amount: totalAmount
         } 
@@ -149,13 +156,13 @@ const BookingPage = () => {
     if (!selectedCategory) return null;
     
     const ticketPrice = selectedCategory.price;
-    const subtotal = ticketPrice * ticketCount;
+    const subtotal = ticketPrice * selectedSeats.length;
     const convenienceFee = Math.round(subtotal * 0.03); // 3% convenience fee
     const total = subtotal + convenienceFee;
     
     return {
       ticketPrice,
-      ticketCount,
+      ticketCount: selectedSeats.length,
       convenienceFee,
       total
     };
@@ -210,12 +217,30 @@ const BookingPage = () => {
         );
         
       case BOOKING_STEPS.SELECT_SEATS:
+        if (!selectedCategory || !id) return null;
+        
         return (
-          <TicketCounter 
-            maxTickets={10} 
-            onChange={handleTicketCountChange} 
-            defaultValue={ticketCount}
-          />
+          <div className="container mx-auto px-4 py-8">
+            <h2 className="text-xl font-bold mb-2">{event.title}</h2>
+            <p className="text-gray-600 mb-6">{event.venue}, {event.city} | {event.date} • {event.time}</p>
+            
+            <div className="mb-6">
+              <div className="flex items-center gap-2 mb-2">
+                <div className={`w-3 h-3 rounded-full ${selectedCategory.color}`}></div>
+                <h3 className="font-medium">{selectedCategory.name}</h3>
+                <span className="text-gray-500">• ₹{selectedCategory.price.toLocaleString()} per ticket</span>
+              </div>
+              
+              <p className="text-sm text-gray-600">Please select your seats from the seating layout below.</p>
+            </div>
+            
+            <SeatMap 
+              eventId={id}
+              selectedCategory={selectedCategory.id}
+              onSeatSelect={handleSeatSelect}
+              maxSeats={10} // Maximum number of seats that can be selected
+            />
+          </div>
         );
         
       case BOOKING_STEPS.PAYMENT:
@@ -242,7 +267,7 @@ const BookingPage = () => {
                       
                       <div className="text-right">
                         <div className="font-medium">{selectedCategory?.name}</div>
-                        <div className="text-gray-500">{ticketCount} Tickets</div>
+                        <div className="text-gray-500">{selectedSeats.length} Seats: {selectedSeats.join(', ')}</div>
                       </div>
                     </div>
                     
@@ -255,34 +280,17 @@ const BookingPage = () => {
                   </div>
                 </div>
                 
-                {/* Additional Features (just for display) */}
-                <div className="glass-card rounded-lg p-4 mb-6">
-                  <h3 className="font-medium mb-3">Add-ons</h3>
-                  
-                  <div className="flex items-center justify-between p-3 border rounded-lg">
-                    <div className="flex items-center gap-3">
-                      <div className="w-10 h-10 rounded-full bg-yellow-100 flex items-center justify-center text-yellow-600">
-                        <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4M7.835 4.697a3.42 3.42 0 001.946-.806 3.42 3.42 0 014.438 0 3.42 3.42 0 001.946.806 3.42 3.42 0 013.138 3.138 3.42 3.42 0 00.806 1.946 3.42 3.42 0 010 4.438 3.42 3.42 0 00-.806 1.946 3.42 3.42 0 01-3.138 3.138 3.42 3.42 0 00-1.946.806 3.42 3.42 0 01-4.438 0 3.42 3.42 0 00-1.946-.806 3.42 3.42 0 01-3.138-3.138 3.42 3.42 0 00-.806-1.946 3.42 3.42 0 010-4.438 3.42 3.42 0 00.806-1.946 3.42 3.42 0 013.138-3.138z" />
-                        </svg>
-                      </div>
-                      <div>
-                        <div className="font-medium">Ticket Protection</div>
-                        <div className="text-sm text-gray-600">Cover cancellations due to illness & more</div>
-                      </div>
-                    </div>
-                    
-                    <div className="flex items-center gap-2">
-                      <span className="font-medium">₹99</span>
-                      <div className="w-5 h-5 rounded-full border border-gray-300"></div>
-                    </div>
-                  </div>
-                </div>
+                {/* UPI Payment Component */}
+                <UpiPayment 
+                  amount={paymentDetails.total}
+                  reference={`BOOK-${Math.floor(Math.random() * 1000000)}`}
+                  onComplete={handlePayment}
+                />
               </div>
               
               <div>
                 <PaymentSummary 
-                  details={paymentDetails} 
+                  details={paymentDetails}
                   onProceed={handlePayment}
                   isLoading={isLoading}
                 />
@@ -327,23 +335,27 @@ const BookingPage = () => {
   const renderActionButton = () => {
     if (currentStep === BOOKING_STEPS.SELECT_CATEGORY || currentStep === BOOKING_STEPS.PAYMENT) return null;
     
+    // Disable the button if no seats are selected
+    const isDisabled = selectedSeats.length === 0;
+    
     return (
       <div className="sticky bottom-0 left-0 right-0 bg-white border-t shadow-lg p-4">
         <div className="container mx-auto flex justify-between items-center">
           <div>
             {selectedCategory && (
               <div>
-                <div className="font-semibold text-lg">₹{(selectedCategory.price * ticketCount).toLocaleString()}</div>
-                <div className="text-sm text-gray-500">{ticketCount} seats</div>
+                <div className="font-semibold text-lg">₹{(selectedCategory.price * selectedSeats.length).toLocaleString()}</div>
+                <div className="text-sm text-gray-500">{selectedSeats.length} {selectedSeats.length === 1 ? 'seat' : 'seats'}</div>
               </div>
             )}
           </div>
           
           <button 
-            className="btn-primary"
+            className={`btn-primary ${isDisabled ? 'opacity-50 cursor-not-allowed' : ''}`}
             onClick={handleProceedToPayment}
+            disabled={isDisabled}
           >
-            Continue
+            {isDisabled ? 'Select seats to continue' : 'Continue to Payment'}
           </button>
         </div>
       </div>

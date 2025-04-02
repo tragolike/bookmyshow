@@ -20,6 +20,7 @@ import AdminEvents from "./pages/admin/Events";
 import AdminUsers from "./pages/admin/Users";
 import AdminBookings from "./pages/admin/Bookings";
 import AdminReports from "./pages/admin/Reports";
+import AdminSettings from "./pages/admin/Settings";
 import AdminLoginPage from "./pages/admin/LoginPage";
 import NotFound from "./pages/NotFound";
 import { useAuth } from "./contexts/AuthContext";
@@ -73,6 +74,7 @@ const App = () => (
             <Route path="/admin/users" element={<AdminRoute element={<AdminUsers />} />} />
             <Route path="/admin/bookings" element={<AdminRoute element={<AdminBookings />} />} />
             <Route path="/admin/reports" element={<AdminRoute element={<AdminReports />} />} />
+            <Route path="/admin/settings" element={<AdminRoute element={<AdminSettings />} />} />
             
             {/* Catch-all route */}
             <Route path="*" element={<NotFound />} />
