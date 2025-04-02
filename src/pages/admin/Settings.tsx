@@ -1,7 +1,9 @@
 
 import AdminLayout from '@/components/admin/AdminLayout';
 import PaymentSettings from '@/components/admin/PaymentSettings';
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
+import SystemSettings from '@/components/admin/SystemSettings';
+import NotificationSettings from '@/components/admin/NotificationSettings';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 
 const Settings = () => {
   return (
@@ -18,15 +20,11 @@ const Settings = () => {
         </TabsContent>
         
         <TabsContent value="system">
-          <div className="bg-amber-50 border-l-4 border-amber-400 p-4 text-amber-700">
-            System settings will be available in a future update.
-          </div>
+          <SystemSettings />
         </TabsContent>
         
         <TabsContent value="notifications">
-          <div className="bg-amber-50 border-l-4 border-amber-400 p-4 text-amber-700">
-            Notification settings will be available in a future update.
-          </div>
+          <NotificationSettings />
         </TabsContent>
       </Tabs>
     </AdminLayout>
