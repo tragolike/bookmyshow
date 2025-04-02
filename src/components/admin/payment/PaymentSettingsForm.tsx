@@ -172,14 +172,15 @@ const PaymentSettingsForm = () => {
       
       if (result.error) throw result.error;
       
-      // Fix: Check if url property exists in the result
+      // Get the image URL using the correct property
       if (result.url) {
+        // If url is directly available, use it
         setQrCodeUrl(result.url);
-      } else if (result.data) {
-        // Get the public URL from data
+      } else if (result.path) {
+        // If path is available but no url, generate the public URL
         const { data: { publicUrl } } = supabase.storage
           .from('brand_assets')
-          .getPublicUrl(result.data.path || result.path || '');
+          .getPublicUrl(result.path);
           
         setQrCodeUrl(publicUrl);
       }

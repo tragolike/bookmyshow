@@ -1,3 +1,4 @@
+
 import { useState, useEffect } from 'react';
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -248,15 +249,16 @@ const HeroSliderManager = () => {
       
       if (result.error) throw result.error;
       
-      // Handle the result based on its structure
+      // Get the image URL using the correct property
       let imageUrl = '';
       if (result.url) {
+        // If url is directly available, use it
         imageUrl = result.url;
-      } else if (result.data) {
-        // Get the public URL from data
+      } else if (result.path) {
+        // If path is available but no url, generate the public URL
         const { data: { publicUrl } } = supabase.storage
           .from('hero_slides')
-          .getPublicUrl(result.data.path || result.path || '');
+          .getPublicUrl(result.path);
           
         imageUrl = publicUrl;
       }
