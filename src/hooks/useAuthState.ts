@@ -37,16 +37,19 @@ export function useAuthState() {
     console.log('Setting up auth state listener');
     setIsLoading(true);
     
-    // Set up auth state listener
+    // Set up auth state listener first to avoid race conditions
     const { data: { subscription } } = supabase.auth.onAuthStateChange(
-      async (event, currentSession) => {
+      (event, currentSession) => {
         console.log('Auth state changed:', event);
         setSession(currentSession);
         setUser(currentSession?.user ?? null);
         setIsAdmin(isUserAdmin(currentSession?.user?.email));
         
         if (currentSession?.user) {
-          await fetchProfile(currentSession.user.id);
+          // Use setTimeout to avoid deadlocks in Supabase auth callbacks
+          setTimeout(() => {
+            fetchProfile(currentSession.user.id);
+          }, 0);
         } else {
           setProfile(null);
         }
