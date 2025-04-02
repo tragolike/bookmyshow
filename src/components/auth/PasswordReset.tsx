@@ -26,11 +26,18 @@ const PasswordReset = () => {
     try {
       setIsLoading(true);
       
+      // Get the current hostname for the redirect URL
+      const origin = window.location.origin;
+      const redirectTo = `${origin}/reset-password-confirm`;
+      
+      console.log('Requesting password reset with redirect to:', redirectTo);
+      
       const { error } = await supabase.auth.resetPasswordForEmail(email, {
-        redirectTo: `${window.location.origin}/reset-password-confirm`,
+        redirectTo: redirectTo,
       });
       
       if (error) {
+        console.error('Password reset request error:', error);
         toast.error(error.message);
         return;
       }
@@ -38,6 +45,7 @@ const PasswordReset = () => {
       setIsSuccess(true);
       toast.success('Password reset link sent to your email');
     } catch (error: any) {
+      console.error('Password reset request error:', error);
       toast.error(error.message || 'An error occurred during password reset');
     } finally {
       setIsLoading(false);
@@ -82,7 +90,7 @@ const PasswordReset = () => {
                     setIsSuccess(false);
                     setEmail('');
                   }}
-                  className="text-sm text-book-primary hover:text-book-primary/80 text-center"
+                  className="text-sm text-indigo-600 hover:text-indigo-500 text-center"
                 >
                   Try with a different email
                 </button>
@@ -120,7 +128,14 @@ const PasswordReset = () => {
                       className="w-full"
                       isLoading={isLoading}
                     >
-                      Send reset link
+                      {isLoading ? (
+                        <div className="flex items-center justify-center">
+                          <Loader2 className="animate-spin mr-2 h-4 w-4" />
+                          <span>Sending...</span>
+                        </div>
+                      ) : (
+                        'Send reset link'
+                      )}
                     </Button>
                   </div>
                 </form>

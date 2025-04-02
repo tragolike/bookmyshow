@@ -15,17 +15,21 @@ const ResetPasswordConfirm = () => {
   const [showPassword, setShowPassword] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
   const [isSuccess, setIsSuccess] = useState(false);
+  const [hasTokenError, setHasTokenError] = useState(false);
   const navigate = useNavigate();
 
   useEffect(() => {
     // Check if we have a hash parameter in the URL
     const hashParams = new URLSearchParams(window.location.hash.substring(1));
-    if (!hashParams.get('access_token')) {
+    const hasAccessToken = !!hashParams.get('access_token');
+    
+    if (!hasAccessToken) {
       console.log('Invalid reset link - no access token found');
-      toast.error('Invalid or expired password reset link');
-      navigate('/password-reset');
+      setHasTokenError(true);
+    } else {
+      console.log('Access token found in URL');
     }
-  }, [navigate]);
+  }, []);
 
   const handleResetPassword = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
@@ -70,6 +74,45 @@ const ResetPasswordConfirm = () => {
       setIsLoading(false);
     }
   };
+
+  if (hasTokenError) {
+    return (
+      <div className="min-h-screen flex flex-col">
+        <main className="flex-1 flex items-center justify-center bg-gray-50 py-12 px-4 sm:px-6 lg:px-8">
+          <div className="max-w-md w-full space-y-8">
+            <div className="text-center">
+              <h2 className="mt-6 text-3xl font-extrabold text-gray-900">Invalid Reset Link</h2>
+              <p className="mt-2 text-sm text-gray-600">
+                The password reset link is invalid or has expired.
+              </p>
+            </div>
+            
+            <div className="bg-white p-8 shadow rounded-lg mt-8">
+              <Alert className="bg-red-50 border-red-200 mb-6">
+                <AlertDescription className="text-sm text-red-700">
+                  The password reset link you clicked is invalid or has expired. Please request a new password reset link.
+                </AlertDescription>
+              </Alert>
+              
+              <div className="flex justify-center">
+                <Button
+                  variant="primary"
+                  className="w-full"
+                  onClick={() => navigate('/password-reset')}
+                >
+                  Request New Reset Link
+                </Button>
+              </div>
+            </div>
+          </div>
+        </main>
+        
+        <footer className="py-4 text-center text-sm text-gray-500">
+          &copy; {new Date().getFullYear()} ShowTix. All rights reserved.
+        </footer>
+      </div>
+    );
+  }
 
   return (
     <div className="min-h-screen flex flex-col">

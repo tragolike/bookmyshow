@@ -93,7 +93,7 @@ const App = () => (
       <TooltipProvider>
         <AuthProvider>
           <Toaster />
-          <Sonner />
+          <Sonner position="top-right" closeButton={true} />
           <Suspense fallback={<PageLoader />}>
             <Routes>
               {/* User-facing routes */}
