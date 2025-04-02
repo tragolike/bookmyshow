@@ -9,7 +9,7 @@ const supabaseKey = import.meta.env.VITE_SUPABASE_ANON_KEY || 'your-anon-key';
 export const supabase = createClient(supabaseUrl, supabaseKey);
 
 // Re-export EventStatus from types
-export { EventStatus };
+export type { EventStatus };
 
 // Database interface
 export const db = {

@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { supabase, db, isUserAdmin } from '@/integrations/supabase/client';
+import { supabase, isUserAdmin } from '@/integrations/supabase/client';
 import { SignUpCredentials, UpdateProfileData } from '@/types/auth';
 import { toast } from 'sonner';
 
@@ -84,7 +84,6 @@ export function useAuthMethods() {
   // Reset password
   const resetPassword = async (email: string) => {
     try {
-      // Use the full absolute URL (including http/https)
       const origin = window.location.origin;
       const resetUrl = `${origin}/reset-password-confirm`;
       
@@ -151,7 +150,6 @@ export function useAuthMethods() {
         return false;
       }
 
-      await fetchProfile(user.id);
       toast.success('Profile updated successfully');
       return true;
     } catch (error: any) {
@@ -179,7 +177,6 @@ export function useAuthMethods() {
       }
       
       console.log('Google authentication initiated:', data);
-      // The redirect to Google happens automatically
       return true;
     } catch (error: any) {
       console.error('Google sign in error:', error);
