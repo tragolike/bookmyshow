@@ -6,7 +6,7 @@ const Footer = () => {
         <div className="container mx-auto px-4 py-8">
           <div className="grid grid-cols-1 md:grid-cols-4 gap-8">
             <div>
-              <h3 className="text-lg font-semibold mb-4">ShowTix</h3>
+              <h3 className="text-lg font-semibold mb-4">Book My Show</h3>
               <p className="text-sm text-gray-500 mb-4">Book tickets for movies, events, plays, concerts, and more.</p>
               <div className="flex items-center space-x-4">
                 <a href="#" className="text-gray-600 hover:text-book-primary">
