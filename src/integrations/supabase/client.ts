@@ -1,3 +1,4 @@
+
 import { createClient } from '@supabase/supabase-js';
 import { EventStatus } from '@/types/events';
 
@@ -6,6 +7,9 @@ const supabaseUrl = import.meta.env.VITE_SUPABASE_URL || 'https://your-project-u
 const supabaseKey = import.meta.env.VITE_SUPABASE_ANON_KEY || 'your-anon-key';
 
 export const supabase = createClient(supabaseUrl, supabaseKey);
+
+// Re-export EventStatus from types
+export { EventStatus };
 
 // Database interface
 export const db = {

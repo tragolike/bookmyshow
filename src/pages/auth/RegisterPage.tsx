@@ -1,4 +1,3 @@
-
 import { useState } from 'react';
 import { Link } from 'react-router-dom';
 import { Header } from '@/components/Header';
@@ -17,7 +16,12 @@ const RegisterPage = () => {
 
   const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
-    await signUp(email, password, firstName, lastName);
+    await signUp({
+      email,
+      password,
+      first_name: firstName,
+      last_name: lastName
+    });
   };
 
   return (

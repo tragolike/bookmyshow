@@ -1,68 +1,38 @@
-
-import { useNavigate } from 'react-router-dom';
+import { useState } from 'react';
 import { supabase, db, isUserAdmin } from '@/integrations/supabase/client';
+import { SignUpCredentials, UpdateProfileData } from '@/types/auth';
 import { toast } from 'sonner';
-import { 
-  LoginCredentials, 
-  SignUpCredentials, 
-  ResetPasswordCredentials,
-  UpdatePasswordCredentials,
-  UpdateProfileData
-} from '@/types/auth';
 
-export function useAuthMethods(fetchProfile: (userId: string) => Promise<void>) {
-  const navigate = useNavigate();
+export function useAuthMethods() {
+  const [isLoading, setIsLoading] = useState(false);
 
   // Sign in with email and password
-  const signIn = async (email: string, password: string) => {
+  const signIn = async (email: string, password: string): Promise<boolean> => {
     try {
-      console.log('Attempting to sign in with:', { email });
+      setIsLoading(true);
+      const { error } = await supabase.auth.signInWithPassword({ email, password });
       
-      // Normalize email to lowercase to prevent case sensitivity issues
-      const normalizedEmail = email.toLowerCase().trim();
-      
-      console.log('Normalized email:', normalizedEmail);
-      console.log('Password length:', password.length);
-      
-      const { error, data } = await supabase.auth.signInWithPassword({ 
-        email: normalizedEmail, 
-        password 
-      });
-
       if (error) {
-        console.error('Sign in error:', error);
-        toast.error(error.message || 'Invalid login credentials');
+        toast.error(error.message);
         return false;
       }
-
-      console.log('Sign in successful, user data:', data.user);
-      
-      // Check if the user is an admin based on their email
-      const isAdminUser = isUserAdmin(normalizedEmail);
-      
-      console.log('Is admin user?', isAdminUser, 'Email:', normalizedEmail);
       
       toast.success('Signed in successfully');
-      
-      // Redirect admins to admin dashboard, regular users to home
-      if (isAdminUser) {
-        console.log('Admin user detected, redirecting to admin dashboard');
-        navigate('/admin');
-      } else {
-        navigate('/');
-      }
-      
       return true;
-    } catch (error: any) {
-      console.error('Sign in error:', error);
-      toast.error(error.message || 'An error occurred during sign in');
+    } catch (error) {
+      console.error('Error signing in:', error);
+      toast.error('Failed to sign in');
       return false;
+    } finally {
+      setIsLoading(false);
     }
   };
 
   // Sign up with email and password
-  const signUp = async (credentials: SignUpCredentials) => {
+  const signUp = async (credentials: SignUpCredentials): Promise<boolean> => {
     try {
+      setIsLoading(true);
+      
       const { email, password, first_name, last_name } = credentials;
       
       const { error } = await supabase.auth.signUp({
@@ -71,23 +41,24 @@ export function useAuthMethods(fetchProfile: (userId: string) => Promise<void>) 
         options: {
           data: {
             first_name,
-            last_name,
-          },
-        },
+            last_name
+          }
+        }
       });
-
+      
       if (error) {
         toast.error(error.message);
         return false;
       }
-
-      toast.success('Account created successfully. Please verify your email.');
-      navigate('/login');
+      
+      toast.success('Account created successfully! Please check your email for confirmation.');
       return true;
-    } catch (error: any) {
-      console.error('Sign up error:', error);
-      toast.error(error.message || 'An error occurred during sign up');
+    } catch (error) {
+      console.error('Error signing up:', error);
+      toast.error('Failed to create account');
       return false;
+    } finally {
+      setIsLoading(false);
     }
   };
 
@@ -102,7 +73,6 @@ export function useAuthMethods(fetchProfile: (userId: string) => Promise<void>) 
       }
 
       toast.success('Signed out successfully');
-      navigate('/');
       return true;
     } catch (error: any) {
       console.error('Sign out error:', error);
@@ -225,6 +195,7 @@ export function useAuthMethods(fetchProfile: (userId: string) => Promise<void>) 
     resetPassword,
     updatePassword,
     updateProfile,
-    signInWithGoogle
+    signInWithGoogle,
+    isLoading
   };
 }
