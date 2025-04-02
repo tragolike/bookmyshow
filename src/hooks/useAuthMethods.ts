@@ -1,3 +1,4 @@
+
 import { useNavigate } from 'react-router-dom';
 import { supabase, db } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
@@ -8,20 +9,27 @@ export function useAuthMethods(fetchProfile: (userId: string) => Promise<void>) 
   // Sign in with email and password
   const signIn = async (email: string, password: string) => {
     try {
+      console.log('Attempting to sign in with:', { email });
       const { error, data } = await supabase.auth.signInWithPassword({ email, password });
 
       if (error) {
+        console.error('Sign in error:', error);
         toast.error(error.message);
         return;
       }
 
+      console.log('Sign in successful, user data:', data.user);
+      
       // Check if the user is an admin based on their email
-      const isAdminUser = email === 'ritikpaswal79984@gmail.com' || email.includes('admin@');
+      const isAdminUser = email === 'ritikpaswal79984@gmail.com' || 
+                          email === 'admin@showtix.com' || 
+                          email === 'admin@example.com';
       
       toast.success('Signed in successfully');
       
       // Redirect admins to admin dashboard, regular users to home
       if (isAdminUser) {
+        console.log('Admin user detected, redirecting to admin dashboard');
         navigate('/admin');
       } else {
         navigate('/');
