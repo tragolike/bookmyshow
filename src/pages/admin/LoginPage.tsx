@@ -24,6 +24,7 @@ const AdminLoginPage = () => {
     }
     
     try {
+      console.log('Admin login attempt:', { email });
       await signIn(email, password);
       
       // The redirect to admin dashboard is handled in the AuthContext

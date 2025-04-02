@@ -1,4 +1,3 @@
-
 import { useNavigate } from 'react-router-dom';
 import { supabase, db } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
@@ -10,20 +9,29 @@ export function useAuthMethods(fetchProfile: (userId: string) => Promise<void>) 
   const signIn = async (email: string, password: string) => {
     try {
       console.log('Attempting to sign in with:', { email });
-      const { error, data } = await supabase.auth.signInWithPassword({ email, password });
+      
+      // Normalize email to lowercase to prevent case sensitivity issues
+      const normalizedEmail = email.toLowerCase().trim();
+      
+      const { error, data } = await supabase.auth.signInWithPassword({ 
+        email: normalizedEmail, 
+        password 
+      });
 
       if (error) {
         console.error('Sign in error:', error);
-        toast.error(error.message);
+        toast.error(error.message || 'Invalid login credentials');
         return;
       }
 
       console.log('Sign in successful, user data:', data.user);
       
       // Check if the user is an admin based on their email
-      const isAdminUser = email === 'ritikpaswal79984@gmail.com' || 
-                          email === 'admin@showtix.com' || 
-                          email === 'admin@example.com';
+      const isAdminUser = normalizedEmail === 'ritikpaswal79984@gmail.com' || 
+                          normalizedEmail === 'admin@showtix.com' || 
+                          normalizedEmail === 'admin@example.com';
+      
+      console.log('Is admin user?', isAdminUser, 'Email:', normalizedEmail);
       
       toast.success('Signed in successfully');
       

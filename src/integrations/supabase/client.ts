@@ -1,4 +1,3 @@
-
 import { createClient } from '@supabase/supabase-js';
 import { PostgrestError } from '@supabase/supabase-js';
 
@@ -10,20 +9,20 @@ const envSupabaseKey = import.meta.env.VITE_SUPABASE_ANON_KEY;
 const fallbackUrl = 'https://gfmxvjxgjswbxbtkseap.supabase.co';
 const fallbackKey = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImdmbXh2anhnanN3YnhidGtzZWFwIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NDM1OTg2OTEsImV4cCI6MjA1OTE3NDY5MX0.ajBWfE7Ici2KiCBL3Hnl24ocJS4-1MZLX8ehvHX9b6c';
 
-// Validate and use appropriate values
-const supabaseUrl = (envSupabaseUrl && typeof envSupabaseUrl === 'string' && envSupabaseUrl.startsWith('http')) 
-  ? envSupabaseUrl 
-  : fallbackUrl;
+// Use fallback values if environment variables are not available or invalid
+const supabaseUrl = (!envSupabaseUrl || typeof envSupabaseUrl !== 'string' || !envSupabaseUrl.startsWith('http')) 
+  ? fallbackUrl 
+  : envSupabaseUrl;
 
-const supabaseAnonKey = (envSupabaseKey && typeof envSupabaseKey === 'string') 
-  ? envSupabaseKey 
-  : fallbackKey;
+const supabaseAnonKey = (!envSupabaseKey || typeof envSupabaseKey !== 'string' || envSupabaseKey.trim() === '') 
+  ? fallbackKey 
+  : envSupabaseKey;
 
 // Log the Supabase URL and key being used for debugging purposes
 console.info('Initializing Supabase with URL:', supabaseUrl);
 console.info('Using Supabase Anon Key:', supabaseAnonKey.substring(0, 10) + '...');
 
-// Initialize the Supabase client with options to ensure consistent auth behavior
+// Initialize the Supabase client with explicit options for auth behavior
 export const supabase = createClient(supabaseUrl, supabaseAnonKey, {
   auth: {
     persistSession: true,
@@ -46,7 +45,7 @@ export const isUserAdmin = (email?: string | null): boolean => {
     'ritikpaswal79984@gmail.com'
   ];
   
-  return adminEmails.includes(email);
+  return adminEmails.includes(email.toLowerCase());
 };
 
 // Supabase database helpers

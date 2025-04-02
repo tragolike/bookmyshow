@@ -3,11 +3,16 @@ import { createRoot } from 'react-dom/client'
 import App from './App.tsx'
 import './index.css'
 
-// Add console error handler for debugging
+// Add enhanced console error handler for debugging
 window.addEventListener('error', (event) => {
   console.error('Global error:', event.error);
   console.error('Error message:', event.message);
   console.error('Error source:', event.filename, 'line:', event.lineno, 'column:', event.colno);
+  
+  // Additional error details
+  if (event.error && event.error.stack) {
+    console.error('Error stack:', event.error.stack);
+  }
   
   // Report the error to the UI for better debugging
   const errorElement = document.createElement('div');
@@ -23,11 +28,21 @@ window.addEventListener('error', (event) => {
   document.body.appendChild(errorElement);
 });
 
-// Add unhandled promise rejection handler
+// Add enhanced unhandled promise rejection handler
 window.addEventListener('unhandledrejection', (event) => {
   console.error('Unhandled Promise Rejection:', event.reason);
   if (event.reason && event.reason.stack) {
     console.error('Rejection stack:', event.reason.stack);
+  }
+  
+  // Log more details about the rejection
+  if (event.reason && event.reason.message) {
+    console.error('Rejection message:', event.reason.message);
+  }
+  
+  if (event.reason && event.reason.response) {
+    console.error('Response data:', event.reason.response.data);
+    console.error('Response status:', event.reason.response.status);
   }
 });
 
@@ -37,6 +52,7 @@ console.info('Environment:', import.meta.env.MODE);
 console.info('Browser:', navigator.userAgent);
 console.info('Base URL:', window.location.origin);
 console.info('Supabase URL:', import.meta.env.VITE_SUPABASE_URL || 'Using fallback URL');
+console.info('Auth with email "ritikpaswal79984@gmail.com" should work for admin access');
 
 // Mount app with error boundary
 try {
