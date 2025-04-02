@@ -14,6 +14,7 @@ type AuthContextType = {
   signIn: (email: string, password: string) => Promise<void>;
   signUp: (email: string, password: string, firstName: string, lastName: string) => Promise<void>;
   signOut: () => Promise<void>;
+  resetPassword: (email: string) => Promise<void>;
   updateProfile: (data: { first_name?: string; last_name?: string; phone_number?: string; avatar_url?: string }) => Promise<void>;
 };
 
@@ -158,6 +159,28 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
     }
   };
 
+  // Reset password
+  const resetPassword = async (email: string) => {
+    try {
+      setIsLoading(true);
+      
+      const { error } = await supabase.auth.resetPasswordForEmail(email, {
+        redirectTo: `${window.location.origin}/reset-password-confirm`,
+      });
+      
+      if (error) {
+        toast.error(error.message);
+        return;
+      }
+      
+      toast.success('Password reset link sent to your email');
+    } catch (error: any) {
+      toast.error(error.message || 'An error occurred during password reset');
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
   // Update profile
   const updateProfile = async (data: { first_name?: string; last_name?: string; phone_number?: string; avatar_url?: string }) => {
     try {
@@ -194,6 +217,7 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
     signIn,
     signUp,
     signOut,
+    resetPassword,
     updateProfile,
   };
 

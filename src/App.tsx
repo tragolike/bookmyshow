@@ -11,6 +11,8 @@ import BookingPage from "./pages/BookingPage";
 import BookingConfirmation from "./pages/BookingConfirmation";
 import LoginPage from "./pages/auth/LoginPage";
 import RegisterPage from "./pages/auth/RegisterPage";
+import PasswordReset from "./components/auth/PasswordReset";
+import ResetPasswordConfirm from "./components/auth/ResetPasswordConfirm";
 import ProfilePage from "./pages/ProfilePage";
 import MyBookings from "./pages/MyBookings";
 import MoviesPage from "./pages/MoviesPage";
@@ -43,6 +45,24 @@ const AdminRoute = ({ element }: { element: React.ReactNode }) => {
   return element;
 };
 
+// Create a wrapper component for user routes
+const UserRoute = ({ element }: { element: React.ReactNode }) => {
+  const { user, isLoading } = useAuth();
+  
+  // If still loading auth state, show nothing yet
+  if (isLoading) {
+    return null;
+  }
+  
+  // If not logged in, redirect to login
+  if (!user) {
+    return <Navigate to="/login" replace />;
+  }
+  
+  // If logged in, show the requested page
+  return element;
+};
+
 const queryClient = new QueryClient();
 
 const App = () => (
@@ -56,12 +76,14 @@ const App = () => (
             {/* User-facing routes */}
             <Route path="/" element={<Index />} />
             <Route path="/events/:id" element={<EventDetail />} />
-            <Route path="/events/:id/booking" element={<BookingPage />} />
-            <Route path="/booking-confirmation" element={<BookingConfirmation />} />
+            <Route path="/events/:id/booking" element={<UserRoute element={<BookingPage />} />} />
+            <Route path="/booking-confirmation" element={<UserRoute element={<BookingConfirmation />} />} />
             <Route path="/login" element={<LoginPage />} />
             <Route path="/register" element={<RegisterPage />} />
-            <Route path="/profile" element={<ProfilePage />} />
-            <Route path="/my-bookings" element={<MyBookings />} />
+            <Route path="/password-reset" element={<PasswordReset />} />
+            <Route path="/reset-password-confirm" element={<ResetPasswordConfirm />} />
+            <Route path="/profile" element={<UserRoute element={<ProfilePage />} />} />
+            <Route path="/my-bookings" element={<UserRoute element={<MyBookings />} />} />
             <Route path="/movies" element={<MoviesPage />} />
             <Route path="/live-events" element={<LiveEventsPage />} />
             
