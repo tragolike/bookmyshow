@@ -26,6 +26,7 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
     updatePassword,
     updateProfile,
     signInWithGoogle,
+    fetchProfile
   };
 
   // Provide the auth context to children

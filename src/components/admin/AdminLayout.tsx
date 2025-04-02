@@ -41,8 +41,9 @@ const AdminLayout = ({ children, title, subtitle }: AdminLayoutProps) => {
     try {
       await signOut();
       toast.success('Signed out successfully');
-      navigate('/login');
+      navigate('/');
     } catch (error) {
+      console.error('Sign out error:', error);
       toast.error('Failed to sign out');
     }
   };
@@ -51,12 +52,16 @@ const AdminLayout = ({ children, title, subtitle }: AdminLayoutProps) => {
   useEffect(() => {
     if (!isLoading && user) {
       if (!isAdmin) {
+        console.log('User is not an admin, redirecting to home');
         toast.error('You do not have permission to access the admin panel');
         navigate('/');
+      } else {
+        console.log('User is admin, access granted');
       }
     } else if (!isLoading && !user) {
+      console.log('User is not logged in, redirecting to login');
       toast.error('Please login to access the admin panel');
-      navigate('/login');
+      navigate('/admin/login');
     }
   }, [isLoading, user, isAdmin, navigate]);
   
@@ -108,91 +113,100 @@ const AdminLayout = ({ children, title, subtitle }: AdminLayoutProps) => {
                 onClick={() => setSidebarOpen(false)}
                 className="p-2 rounded-md text-gray-500 hover:bg-gray-100"
               >
-                <X className="w-5 h-5" />
+                <X className="w-6 h-6" />
               </button>
             </div>
             
-            <nav className="p-4">
-              <ul className="space-y-2">
-                {navItems.map((item) => (
-                  <li key={item.path}>
-                    <Link 
-                      to={item.path}
-                      className={`flex items-center space-x-3 p-3 rounded-md ${
-                        location.pathname === item.path
-                          ? 'bg-book-primary text-white'
-                          : 'hover:bg-gray-100'
-                      }`}
-                      onClick={() => setSidebarOpen(false)}
-                    >
-                      {item.icon}
-                      <span>{item.label}</span>
-                    </Link>
-                  </li>
-                ))}
-              </ul>
+            <div className="py-4">
+              <div className="px-4 mb-2 text-xs font-semibold text-gray-500 uppercase tracking-wider">
+                Menu
+              </div>
               
-              <div className="mt-6 pt-6 border-t">
-                <button 
+              <nav className="space-y-1 px-2">
+                {navItems.map((item) => (
+                  <Link
+                    key={item.path}
+                    to={item.path}
+                    className={`flex items-center px-2 py-2 text-sm rounded-md ${
+                      location.pathname === item.path
+                        ? 'bg-book-primary text-white'
+                        : 'text-gray-700 hover:bg-gray-100'
+                    }`}
+                    onClick={() => setSidebarOpen(false)}
+                  >
+                    <span className="mr-3">{item.icon}</span>
+                    {item.label}
+                  </Link>
+                ))}
+              </nav>
+              
+              <div className="mt-6 px-4">
+                <button
                   onClick={handleSignOut}
-                  className="flex items-center space-x-3 w-full p-3 rounded-md text-red-500 hover:bg-red-50"
+                  className="flex items-center px-2 py-2 text-sm rounded-md text-red-600 hover:bg-red-50 w-full"
                 >
-                  <LogOut className="w-5 h-5" />
-                  <span>Sign Out</span>
+                  <LogOut className="w-5 h-5 mr-3" />
+                  Sign Out
                 </button>
               </div>
-            </nav>
+            </div>
           </div>
         </div>
       )}
       
-      <div className="flex flex-1">
+      {/* Desktop Layout */}
+      <div className="flex-1 flex">
         {/* Sidebar (Desktop) */}
-        <aside className="hidden md:block w-64 bg-white border-r">
-          <div className="p-6 border-b">
-            <h1 className="text-xl font-bold text-book-primary">ShowTix Admin</h1>
-          </div>
-          
-          <nav className="p-4">
-            <ul className="space-y-2">
-              {navItems.map((item) => (
-                <li key={item.path}>
-                  <Link 
-                    to={item.path}
-                    className={`flex items-center space-x-3 p-3 rounded-md ${
-                      location.pathname === item.path
-                        ? 'bg-book-primary text-white'
-                        : 'hover:bg-gray-100'
-                    }`}
-                  >
-                    {item.icon}
-                    <span>{item.label}</span>
-                  </Link>
-                </li>
-              ))}
-            </ul>
-            
-            <div className="mt-6 pt-6 border-t">
-              <button 
-                onClick={handleSignOut}
-                className="flex items-center space-x-3 w-full p-3 rounded-md text-red-500 hover:bg-red-50"
-              >
-                <LogOut className="w-5 h-5" />
-                <span>Sign Out</span>
-              </button>
+        <div className="hidden md:flex md:flex-shrink-0">
+          <div className="flex flex-col w-64 bg-white shadow-md">
+            <div className="flex-1 flex flex-col pt-5 pb-4">
+              <div className="flex items-center flex-shrink-0 px-4">
+                <div className="text-xl font-bold text-book-primary">ShowTix Admin</div>
+              </div>
+              
+              <div className="mt-6 flex-1 px-4">
+                <nav className="space-y-1">
+                  {navItems.map((item) => (
+                    <Link
+                      key={item.path}
+                      to={item.path}
+                      className={`flex items-center px-2 py-2 text-sm rounded-md ${
+                        location.pathname === item.path
+                          ? 'bg-book-primary text-white'
+                          : 'text-gray-700 hover:bg-gray-100'
+                      }`}
+                    >
+                      <span className="mr-3">{item.icon}</span>
+                      {item.label}
+                    </Link>
+                  ))}
+                </nav>
+              </div>
+              
+              <div className="mt-auto px-4 pb-4">
+                <button
+                  onClick={handleSignOut}
+                  className="flex items-center px-2 py-2 text-sm rounded-md text-red-600 hover:bg-red-50 w-full"
+                >
+                  <LogOut className="w-5 h-5 mr-3" />
+                  Sign Out
+                </button>
+              </div>
             </div>
-          </nav>
-        </aside>
+          </div>
+        </div>
         
         {/* Main Content */}
-        <main className="flex-1 p-6">
-          <div className="mb-6">
-            <h1 className="text-2xl font-bold">{title}</h1>
-            {subtitle && <p className="text-gray-500">{subtitle}</p>}
+        <div className="flex-1 flex flex-col">
+          <div className="px-4 py-6 sm:px-6 lg:px-8">
+            <div className="mb-6">
+              <h1 className="text-2xl font-bold">{title}</h1>
+              {subtitle && <p className="text-gray-600 mt-1">{subtitle}</p>}
+            </div>
+            
+            {children}
           </div>
-          
-          {children}
-        </main>
+        </div>
       </div>
     </div>
   );

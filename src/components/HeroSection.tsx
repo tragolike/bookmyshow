@@ -15,11 +15,41 @@ interface HeroSlide {
   is_active: boolean;
 }
 
+const DEFAULT_SLIDES = [
+  {
+    id: '1',
+    title: "Kolkata Knight Riders vs Royal Challengers Bengaluru",
+    subtitle: "The Champions are back! The IPL 2025 season opener",
+    image_url: "/lovable-uploads/933af9b9-e587-4f31-9e71-7474b68aa224.png",
+    link: "/events/kkr-vs-rcb",
+    sort_order: 1,
+    is_active: true
+  },
+  {
+    id: '2',
+    title: "Latest Movies & Exclusive Premieres",
+    subtitle: "Book tickets for the hottest new releases",
+    image_url: "/lovable-uploads/1934f56d-2445-4eff-bdcb-1dd1e3d45e75.png",
+    link: "/movies",
+    sort_order: 2,
+    is_active: true
+  },
+  {
+    id: '3',
+    title: "Live Concert Experiences",
+    subtitle: "Don't miss out on your favorite artists",
+    image_url: "/lovable-uploads/0717f399-6c25-40d2-ab0c-e8dce44e2e91.png",
+    link: "/events/concerts",
+    sort_order: 3,
+    is_active: true
+  }
+];
+
 const HeroSection = () => {
   const [currentSlide, setCurrentSlide] = useState(0);
   const [overlayOpacity, setOverlayOpacity] = useState(0.6); // Default to 60%
   
-  // Fetch hero slides from database
+  // Fetch hero slides from database with error handling
   const { data: heroSlidesData, isLoading, error } = useQuery({
     queryKey: ['heroSlides'],
     queryFn: async () => {
@@ -30,47 +60,29 @@ const HeroSection = () => {
           .eq('is_active', true)
           .order('sort_order', { ascending: true });
           
-        if (error) throw error;
+        if (error) {
+          console.error('Error fetching hero slides:', error);
+          return DEFAULT_SLIDES;
+        }
+        
+        if (!data || data.length === 0) {
+          console.log('No hero slides found, using defaults');
+          return DEFAULT_SLIDES;
+        }
+        
+        console.log('Fetched hero slides:', data);
         return data as HeroSlide[];
       } catch (error) {
-        console.error('Error fetching hero slides:', error);
-        // Fallback to default slides
-        return [
-          {
-            id: '1',
-            title: "Kolkata Knight Riders vs Royal Challengers Bengaluru",
-            subtitle: "The Champions are back! The IPL 2025 season opener",
-            image_url: "/lovable-uploads/933af9b9-e587-4f31-9e71-7474b68aa224.png",
-            link: "/events/kkr-vs-rcb",
-            sort_order: 1,
-            is_active: true
-          },
-          {
-            id: '2',
-            title: "Latest Movies & Exclusive Premieres",
-            subtitle: "Book tickets for the hottest new releases",
-            image_url: "/lovable-uploads/1934f56d-2445-4eff-bdcb-1dd1e3d45e75.png",
-            link: "/movies",
-            sort_order: 2,
-            is_active: true
-          },
-          {
-            id: '3',
-            title: "Live Concert Experiences",
-            subtitle: "Don't miss out on your favorite artists",
-            image_url: "/lovable-uploads/0717f399-6c25-40d2-ab0c-e8dce44e2e91.png",
-            link: "/events/concerts",
-            sort_order: 3,
-            is_active: true
-          }
-        ];
+        console.error('Exception fetching hero slides:', error);
+        return DEFAULT_SLIDES;
       }
     },
     refetchOnMount: true,
-    staleTime: 60000 // 1 minute
+    staleTime: 60000, // 1 minute
+    retry: 2,
   });
   
-  const slides = heroSlidesData || [];
+  const slides = heroSlidesData || DEFAULT_SLIDES;
   
   // Fetch overlay opacity from database
   useEffect(() => {
@@ -80,7 +92,7 @@ const HeroSection = () => {
           .from('site_settings')
           .select('value')
           .eq('key', 'hero_overlay_opacity')
-          .single();
+          .maybeSingle();
         
         if (error) {
           console.error('Error fetching overlay opacity:', error);
@@ -132,6 +144,10 @@ const HeroSection = () => {
               src={slide.image_url}
               alt={slide.title}
               className="w-full h-full object-cover"
+              onError={(e) => {
+                // Fallback image if original fails to load
+                e.currentTarget.src = "/lovable-uploads/933af9b9-e587-4f31-9e71-7474b68aa224.png";
+              }}
             />
           </div>
         ))}
@@ -160,7 +176,7 @@ const HeroSection = () => {
             </div>
             
             <Link
-              to={slides[currentSlide]?.link}
+              to={slides[currentSlide]?.link || '/'}
               className="btn-primary flex items-center justify-center gap-2 w-full sm:w-auto"
             >
               <span>Book Now</span>

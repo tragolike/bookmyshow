@@ -1,12 +1,17 @@
-
 import { createClient } from '@supabase/supabase-js';
 import type { EventStatus } from '@/types/events';
 
-// Initialize the Supabase client
-const supabaseUrl = import.meta.env.VITE_SUPABASE_URL || 'https://your-project-url.supabase.co';
-const supabaseKey = import.meta.env.VITE_SUPABASE_ANON_KEY || 'your-anon-key';
+// Initialize the Supabase client with better error handling
+const supabaseUrl = import.meta.env.VITE_SUPABASE_URL || 'https://gfmxvjxgjswbxbtkseap.supabase.co';
+const supabaseKey = import.meta.env.VITE_SUPABASE_ANON_KEY || 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImdmbXh2anhnanN3YnhidGtzZWFwIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NDM1OTg2OTEsImV4cCI6MjA1OTE3NDY5MX0.ajBWfE7Ici2KiCBL3Hnl24ocJS4-1MZLX8ehvHX9b6c';
 
-export const supabase = createClient(supabaseUrl, supabaseKey);
+export const supabase = createClient(supabaseUrl, supabaseKey, {
+  auth: {
+    persistSession: true,
+    autoRefreshToken: true,
+    storageKey: 'showtix-auth'
+  }
+});
 
 // Re-export EventStatus from types
 export type { EventStatus };
@@ -34,32 +39,39 @@ export const isUserAdmin = (email?: string | null): boolean => {
   return adminEmails.includes(email.toLowerCase());
 };
 
-// Function to ensure a bucket exists before uploading
+// Improved function to ensure a bucket exists before uploading
 export const ensureBucketExists = async (bucketId: string, bucketName: string) => {
   try {
+    console.log(`Checking if bucket exists: ${bucketId}`);
+    
     // Check if bucket exists
     const { data: buckets, error: listError } = await supabase.storage.listBuckets();
     
     if (listError) {
       console.error('Error checking buckets:', listError);
-      throw listError;
+      // Don't throw, just return the error
+      return { success: false, error: listError };
     }
     
     // Check if our bucket exists in the list
-    const bucketExists = buckets.some(bucket => bucket.id === bucketId);
+    const bucketExists = buckets?.some(bucket => bucket.id === bucketId);
     
     // If bucket doesn't exist, create it
     if (!bucketExists) {
       console.log(`Creating bucket: ${bucketId}`);
       const { error: createError } = await supabase.storage.createBucket(bucketId, {
         public: true,
-        fileSizeLimit: 5242880, // 5MB
-        allowedMimeTypes: ['image/png', 'image/jpeg', 'image/svg+xml', 'image/gif', 'image/webp']
+        fileSizeLimit: 10485760, // 10MB
+        allowedMimeTypes: ['image/png', 'image/jpeg', 'image/svg+xml', 'image/gif', 'image/webp', 'image/x-icon', 'image/vnd.microsoft.icon']
       });
       
       if (createError) {
         console.error(`Error creating bucket ${bucketId}:`, createError);
-        throw createError;
+        if (createError.message.includes('already exists')) {
+          console.log(`Bucket ${bucketId} already exists despite list not showing it`);
+          return { success: true, error: null, already_exists: true };
+        }
+        return { success: false, error: createError };
       }
       
       console.log(`Successfully created bucket: ${bucketId}`);
@@ -67,18 +79,22 @@ export const ensureBucketExists = async (bucketId: string, bucketName: string) =
       console.log(`Bucket ${bucketId} already exists`);
     }
     
-    return { success: true };
+    return { success: true, error: null };
   } catch (error) {
     console.error('Error in ensureBucketExists:', error);
     return { success: false, error };
   }
 };
 
-// Upload file to Supabase Storage
+// Improved upload file to Supabase Storage with better error handling
 export const uploadFile = async (file: File, bucketId: string, folderPath: string = '') => {
   try {
     // First ensure the bucket exists
-    await ensureBucketExists(bucketId, bucketId.replace('_', ' '));
+    const bucketResult = await ensureBucketExists(bucketId, bucketId.replace('_', ' '));
+    
+    if (!bucketResult.success && !bucketResult.already_exists) {
+      console.warn('Proceeding with upload despite bucket creation issue');
+    }
     
     // Create a unique file name
     const timestamp = new Date().getTime();
@@ -87,6 +103,8 @@ export const uploadFile = async (file: File, bucketId: string, folderPath: strin
     
     // Construct the file path
     const filePath = folderPath ? `${folderPath}/${fileName}` : fileName;
+    
+    console.log(`Uploading file to ${bucketId}/${filePath}`);
     
     // Upload the file
     const { data, error } = await supabase.storage
@@ -106,6 +124,8 @@ export const uploadFile = async (file: File, bucketId: string, folderPath: strin
       .from(bucketId)
       .getPublicUrl(data?.path || filePath);
     
+    console.log(`File uploaded successfully, public URL: ${publicUrl}`);
+    
     return {
       url: publicUrl,
       path: data?.path || filePath,
@@ -117,7 +137,7 @@ export const uploadFile = async (file: File, bucketId: string, folderPath: strin
   }
 };
 
-// Custom function to fetch brand settings
+// Improved function to fetch brand settings with fallback
 export const getBrandSettings = async () => {
   try {
     const { data, error } = await supabase
@@ -125,20 +145,52 @@ export const getBrandSettings = async () => {
       .select('*')
       .order('updated_at', { ascending: false })
       .limit(1)
-      .single();
+      .maybeSingle();
       
-    if (error && error.code !== 'PGRST116') {
-      throw error;
+    if (error) {
+      console.error('Error fetching brand settings:', error);
+      // Return default settings in case of error
+      return { 
+        data: {
+          site_name: 'ShowTix',
+          primary_color: '#ff3366',
+          logo_url: '',
+          favicon_url: ''
+        }, 
+        error: null 
+      };
+    }
+    
+    if (!data) {
+      // Return default settings if no data is found
+      return { 
+        data: {
+          site_name: 'ShowTix',
+          primary_color: '#ff3366',
+          logo_url: '',
+          favicon_url: ''
+        }, 
+        error: null 
+      };
     }
     
     return { data, error: null };
   } catch (error) {
     console.error('Error fetching brand settings:', error);
-    return { data: null, error };
+    // Return default settings in case of exception
+    return { 
+      data: {
+        site_name: 'ShowTix',
+        primary_color: '#ff3366',
+        logo_url: '',
+        favicon_url: ''
+      }, 
+      error 
+    };
   }
 };
 
-// Custom function to update brand settings
+// Improved function to update brand settings with better error handling
 export const updateBrandSettings = async (settings: any) => {
   try {
     // Check if we already have settings
@@ -146,10 +198,11 @@ export const updateBrandSettings = async (settings: any) => {
       .from('brand_settings')
       .select('id')
       .limit(1)
-      .single();
+      .maybeSingle();
       
-    if (checkError && checkError.code !== 'PGRST116') {
-      throw checkError;
+    if (checkError) {
+      console.error('Error checking existing brand settings:', checkError);
+      return { data: null, error: checkError };
     }
     
     let result;
@@ -169,7 +222,8 @@ export const updateBrandSettings = async (settings: any) => {
     }
     
     if (result.error) {
-      throw result.error;
+      console.error('Error updating brand settings:', result.error);
+      return { data: null, error: result.error };
     }
     
     return { data: result.data, error: null };
@@ -179,7 +233,7 @@ export const updateBrandSettings = async (settings: any) => {
   }
 };
 
-// Get payment settings
+// Improved get payment settings with better fallback and error handling
 export const getPaymentSettings = async () => {
   try {
     const { data, error } = await supabase
@@ -187,26 +241,37 @@ export const getPaymentSettings = async () => {
       .select('*')
       .order('updated_at', { ascending: false })
       .limit(1)
-      .single();
+      .maybeSingle();
       
     if (error) {
-      // If the error is that no rows were returned, return default settings
-      if (error.code === 'PGRST116') {
-        return { 
-          data: {
-            upi_id: 'showtix@upi',
-            qr_code_url: '',
-            payment_instructions: 'Please make the payment using any UPI app and enter the UTR number for verification.'
-          }, 
-          error: null 
-        };
-      }
-      throw error;
+      console.error('Error fetching payment settings:', error);
+      // Return default settings in case of error
+      return { 
+        data: {
+          upi_id: 'showtix@upi',
+          qr_code_url: '',
+          payment_instructions: 'Please make the payment using any UPI app and enter the UTR number for verification.'
+        }, 
+        error: null 
+      };
+    }
+    
+    if (!data) {
+      // Return default settings if no data is found
+      return { 
+        data: {
+          upi_id: 'showtix@upi',
+          qr_code_url: '',
+          payment_instructions: 'Please make the payment using any UPI app and enter the UTR number for verification.'
+        }, 
+        error: null 
+      };
     }
     
     return { data, error: null };
   } catch (error) {
     console.error('Error fetching payment settings:', error);
+    // Return default settings in case of exception
     return { 
       data: {
         upi_id: 'showtix@upi',

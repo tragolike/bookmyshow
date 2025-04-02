@@ -1,5 +1,5 @@
 
-import { Session, User } from '@supabase/supabase-js';
+import { User, Session } from '@supabase/supabase-js';
 
 export interface Profile {
   id: string;
@@ -10,29 +10,18 @@ export interface Profile {
   created_at?: string;
 }
 
-export interface LoginCredentials {
+export interface SignUpCredentials {
   email: string;
   password: string;
-}
-
-export interface SignUpCredentials extends LoginCredentials {
   first_name: string;
   last_name: string;
-}
-
-export interface ResetPasswordCredentials {
-  email: string;
-}
-
-export interface UpdatePasswordCredentials {
-  password: string;
 }
 
 export interface UpdateProfileData {
   first_name?: string;
   last_name?: string;
-  phone_number?: string;
   avatar_url?: string;
+  phone_number?: string;
 }
 
 export interface AuthContextType {
@@ -43,9 +32,10 @@ export interface AuthContextType {
   isAdmin: boolean;
   signIn: (email: string, password: string) => Promise<boolean>;
   signUp: (credentials: SignUpCredentials) => Promise<boolean>;
-  signOut: () => Promise<boolean>;
+  signOut: () => Promise<boolean | void>;
   resetPassword: (email: string) => Promise<boolean>;
   updatePassword: (password: string) => Promise<boolean>;
   updateProfile: (data: UpdateProfileData) => Promise<boolean>;
   signInWithGoogle: () => Promise<boolean>;
+  fetchProfile: (userId: string) => Promise<void>;
 }

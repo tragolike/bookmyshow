@@ -1,3 +1,4 @@
+
 import { useState } from 'react';
 import { supabase, isUserAdmin } from '@/integrations/supabase/client';
 import { SignUpCredentials, UpdateProfileData } from '@/types/auth';
@@ -10,18 +11,21 @@ export function useAuthMethods() {
   const signIn = async (email: string, password: string): Promise<boolean> => {
     try {
       setIsLoading(true);
-      const { error } = await supabase.auth.signInWithPassword({ email, password });
+      console.log('Attempting to sign in with:', email);
+      const { data, error } = await supabase.auth.signInWithPassword({ email, password });
       
       if (error) {
-        toast.error(error.message);
+        console.error('Sign in error:', error);
+        toast.error(error.message || 'Failed to sign in');
         return false;
       }
       
+      console.log('Sign in successful:', data);
       toast.success('Signed in successfully');
       return true;
-    } catch (error) {
-      console.error('Error signing in:', error);
-      toast.error('Failed to sign in');
+    } catch (error: any) {
+      console.error('Exception during sign in:', error);
+      toast.error(error.message || 'An unexpected error occurred');
       return false;
     } finally {
       setIsLoading(false);
@@ -34,8 +38,9 @@ export function useAuthMethods() {
       setIsLoading(true);
       
       const { email, password, first_name, last_name } = credentials;
+      console.log('Attempting to sign up with:', email);
       
-      const { error } = await supabase.auth.signUp({
+      const { data, error } = await supabase.auth.signUp({
         email,
         password,
         options: {
@@ -47,15 +52,17 @@ export function useAuthMethods() {
       });
       
       if (error) {
-        toast.error(error.message);
+        console.error('Sign up error:', error);
+        toast.error(error.message || 'Failed to create account');
         return false;
       }
       
+      console.log('Sign up successful:', data);
       toast.success('Account created successfully! Please check your email for confirmation.');
       return true;
-    } catch (error) {
-      console.error('Error signing up:', error);
-      toast.error('Failed to create account');
+    } catch (error: any) {
+      console.error('Exception during sign up:', error);
+      toast.error(error.message || 'An unexpected error occurred');
       return false;
     } finally {
       setIsLoading(false);
@@ -65,18 +72,21 @@ export function useAuthMethods() {
   // Sign out
   const signOut = async () => {
     try {
+      console.log('Attempting to sign out');
       const { error } = await supabase.auth.signOut();
 
       if (error) {
-        toast.error(error.message);
+        console.error('Sign out error:', error);
+        toast.error(error.message || 'Failed to sign out');
         return false;
       }
 
+      console.log('Sign out successful');
       toast.success('Signed out successfully');
       return true;
     } catch (error: any) {
-      console.error('Sign out error:', error);
-      toast.error(error.message || 'An error occurred during sign out');
+      console.error('Exception during sign out:', error);
+      toast.error(error.message || 'An unexpected error occurred');
       return false;
     }
   };
@@ -87,6 +97,7 @@ export function useAuthMethods() {
       const origin = window.location.origin;
       const resetUrl = `${origin}/reset-password-confirm`;
       
+      console.log('Password reset requested for:', email);
       console.log('Password reset redirect URL:', resetUrl);
       
       const { error } = await supabase.auth.resetPasswordForEmail(email, {
@@ -99,11 +110,12 @@ export function useAuthMethods() {
         return false;
       }
       
+      console.log('Password reset email sent');
       toast.success('Password reset link sent to your email');
       return true;
     } catch (error: any) {
-      console.error('Password reset error:', error);
-      toast.error(error.message || 'An error occurred during password reset');
+      console.error('Exception during password reset:', error);
+      toast.error(error.message || 'An unexpected error occurred');
       return false;
     }
   };
@@ -111,6 +123,7 @@ export function useAuthMethods() {
   // Update password (when already logged in)
   const updatePassword = async (password: string) => {
     try {
+      console.log('Attempting to update password');
       const { error } = await supabase.auth.updateUser({
         password: password,
       });
@@ -121,11 +134,12 @@ export function useAuthMethods() {
         return false;
       }
       
+      console.log('Password updated successfully');
       toast.success('Password updated successfully');
       return true;
     } catch (error: any) {
-      console.error('Password update error:', error);
-      toast.error(error.message || 'An error occurred while updating password');
+      console.error('Exception during password update:', error);
+      toast.error(error.message || 'An unexpected error occurred');
       return false;
     }
   };
@@ -133,28 +147,33 @@ export function useAuthMethods() {
   // Update profile
   const updateProfile = async (data: UpdateProfileData) => {
     try {
+      console.log('Fetching current user');
       const { data: { user } } = await supabase.auth.getUser();
       
       if (!user) {
+        console.error('No user found');
         toast.error('You must be logged in to update your profile');
         return false;
       }
 
+      console.log('Updating profile for user:', user.id);
       const { error } = await supabase
         .from('profiles')
         .update(data)
         .eq('id', user.id);
 
       if (error) {
-        toast.error(error.message);
+        console.error('Profile update error:', error);
+        toast.error(error.message || 'Failed to update profile');
         return false;
       }
 
+      console.log('Profile updated successfully');
       toast.success('Profile updated successfully');
       return true;
     } catch (error: any) {
-      console.error('Profile update error:', error);
-      toast.error(error.message || 'An error occurred while updating profile');
+      console.error('Exception during profile update:', error);
+      toast.error(error.message || 'An unexpected error occurred');
       return false;
     }
   };
@@ -162,7 +181,7 @@ export function useAuthMethods() {
   // Google sign in
   const signInWithGoogle = async () => {
     try {
-      console.log('Attempting to sign in with Google...');
+      console.log('Attempting to sign in with Google');
       const { error, data } = await supabase.auth.signInWithOAuth({
         provider: 'google',
         options: {
@@ -179,8 +198,8 @@ export function useAuthMethods() {
       console.log('Google authentication initiated:', data);
       return true;
     } catch (error: any) {
-      console.error('Google sign in error:', error);
-      toast.error(error.message || 'An error occurred during Google sign in');
+      console.error('Exception during Google sign in:', error);
+      toast.error(error.message || 'An unexpected error occurred');
       return false;
     }
   };
