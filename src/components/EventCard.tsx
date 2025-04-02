@@ -15,6 +15,7 @@ export interface EventProps {
   price: number;
   status?: EventStatus;
   interested?: number;
+  onClick?: () => void;
 }
 
 const EventCard = ({ 
@@ -28,10 +29,18 @@ const EventCard = ({
   category, 
   price, 
   status = 'available',
-  interested 
+  interested,
+  onClick
 }: EventProps) => {
+  const handleClick = (e: React.MouseEvent) => {
+    if (onClick) {
+      e.preventDefault();
+      onClick();
+    }
+  };
+
   return (
-    <Link to={`/events/${id}`} className="event-card block">
+    <Link to={`/events/${id}`} className="event-card block" onClick={handleClick}>
       <div className="relative aspect-[3/4] rounded-xl overflow-hidden">
         <img 
           src={image} 
@@ -61,7 +70,7 @@ const EventCard = ({
               <span>{time}</span>
             </div>
             
-            <div className="flex items-center gap-1 text-white/80 text-xs mb-3">
+            <div className="flex items-center gap-1 text-white/80 text-xs mb-1">
               <MapPin className="w-3 h-3" />
               <span>{venue}, {city}</span>
             </div>
