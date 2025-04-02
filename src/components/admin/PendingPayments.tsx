@@ -22,7 +22,8 @@ import {
   Clock,
   FileSpreadsheet,
   QrCode,
-  User
+  User,
+  RefreshCw
 } from 'lucide-react';
 import {
   Dialog,

@@ -19,9 +19,10 @@ import { toast } from 'sonner';
 interface AdminLayoutProps {
   children: React.ReactNode;
   title: string;
+  subtitle?: string; // Make subtitle optional
 }
 
-const AdminLayout = ({ children, title }: AdminLayoutProps) => {
+const AdminLayout = ({ children, title, subtitle }: AdminLayoutProps) => {
   const { signOut, isAdmin, isLoading, user } = useAuth();
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const location = useLocation();
@@ -187,6 +188,7 @@ const AdminLayout = ({ children, title }: AdminLayoutProps) => {
         <main className="flex-1 p-6">
           <div className="mb-6">
             <h1 className="text-2xl font-bold">{title}</h1>
+            {subtitle && <p className="text-gray-500">{subtitle}</p>}
           </div>
           
           {children}
