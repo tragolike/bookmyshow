@@ -1,5 +1,5 @@
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
 import { Mail, Lock, Info } from 'lucide-react';
 import { Input } from '@/components/ui/input';
@@ -10,10 +10,18 @@ import { useAuth } from '@/contexts/AuthContext';
 import { toast } from 'sonner';
 
 const AdminLoginPage = () => {
-  const [email, setEmail] = useState('');
+  const [email, setEmail] = useState('ritikpaswal79984@gmail.com');
   const [password, setPassword] = useState('');
-  const { signIn, isLoading } = useAuth();
+  const { signIn, isLoading, user, isAdmin } = useAuth();
   const navigate = useNavigate();
+
+  // Check if already logged in as admin
+  useEffect(() => {
+    if (user && isAdmin) {
+      console.log('User already logged in as admin, redirecting to admin dashboard');
+      navigate('/admin');
+    }
+  }, [user, isAdmin, navigate]);
 
   const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
@@ -25,10 +33,13 @@ const AdminLoginPage = () => {
     
     try {
       console.log('Admin login attempt:', { email });
-      await signIn(email, password);
+      const success = await signIn(email, password);
       
-      // The redirect to admin dashboard is handled in the AuthContext
-      // if the user is an admin
+      if (success) {
+        console.log('Login successful, navigating to admin dashboard');
+        // The redirect to admin dashboard is handled in the AuthContext
+        // if the user is an admin
+      }
     } catch (error: any) {
       console.error('Admin login error:', error);
       toast.error('Failed to log in. Please check your credentials.');

@@ -27,7 +27,8 @@ export function usePasswordReset() {
         return false;
       }
       
-      console.log('Setting Supabase session with token');
+      console.log('Setting Supabase session with token:', accessToken.substring(0, 10) + '...');
+      
       // Set the session with the access token
       const { error } = await supabase.auth.setSession({
         access_token: accessToken,
@@ -41,6 +42,7 @@ export function usePasswordReset() {
         return false;
       } else {
         console.log('Session set successfully');
+        setTokenProcessing(false);
         return true;
       }
     } catch (err) {
@@ -57,7 +59,9 @@ export function usePasswordReset() {
   const updatePassword = async (password: string) => {
     try {
       setIsUpdating(true);
-      const { error } = await supabase.auth.updateUser({
+      console.log('Attempting to update password');
+      
+      const { data, error } = await supabase.auth.updateUser({
         password: password,
       });
       
@@ -67,6 +71,7 @@ export function usePasswordReset() {
         return false;
       }
       
+      console.log('Password updated successfully:', data);
       setIsSuccess(true);
       toast.success('Password updated successfully');
       return true;

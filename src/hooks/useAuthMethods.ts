@@ -1,5 +1,5 @@
 import { useNavigate } from 'react-router-dom';
-import { supabase, db } from '@/integrations/supabase/client';
+import { supabase, db, isUserAdmin } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
 
 export function useAuthMethods(fetchProfile: (userId: string) => Promise<void>) {
@@ -13,6 +13,9 @@ export function useAuthMethods(fetchProfile: (userId: string) => Promise<void>) 
       // Normalize email to lowercase to prevent case sensitivity issues
       const normalizedEmail = email.toLowerCase().trim();
       
+      console.log('Normalized email:', normalizedEmail);
+      console.log('Password length:', password.length);
+      
       const { error, data } = await supabase.auth.signInWithPassword({ 
         email: normalizedEmail, 
         password 
@@ -21,15 +24,13 @@ export function useAuthMethods(fetchProfile: (userId: string) => Promise<void>) 
       if (error) {
         console.error('Sign in error:', error);
         toast.error(error.message || 'Invalid login credentials');
-        return;
+        return false;
       }
 
       console.log('Sign in successful, user data:', data.user);
       
       // Check if the user is an admin based on their email
-      const isAdminUser = normalizedEmail === 'ritikpaswal79984@gmail.com' || 
-                          normalizedEmail === 'admin@showtix.com' || 
-                          normalizedEmail === 'admin@example.com';
+      const isAdminUser = isUserAdmin(normalizedEmail);
       
       console.log('Is admin user?', isAdminUser, 'Email:', normalizedEmail);
       
@@ -42,9 +43,12 @@ export function useAuthMethods(fetchProfile: (userId: string) => Promise<void>) 
       } else {
         navigate('/');
       }
+      
+      return true;
     } catch (error: any) {
       console.error('Sign in error:', error);
       toast.error(error.message || 'An error occurred during sign in');
+      return false;
     }
   };
 
@@ -64,14 +68,16 @@ export function useAuthMethods(fetchProfile: (userId: string) => Promise<void>) 
 
       if (error) {
         toast.error(error.message);
-        return;
+        return false;
       }
 
       toast.success('Account created successfully. Please verify your email.');
       navigate('/login');
+      return true;
     } catch (error: any) {
       console.error('Sign up error:', error);
       toast.error(error.message || 'An error occurred during sign up');
+      return false;
     }
   };
 
@@ -82,14 +88,16 @@ export function useAuthMethods(fetchProfile: (userId: string) => Promise<void>) 
 
       if (error) {
         toast.error(error.message);
-        return;
+        return false;
       }
 
       toast.success('Signed out successfully');
       navigate('/');
+      return true;
     } catch (error: any) {
       console.error('Sign out error:', error);
       toast.error(error.message || 'An error occurred during sign out');
+      return false;
     }
   };
 
@@ -109,13 +117,15 @@ export function useAuthMethods(fetchProfile: (userId: string) => Promise<void>) 
       if (error) {
         console.error('Password reset error:', error);
         toast.error(error.message || 'Failed to send reset email');
-        return;
+        return false;
       }
       
       toast.success('Password reset link sent to your email');
+      return true;
     } catch (error: any) {
       console.error('Password reset error:', error);
       toast.error(error.message || 'An error occurred during password reset');
+      return false;
     }
   };
   
@@ -148,7 +158,7 @@ export function useAuthMethods(fetchProfile: (userId: string) => Promise<void>) 
       
       if (!user) {
         toast.error('You must be logged in to update your profile');
-        return;
+        return false;
       }
 
       const { error } = await db.profiles()
@@ -157,14 +167,16 @@ export function useAuthMethods(fetchProfile: (userId: string) => Promise<void>) 
 
       if (error) {
         toast.error(error.message);
-        return;
+        return false;
       }
 
       await fetchProfile(user.id);
       toast.success('Profile updated successfully');
+      return true;
     } catch (error: any) {
       console.error('Profile update error:', error);
       toast.error(error.message || 'An error occurred while updating profile');
+      return false;
     }
   };
 
@@ -182,14 +194,16 @@ export function useAuthMethods(fetchProfile: (userId: string) => Promise<void>) 
       if (error) {
         console.error('Google sign-in error:', error);
         toast.error(error.message || 'Failed to sign in with Google');
-        return;
+        return false;
       }
       
       console.log('Google authentication initiated:', data);
       // The redirect to Google happens automatically
+      return true;
     } catch (error: any) {
       console.error('Google sign in error:', error);
       toast.error(error.message || 'An error occurred during Google sign in');
+      return false;
     }
   };
 
