@@ -5,7 +5,7 @@ import { Header } from '@/components/Header';
 import Footer from '@/components/Footer';
 import SeatSelection from '@/components/SeatSelection';
 import SeatMap from '@/components/SeatMap';
-import UpiPayment from '@/components/UpiPayment';
+import UpiPayment from '@/components/payment/UpiPayment';
 import PaymentSummary from '@/components/PaymentSummary';
 import { db, createBooking } from '@/integrations/supabase/client';
 import { useAuth } from '@/contexts/AuthContext';
