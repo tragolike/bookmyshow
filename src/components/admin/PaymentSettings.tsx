@@ -1,3 +1,4 @@
+
 import { useState, useEffect } from 'react';
 import { toast } from 'sonner';
 import { getPaymentSettings, updatePaymentSettings, uploadFile } from '@/integrations/supabase/client';
@@ -24,14 +25,16 @@ const PaymentSettings = () => {
   const { data, isLoading, error } = useQuery({
     queryKey: ['paymentSettings'],
     queryFn: getPaymentSettings,
-    onSuccess: (data) => {
-      if (data.data) {
-        setUpiId(data.data.upi_id);
-        setQrCodeUrl(data.data.qr_code_url || '');
-        setInstructions(data.data.payment_instructions || '');
-      }
-    }
   });
+  
+  // Update local state when data is fetched
+  useEffect(() => {
+    if (data?.data) {
+      setUpiId(data.data.upi_id);
+      setQrCodeUrl(data.data.qr_code_url || '');
+      setInstructions(data.data.payment_instructions || '');
+    }
+  }, [data]);
   
   const mutation = useMutation({
     mutationFn: updatePaymentSettings,
@@ -129,10 +132,10 @@ const PaymentSettings = () => {
           
           <Button 
             type="submit" 
-            disabled={mutation.isLoading}
+            disabled={mutation.isPending}
             className="ml-auto"
           >
-            {mutation.isLoading ? (
+            {mutation.isPending ? (
               <>
                 <Loader2 className="mr-2 h-4 w-4 animate-spin" />
                 Saving...

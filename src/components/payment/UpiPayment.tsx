@@ -10,57 +10,45 @@ import PaymentErrorState from './PaymentErrorState';
 import UpiPaymentView from './UpiPaymentView';
 import UtrVerification from './UtrVerification';
 import { UpiPaymentProps, PaymentSettings } from './types';
+import { useQuery } from '@tanstack/react-query';
 
 const UpiPayment = ({ amount, reference, onComplete }: UpiPaymentProps) => {
   const [paymentSettings, setPaymentSettings] = useState<PaymentSettings | null>(null);
-  const [isLoading, setIsLoading] = useState(true);
+  const [isManualFetch, setIsManualFetch] = useState(false);
   const [countdown, setCountdown] = useState(900); // 15 minutes countdown
-  const [refreshTrigger, setRefreshTrigger] = useState(0);
   const [paymentMethod, setPaymentMethod] = useState<'upi' | 'manual'>('upi');
   
-  useEffect(() => {
-    const fetchSettings = async () => {
-      try {
-        setIsLoading(true);
-        const { data, error } = await getPaymentSettings();
-        
-        if (error) {
-          console.error('Error fetching payment settings:', error);
-          throw error;
-        }
-        
-        // If no data is returned or UPI ID is missing, use fallback values
-        if (!data || !data.upi_id) {
-          setPaymentSettings({
-            upi_id: 'showtix@upi',
-            qr_code_url: 'https://upload.wikimedia.org/wikipedia/commons/d/d0/QR_code_for_mobile_English_Wikipedia.svg',
-            payment_instructions: 'Please make the payment using any UPI app and enter the UTR number for verification.'
-          });
-          console.log('Using fallback payment settings');
-        } else {
-          setPaymentSettings(data);
-          console.log('Loaded payment settings from database:', data);
-        }
-      } catch (error) {
-        console.error('Error fetching payment settings:', error);
-        // Set fallback values on error
-        setPaymentSettings({
-          upi_id: 'showtix@upi',
-          qr_code_url: 'https://upload.wikimedia.org/wikipedia/commons/d/d0/QR_code_for_mobile_English_Wikipedia.svg',
-          payment_instructions: 'Please make the payment using any UPI app and enter the UTR number for verification.'
-        });
-        toast.error('Using default payment information');
-      } finally {
-        setIsLoading(false);
-      }
-    };
-    
-    fetchSettings();
-  }, [refreshTrigger]);
+  const { data, isLoading, error, refetch } = useQuery({
+    queryKey: ['paymentSettings'],
+    queryFn: getPaymentSettings,
+    enabled: !isManualFetch, // Only auto-fetch if not manually triggered
+  });
   
-  const refreshPaymentSettings = () => {
-    setRefreshTrigger(prev => prev + 1);
+  useEffect(() => {
+    if (data?.data) {
+      setPaymentSettings(data.data);
+      console.log('Loaded payment settings from database:', data.data);
+    } else if (error) {
+      console.error('Error fetching payment settings:', error);
+      // Set fallback values on error
+      setPaymentSettings({
+        upi_id: 'showtix@upi',
+        qr_code_url: 'https://upload.wikimedia.org/wikipedia/commons/d/d0/QR_code_for_mobile_English_Wikipedia.svg',
+        payment_instructions: 'Please make the payment using any UPI app and enter the UTR number for verification.'
+      });
+      toast.error('Using default payment information');
+    }
+  }, [data, error]);
+  
+  const refreshPaymentSettings = async () => {
+    setIsManualFetch(true);
     toast.info('Refreshing payment information...');
+    
+    try {
+      await refetch();
+    } catch (error) {
+      console.error('Error refreshing payment settings:', error);
+    }
   };
   
   const verifyUtrAndComplete = (utrNumber: string) => {
@@ -69,7 +57,7 @@ const UpiPayment = ({ amount, reference, onComplete }: UpiPaymentProps) => {
     onComplete();
   };
   
-  if (isLoading) {
+  if (isLoading && !isManualFetch) {
     return (
       <div className="flex flex-col items-center justify-center p-8 space-y-4">
         <Loader2 className="h-8 w-8 animate-spin text-book-primary" />

@@ -20,10 +20,13 @@ const EventDetail = () => {
     queryFn: () => getEventById(id || ''),
     enabled: !!id,
     retry: 2,
-    onError: (err) => {
-      console.error('Error fetching event:', err);
-      toast.error('Could not load event details');
-    }
+    // Instead of using onError directly, we'll use onSettled in the meta object
+    meta: {
+      onError: (err: Error) => {
+        console.error('Error fetching event:', err);
+        toast.error('Could not load event details');
+      }
+    },
   });
   
   const handleToggleInterest = () => {
@@ -50,7 +53,7 @@ const EventDetail = () => {
   const handleBookNow = () => {
     navigate(`/events/${id}/booking`);
   };
-  
+
   // Show loading state
   if (isLoading) {
     return (
