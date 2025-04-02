@@ -1,6 +1,6 @@
 
 import { createContext, useContext, useEffect, useState } from 'react';
-import { supabase, db } from '@/integrations/supabase/client';
+import { supabase, db, isUserAdmin } from '@/integrations/supabase/client';
 import { useNavigate } from 'react-router-dom';
 import { toast } from 'sonner';
 import type { Session, User } from '@supabase/supabase-js';
@@ -10,6 +10,7 @@ type AuthContextType = {
   user: User | null;
   profile: any | null;
   isLoading: boolean;
+  isAdmin: boolean;
   signIn: (email: string, password: string) => Promise<void>;
   signUp: (email: string, password: string, firstName: string, lastName: string) => Promise<void>;
   signOut: () => Promise<void>;
@@ -23,6 +24,7 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
   const [user, setUser] = useState<User | null>(null);
   const [profile, setProfile] = useState<any | null>(null);
   const [isLoading, setIsLoading] = useState(true);
+  const [isAdmin, setIsAdmin] = useState(false);
   const navigate = useNavigate();
 
   useEffect(() => {
@@ -31,6 +33,7 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
       async (event, currentSession) => {
         setSession(currentSession);
         setUser(currentSession?.user ?? null);
+        setIsAdmin(isUserAdmin(currentSession?.user?.email));
         setIsLoading(false);
 
         if (currentSession?.user) {
@@ -44,6 +47,7 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
       const { data: { session: initialSession } } = await supabase.auth.getSession();
       setSession(initialSession);
       setUser(initialSession?.user ?? null);
+      setIsAdmin(isUserAdmin(initialSession?.user?.email));
 
       if (initialSession?.user) {
         await fetchProfile(initialSession.user.id);
@@ -87,8 +91,17 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
         return;
       }
 
+      // Check if the user is an admin after successful login
+      const isAdminUser = isUserAdmin(email);
+      
       toast.success('Signed in successfully');
-      navigate('/');
+      
+      // Redirect admins to admin dashboard, regular users to home
+      if (isAdminUser) {
+        navigate('/admin');
+      } else {
+        navigate('/');
+      }
     } catch (error: any) {
       toast.error(error.message || 'An error occurred during sign in');
     } finally {
@@ -177,6 +190,7 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
     user,
     profile,
     isLoading,
+    isAdmin,
     signIn,
     signUp,
     signOut,

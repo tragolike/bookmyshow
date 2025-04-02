@@ -1,5 +1,5 @@
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { Link, useLocation, useNavigate } from 'react-router-dom';
 import { useAuth } from '@/contexts/AuthContext';
 import { 
@@ -11,7 +11,8 @@ import {
   Settings, 
   LogOut, 
   Menu, 
-  X 
+  X,
+  Loader2
 } from 'lucide-react';
 import { toast } from 'sonner';
 
@@ -21,7 +22,7 @@ interface AdminLayoutProps {
 }
 
 const AdminLayout = ({ children, title }: AdminLayoutProps) => {
-  const { signOut } = useAuth();
+  const { signOut, isAdmin, isLoading, user } = useAuth();
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const location = useLocation();
   const navigate = useNavigate();
@@ -44,6 +45,36 @@ const AdminLayout = ({ children, title }: AdminLayoutProps) => {
       toast.error('Failed to sign out');
     }
   };
+
+  // Check if user is admin and redirect if not
+  useEffect(() => {
+    if (!isLoading && user) {
+      if (!isAdmin) {
+        toast.error('You do not have permission to access the admin panel');
+        navigate('/');
+      }
+    } else if (!isLoading && !user) {
+      toast.error('Please login to access the admin panel');
+      navigate('/login');
+    }
+  }, [isLoading, user, isAdmin, navigate]);
+  
+  // Show loading while checking auth status
+  if (isLoading) {
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-gray-100">
+        <div className="text-center">
+          <Loader2 className="mx-auto h-12 w-12 animate-spin text-book-primary" />
+          <h2 className="mt-4 text-xl font-semibold">Loading admin panel...</h2>
+        </div>
+      </div>
+    );
+  }
+  
+  // If not admin and not loading, don't render the admin layout
+  if (!isAdmin && !isLoading) {
+    return null;
+  }
   
   return (
     <div className="min-h-screen bg-gray-100 flex flex-col">

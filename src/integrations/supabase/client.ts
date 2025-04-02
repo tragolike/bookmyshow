@@ -29,6 +29,7 @@ export const db = {
 export type BookingStatus = 'confirmed' | 'pending' | 'cancelled';
 export type PaymentStatus = 'completed' | 'pending' | 'failed';
 export type EventStatus = 'fast-filling' | 'sold-out' | 'available';
+export type UserRole = 'admin' | 'user';
 
 // Helper function to get event by ID - centralized logic to prevent 404 errors
 export const getEventById = async (id: string) => {
@@ -75,4 +76,14 @@ export const getLatestEvents = async (limit = 6) => {
     console.error('Error fetching latest events:', error);
     return { data: null, error };
   }
+};
+
+// For now - hardcoded admin emails since we don't have a roles table
+// In a real app, this would be stored in a database table
+const ADMIN_EMAILS = ['admin@showtix.com', 'admin@example.com'];
+
+// Helper function to check if a user is an admin
+export const isUserAdmin = (email: string | undefined): boolean => {
+  if (!email) return false;
+  return ADMIN_EMAILS.includes(email.toLowerCase());
 };

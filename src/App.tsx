@@ -3,7 +3,7 @@ import { Toaster } from "@/components/ui/toaster";
 import { Toaster as Sonner } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
-import { BrowserRouter, Routes, Route } from "react-router-dom";
+import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom";
 import { AuthProvider } from "./contexts/AuthContext";
 import Index from "./pages/Index";
 import EventDetail from "./pages/EventDetail";
@@ -21,6 +21,11 @@ import AdminUsers from "./pages/admin/Users";
 import AdminBookings from "./pages/admin/Bookings";
 import AdminReports from "./pages/admin/Reports";
 import NotFound from "./pages/NotFound";
+
+// Create a wrapper component for admin routes
+const AdminRoute = ({ element }: { element: React.ReactNode }) => {
+  return element;
+};
 
 const queryClient = new QueryClient();
 
@@ -45,11 +50,11 @@ const App = () => (
             <Route path="/live-events" element={<LiveEventsPage />} />
             
             {/* Admin routes */}
-            <Route path="/admin" element={<AdminDashboard />} />
-            <Route path="/admin/events" element={<AdminEvents />} />
-            <Route path="/admin/users" element={<AdminUsers />} />
-            <Route path="/admin/bookings" element={<AdminBookings />} />
-            <Route path="/admin/reports" element={<AdminReports />} />
+            <Route path="/admin" element={<AdminRoute element={<AdminDashboard />} />} />
+            <Route path="/admin/events" element={<AdminRoute element={<AdminEvents />} />} />
+            <Route path="/admin/users" element={<AdminRoute element={<AdminUsers />} />} />
+            <Route path="/admin/bookings" element={<AdminRoute element={<AdminBookings />} />} />
+            <Route path="/admin/reports" element={<AdminRoute element={<AdminReports />} />} />
             
             {/* Catch-all route */}
             <Route path="*" element={<NotFound />} />

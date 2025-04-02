@@ -6,7 +6,8 @@ import Footer from '@/components/Footer';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { useAuth } from '@/contexts/AuthContext';
-import { Mail, Lock, Loader2 } from 'lucide-react';
+import { Mail, Lock, Loader2, Info } from 'lucide-react';
+import { Alert, AlertDescription } from '@/components/ui/alert';
 
 const LoginPage = () => {
   const [email, setEmail] = useState('');
@@ -32,6 +33,15 @@ const LoginPage = () => {
                 create a new account
               </Link>
             </p>
+          </div>
+          
+          <div className="mt-4">
+            <Alert className="bg-blue-50 border-blue-200">
+              <Info className="h-4 w-4 text-blue-500" />
+              <AlertDescription className="text-sm text-blue-700">
+                <strong>Admin Login:</strong> Use admin@showtix.com with your password to access the admin panel.
+              </AlertDescription>
+            </Alert>
           </div>
           
           <div className="mt-8 sm:mx-auto sm:w-full sm:max-w-md">
