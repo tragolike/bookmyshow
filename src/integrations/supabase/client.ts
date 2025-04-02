@@ -1,3 +1,4 @@
+
 import { createClient } from '@supabase/supabase-js';
 import { PostgrestError } from '@supabase/supabase-js';
 import { PaymentSettings } from '@/components/payment/types';
@@ -63,9 +64,69 @@ export const db = {
   brandSettings: () => supabase.from('brand_settings'),
 };
 
+// Function to ensure a bucket exists
+export const ensureBucketExists = async (bucketId: string, bucketName: string) => {
+  try {
+    // Check if bucket exists
+    const { data: buckets } = await supabase.storage.listBuckets();
+    const bucketExists = buckets?.some(b => b.id === bucketId);
+    
+    if (!bucketExists) {
+      const { error } = await supabase.storage.createBucket(bucketId, {
+        public: true,
+        fileSizeLimit: 5242880 // 5MB
+      });
+      
+      if (error) {
+        console.error(`Error creating ${bucketName} bucket:`, error);
+        return false;
+      }
+      console.info(`Created ${bucketName} bucket successfully`);
+    }
+    
+    return true;
+  } catch (error) {
+    console.error(`Error ensuring ${bucketName} bucket exists:`, error);
+    return false;
+  }
+};
+
+// Function to upload file to storage
+export const uploadFile = async (file: File, bucketId: string, path: string) => {
+  try {
+    // Ensure bucket exists
+    const bucketCreated = await ensureBucketExists(bucketId, 'Storage Bucket');
+    if (!bucketCreated) {
+      throw new Error(`Could not ensure ${bucketId} bucket exists`);
+    }
+    
+    const fileExt = file.name.split('.').pop();
+    const fileName = `${Date.now()}.${fileExt}`;
+    const filePath = path ? `${path}/${fileName}` : fileName;
+    
+    // Upload the file
+    const { error: uploadError, data } = await supabase.storage
+      .from(bucketId)
+      .upload(filePath, file, { upsert: true });
+    
+    if (uploadError) throw uploadError;
+    
+    // Get the public URL
+    const { data: { publicUrl } } = supabase.storage
+      .from(bucketId)
+      .getPublicUrl(filePath);
+    
+    return { url: publicUrl, path: filePath, error: null };
+  } catch (error) {
+    console.error('File upload error:', error);
+    return { url: null, path: null, error };
+  }
+};
+
 // Function to get payment settings
 export const getPaymentSettings = async () => {
   try {
+    console.log('Fetching payment settings...');
     const { data, error } = await db.paymentSettings()
       .select('*')
       .order('updated_at', { ascending: false })
@@ -77,6 +138,7 @@ export const getPaymentSettings = async () => {
       throw error;
     }
     
+    console.log('Payment settings fetched:', data);
     return { data, error: null };
   } catch (error) {
     console.error('Exception in getPaymentSettings:', error);
@@ -87,6 +149,7 @@ export const getPaymentSettings = async () => {
 // Function to update payment settings
 export const updatePaymentSettings = async (data: PaymentSettings) => {
   try {
+    console.log('Updating payment settings with data:', data);
     // Check if any settings exist
     const { data: existingSettings, error: checkError } = await db.paymentSettings()
       .select('id')
@@ -101,12 +164,14 @@ export const updatePaymentSettings = async (data: PaymentSettings) => {
     // If settings exist, update them, otherwise insert new settings
     let result;
     if (existingSettings) {
+      console.log('Updating existing payment settings with ID:', existingSettings.id);
       result = await db.paymentSettings()
         .update(data)
         .eq('id', existingSettings.id)
         .select()
         .maybeSingle();
     } else {
+      console.log('Creating new payment settings entry');
       result = await db.paymentSettings()
         .insert(data)
         .select()
@@ -115,6 +180,8 @@ export const updatePaymentSettings = async (data: PaymentSettings) => {
     
     if (result.error) {
       console.error('Error updating payment settings:', result.error);
+    } else {
+      console.log('Payment settings updated successfully:', result.data);
     }
     
     return result;
@@ -124,9 +191,78 @@ export const updatePaymentSettings = async (data: PaymentSettings) => {
   }
 };
 
+// Function to get brand settings
+export const getBrandSettings = async () => {
+  try {
+    console.log('Fetching brand settings...');
+    const { data, error } = await db.brandSettings()
+      .select('*')
+      .order('updated_at', { ascending: false })
+      .limit(1)
+      .maybeSingle();
+      
+    if (error) {
+      console.error('Error in getBrandSettings:', error);
+      throw error;
+    }
+    
+    console.log('Brand settings fetched:', data);
+    return { data, error: null };
+  } catch (error) {
+    console.error('Exception in getBrandSettings:', error);
+    return { data: null, error: error as PostgrestError };
+  }
+};
+
+// Function to update brand settings
+export const updateBrandSettings = async (data: any) => {
+  try {
+    console.log('Updating brand settings with data:', data);
+    // Check if any settings exist
+    const { data: existingSettings, error: checkError } = await db.brandSettings()
+      .select('id')
+      .limit(1)
+      .maybeSingle();
+
+    if (checkError) {
+      console.error('Error checking existing brand settings:', checkError);
+      return { error: checkError, data: null };
+    }
+
+    // If settings exist, update them, otherwise insert new settings
+    let result;
+    if (existingSettings) {
+      console.log('Updating existing brand settings with ID:', existingSettings.id);
+      result = await db.brandSettings()
+        .update(data)
+        .eq('id', existingSettings.id)
+        .select()
+        .maybeSingle();
+    } else {
+      console.log('Creating new brand settings entry');
+      result = await db.brandSettings()
+        .insert(data)
+        .select()
+        .maybeSingle();
+    }
+    
+    if (result.error) {
+      console.error('Error updating brand settings:', result.error);
+    } else {
+      console.log('Brand settings updated successfully:', result.data);
+    }
+    
+    return result;
+  } catch (error) {
+    console.error('Exception in updateBrandSettings:', error);
+    return { data: null, error: error as PostgrestError };
+  }
+};
+
 // Function to get event by ID
 export const getEventById = async (id: string) => {
   try {
+    console.log('Fetching event with ID:', id);
     const result = await db.events()
       .select('*')
       .eq('id', id)
@@ -134,6 +270,10 @@ export const getEventById = async (id: string) => {
       
     if (result.error) {
       console.error('Error in getEventById:', result.error);
+    } else if (result.data) {
+      console.log('Event fetched successfully:', result.data.title);
+    } else {
+      console.warn('No event found with ID:', id);
     }
     
     return result;

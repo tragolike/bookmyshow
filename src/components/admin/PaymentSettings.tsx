@@ -1,7 +1,6 @@
-
 import { useState, useEffect } from 'react';
 import { toast } from 'sonner';
-import { getPaymentSettings, updatePaymentSettings } from '@/integrations/supabase/client';
+import { getPaymentSettings, updatePaymentSettings, uploadFile } from '@/integrations/supabase/client';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -11,39 +10,40 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Loader2, QrCode, IndianRupee, Upload, RefreshCw, Info, HelpCircle } from 'lucide-react';
 import { useAuth } from '@/contexts/AuthContext';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
+import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 
 const PaymentSettings = () => {
   const [upiId, setUpiId] = useState('');
   const [qrCodeUrl, setQrCodeUrl] = useState('');
   const [instructions, setInstructions] = useState('');
-  const [isLoading, setIsLoading] = useState(false);
-  const [isSaving, setIsSaving] = useState(false);
   const [isGeneratingQr, setIsGeneratingQr] = useState(false);
   const [activeTab, setActiveTab] = useState('upi');
   const { user } = useAuth();
-
-  useEffect(() => {
-    const fetchSettings = async () => {
-      setIsLoading(true);
-      try {
-        const { data, error } = await getPaymentSettings();
-        if (error) throw error;
-        
-        if (data) {
-          setUpiId(data.upi_id);
-          setQrCodeUrl(data.qr_code_url || '');
-          setInstructions(data.payment_instructions || '');
-        }
-      } catch (error) {
-        console.error('Error fetching payment settings:', error);
-        toast.error('Failed to load payment settings');
-      } finally {
-        setIsLoading(false);
+  const queryClient = useQueryClient();
+  
+  const { data, isLoading, error } = useQuery({
+    queryKey: ['paymentSettings'],
+    queryFn: getPaymentSettings,
+    onSuccess: (data) => {
+      if (data.data) {
+        setUpiId(data.data.upi_id);
+        setQrCodeUrl(data.data.qr_code_url || '');
+        setInstructions(data.data.payment_instructions || '');
       }
-    };
-    
-    fetchSettings();
-  }, []);
+    }
+  });
+  
+  const mutation = useMutation({
+    mutationFn: updatePaymentSettings,
+    onSuccess: () => {
+      toast.success('Payment settings updated successfully');
+      queryClient.invalidateQueries({ queryKey: ['paymentSettings'] });
+    },
+    onError: (error) => {
+      console.error('Failed to update payment settings:', error);
+      toast.error('Failed to update payment settings. Please try again.');
+    }
+  });
 
   const generateQRCode = async () => {
     if (!upiId.trim()) {
@@ -75,29 +75,15 @@ const PaymentSettings = () => {
       return;
     }
     
-    setIsSaving(true);
-    try {
-      const { error } = await updatePaymentSettings({
-        upi_id: upiId,
-        qr_code_url: qrCodeUrl,
-        payment_instructions: instructions,
-        updated_by: user?.id
-      });
-      
-      if (error) {
-        console.error('Update error:', error);
-        throw error;
-      }
-      toast.success('Payment settings updated successfully');
-    } catch (error) {
-      console.error('Error updating payment settings:', error);
-      toast.error('Failed to update payment settings. Please try again.');
-    } finally {
-      setIsSaving(false);
-    }
+    mutation.mutate({
+      upi_id: upiId,
+      qr_code_url: qrCodeUrl,
+      payment_instructions: instructions,
+      updated_by: user?.id
+    });
   };
 
-  const handleQrUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
+  const handleQrUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (!file) return;
     
@@ -111,13 +97,17 @@ const PaymentSettings = () => {
       return;
     }
     
-    const reader = new FileReader();
-    reader.onload = (event) => {
-      if (event.target?.result) {
-        setQrCodeUrl(event.target.result as string);
+    try {
+      const { url, error } = await uploadFile(file, 'brand_assets', 'qr_codes');
+      if (error) throw error;
+      if (url) {
+        setQrCodeUrl(url);
+        toast.success('QR code uploaded successfully');
       }
-    };
-    reader.readAsDataURL(file);
+    } catch (error) {
+      console.error('QR code upload error:', error);
+      toast.error('Failed to upload QR code');
+    }
   };
 
   if (isLoading) {
@@ -139,10 +129,10 @@ const PaymentSettings = () => {
           
           <Button 
             type="submit" 
-            disabled={isSaving}
+            disabled={mutation.isLoading}
             className="ml-auto"
           >
-            {isSaving ? (
+            {mutation.isLoading ? (
               <>
                 <Loader2 className="mr-2 h-4 w-4 animate-spin" />
                 Saving...
