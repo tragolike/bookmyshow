@@ -1,6 +1,6 @@
 
-import { useState } from 'react';
-import { CheckCircle2 } from 'lucide-react';
+import { useState, useEffect } from 'react';
+import { CheckCircle2, Loader2 } from 'lucide-react';
 import { toast } from 'sonner';
 import { Card, CardContent, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -25,18 +25,18 @@ const UpiPayment = ({ amount, reference, onComplete }: UpiPaymentProps) => {
   } = usePaymentSettings(isManualFetch);
   
   // Handle countdown timer
-  useState(() => {
+  useEffect(() => {
     if (countdown <= 0) {
       toast.error('Payment time expired. Please try again.');
       return;
     }
     
-    const timer = setTimeout(() => {
-      setCountdown(countdown - 1);
+    const timer = setInterval(() => {
+      setCountdown(prev => prev - 1);
     }, 1000);
     
-    return () => clearTimeout(timer);
-  });
+    return () => clearInterval(timer);
+  }, [countdown]);
   
   const refreshPaymentInfo = async () => {
     setIsManualFetch(true);

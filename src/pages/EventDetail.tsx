@@ -11,7 +11,7 @@ import { Button } from '@/components/ui/button';
 import { useQuery } from '@tanstack/react-query';
 
 const EventDetail = () => {
-  const { id } = useParams();
+  const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
   const [isInterested, setIsInterested] = useState(false);
   
@@ -20,7 +20,6 @@ const EventDetail = () => {
     queryFn: () => getEventById(id || ''),
     enabled: !!id,
     retry: 2,
-    // Instead of using onError directly, we'll use onSettled in the meta object
     meta: {
       onError: (err: Error) => {
         console.error('Error fetching event:', err);

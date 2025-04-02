@@ -1,3 +1,4 @@
+
 import { useState, useRef } from 'react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -50,17 +51,27 @@ const ImageUploader = () => {
       
       if (result.error) throw result.error;
       
+      // Check if we have a direct URL or need to generate one from the path
+      let fileUrl = '';
       if (result.url) {
-        toast.success('Venue layout uploaded successfully');
-        setUploadSuccess(true);
-        
-        // Copy the URL to clipboard
-        navigator.clipboard.writeText(result.url)
-          .then(() => toast.success('URL copied to clipboard'))
-          .catch(() => toast.error('Failed to copy URL'));
+        fileUrl = result.url;
+      } else if (result.path) {
+        const { data: { publicUrl } } = supabase.storage
+          .from('venue_layouts')
+          .getPublicUrl(result.path);
+        fileUrl = publicUrl;
       } else {
         throw new Error('Failed to get upload URL');
       }
+      
+      toast.success('Venue layout uploaded successfully');
+      setUploadSuccess(true);
+      
+      // Copy the URL to clipboard
+      navigator.clipboard.writeText(fileUrl)
+        .then(() => toast.success('URL copied to clipboard'))
+        .catch(() => toast.error('Failed to copy URL'));
+      
     } catch (error: any) {
       console.error('Error uploading venue layout:', error);
       toast.error(`Upload failed: ${error.message}`);
