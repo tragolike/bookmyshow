@@ -1,6 +1,6 @@
 
 import { createClient } from '@supabase/supabase-js';
-import { EventStatus } from '@/types/events';
+import type { EventStatus } from '@/types/events';
 
 // Initialize the Supabase client
 const supabaseUrl = import.meta.env.VITE_SUPABASE_URL || 'https://your-project-url.supabase.co';
