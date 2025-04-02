@@ -1,6 +1,6 @@
 
 import { useState, useEffect } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useLocation } from 'react-router-dom';
 import { Lock, EyeOff, Eye, Check, Shield } from 'lucide-react';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -17,17 +17,33 @@ const ResetPasswordConfirm = () => {
   const [isSuccess, setIsSuccess] = useState(false);
   const [hasTokenError, setHasTokenError] = useState(false);
   const navigate = useNavigate();
+  const location = useLocation();
 
   useEffect(() => {
     // Check if we have a hash parameter in the URL
     const hashParams = new URLSearchParams(window.location.hash.substring(1));
-    const hasAccessToken = !!hashParams.get('access_token');
+    const accessToken = hashParams.get('access_token');
     
-    if (!hasAccessToken) {
+    if (!accessToken) {
       console.log('Invalid reset link - no access token found');
       setHasTokenError(true);
     } else {
       console.log('Access token found in URL');
+      // Set the access token for the session
+      const setSession = async () => {
+        const { error } = await supabase.auth.setSession({
+          access_token: accessToken,
+          refresh_token: '',
+        });
+        
+        if (error) {
+          console.error('Error setting session:', error);
+          setHasTokenError(true);
+          toast.error('Invalid or expired reset link');
+        }
+      };
+      
+      setSession();
     }
   }, []);
 
@@ -53,7 +69,7 @@ const ResetPasswordConfirm = () => {
       
       if (error) {
         console.error('Password reset error:', error);
-        toast.error(error.message);
+        toast.error(error.message || 'Failed to reset password');
         return;
       }
       

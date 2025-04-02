@@ -26,22 +26,23 @@ const PasswordReset = () => {
     try {
       setIsLoading(true);
       
-      // Get the current hostname for the redirect URL
+      // Get the current origin for the redirect URL
       const origin = window.location.origin;
       const redirectTo = `${origin}/reset-password-confirm`;
       
       console.log('Requesting password reset with redirect to:', redirectTo);
       
-      const { error } = await supabase.auth.resetPasswordForEmail(email, {
-        redirectTo: redirectTo,
+      const { data, error } = await supabase.auth.resetPasswordForEmail(email, {
+        redirectTo,
       });
       
       if (error) {
         console.error('Password reset request error:', error);
-        toast.error(error.message);
+        toast.error(error.message || 'Failed to send reset email');
         return;
       }
       
+      console.log('Password reset email sent:', data);
       setIsSuccess(true);
       toast.success('Password reset link sent to your email');
     } catch (error: any) {
