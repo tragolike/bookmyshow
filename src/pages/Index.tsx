@@ -161,7 +161,7 @@ const Index = () => {
           <section className="mb-12">
             <h2 className="section-title">Special Offers</h2>
             
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-6 bg-zinc-200">
               <div className="relative rounded-2xl overflow-hidden aspect-[21/9]">
                 <img src="/lovable-uploads/a6f58909-a0b4-48f4-929b-2a3f51d568ce.png" alt="Get 24 free tickets with credit card" className="w-full h-full object-cover" />
                 <div className="absolute inset-0 flex flex-col justify-end p-6 bg-gradient-to-t from-black/70 via-black/30 to-transparent">
