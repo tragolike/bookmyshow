@@ -1,29 +1,23 @@
 
 import { useEffect, useState } from 'react';
 import { Clock } from 'lucide-react';
-import { toast } from 'sonner';
 
-interface CountdownProps {
+interface PaymentCountdownProps {
   initialTime: number;
-  onExpire?: () => void;
 }
 
-const PaymentCountdown = ({ initialTime, onExpire }: CountdownProps) => {
-  const [countdown, setCountdown] = useState(initialTime);
+const PaymentCountdown = ({ initialTime }: PaymentCountdownProps) => {
+  const [timeLeft, setTimeLeft] = useState(initialTime);
   
   useEffect(() => {
-    if (countdown <= 0) {
-      toast.error('Payment time expired. Please try again.');
-      onExpire?.();
-      return;
-    }
+    if (timeLeft <= 0) return;
     
     const timer = setTimeout(() => {
-      setCountdown(countdown - 1);
+      setTimeLeft(timeLeft - 1);
     }, 1000);
     
     return () => clearTimeout(timer);
-  }, [countdown, onExpire]);
+  }, [timeLeft]);
   
   const formatTime = (seconds: number) => {
     const minutes = Math.floor(seconds / 60);
@@ -33,8 +27,8 @@ const PaymentCountdown = ({ initialTime, onExpire }: CountdownProps) => {
   
   return (
     <div className="flex items-center">
-      <Clock className="inline-block w-4 h-4 mr-1 text-amber-600" />
-      <span className="text-sm text-amber-700">Time remaining: {formatTime(countdown)}</span>
+      <Clock className="h-4 w-4 mr-1 text-amber-600" />
+      <span className="text-sm text-amber-700">Time remaining: {formatTime(timeLeft)}</span>
     </div>
   );
 };

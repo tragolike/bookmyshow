@@ -52,7 +52,7 @@ const PaymentSummary = ({ details, onProceed, isLoading = false }: PaymentSummar
         <button 
           onClick={onProceed}
           disabled={isLoading}
-          className="btn-primary w-full flex items-center justify-center gap-2"
+          className="w-full py-2 px-4 bg-book-primary text-white rounded-md hover:bg-book-primary/90 transition-colors flex items-center justify-center gap-2"
         >
           {isLoading ? (
             <>
@@ -64,26 +64,26 @@ const PaymentSummary = ({ details, onProceed, isLoading = false }: PaymentSummar
           )}
         </button>
         
-        <div className="flex items-center justify-center mt-4">
+        <div className="flex items-center justify-center mt-4 gap-2">
           <img 
             src="https://cdn.razorpay.com/static/assets/homepage/visa-card.png" 
             alt="Visa" 
-            className="h-6 mx-1"
+            className="h-6"
           />
           <img 
             src="https://cdn.razorpay.com/static/assets/homepage/master-card.png" 
             alt="MasterCard" 
-            className="h-6 mx-1"
+            className="h-6"
           />
           <img 
             src="https://cdn.razorpay.com/static/assets/homepage/rupay-card.png" 
             alt="RuPay" 
-            className="h-6 mx-1"
+            className="h-6"
           />
           <img 
             src="https://cdn.razorpay.com/static/assets/homepage/upi.png" 
             alt="UPI" 
-            className="h-6 mx-1"
+            className="h-6"
           />
         </div>
       </div>

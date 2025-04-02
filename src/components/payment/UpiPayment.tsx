@@ -1,6 +1,6 @@
 
 import { useEffect, useState } from 'react';
-import { Loader2 } from 'lucide-react';
+import { Loader2, Copy, CheckCircle2, AlertTriangle, RefreshCw, Download, QrCode, Clock, ExternalLink } from 'lucide-react';
 import { toast } from 'sonner';
 import { Card, CardContent, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -40,14 +40,29 @@ const UpiPayment = ({ amount, reference, onComplete }: UpiPaymentProps) => {
     }
   }, [data, error]);
   
+  useEffect(() => {
+    if (countdown <= 0) {
+      toast.error('Payment time expired. Please try again.');
+      return;
+    }
+    
+    const timer = setTimeout(() => {
+      setCountdown(countdown - 1);
+    }, 1000);
+    
+    return () => clearTimeout(timer);
+  }, [countdown]);
+  
   const refreshPaymentSettings = async () => {
     setIsManualFetch(true);
     toast.info('Refreshing payment information...');
     
     try {
       await refetch();
+      setIsManualFetch(false);
     } catch (error) {
       console.error('Error refreshing payment settings:', error);
+      setIsManualFetch(false);
     }
   };
   
@@ -79,7 +94,10 @@ const UpiPayment = ({ amount, reference, onComplete }: UpiPaymentProps) => {
         <div className="flex items-center justify-between">
           <div>
             <CardTitle className="text-xl">Complete Your Payment</CardTitle>
-            <p className="text-white/80 mt-1">Time remaining: <span className="font-semibold">{Math.floor(countdown / 60)}:{countdown % 60 < 10 ? '0' : ''}{countdown % 60}</span></p>
+            <p className="text-white/80 mt-1">
+              <Clock className="inline-block h-4 w-4 mr-1 align-text-bottom" />
+              Time remaining: <span className="font-semibold">{Math.floor(countdown / 60)}:{countdown % 60 < 10 ? '0' : ''}{countdown % 60}</span>
+            </p>
           </div>
           <div className="bg-white/20 backdrop-blur-sm rounded-full py-1 px-3 text-white">
             <span className="text-sm">Order ID: #{reference.slice(-8)}</span>
@@ -90,8 +108,14 @@ const UpiPayment = ({ amount, reference, onComplete }: UpiPaymentProps) => {
       <CardContent className="pt-6">
         <Tabs defaultValue="upi" onValueChange={(value) => setPaymentMethod(value as 'upi' | 'manual')}>
           <TabsList className="grid grid-cols-2 mb-6">
-            <TabsTrigger value="upi">UPI Payment</TabsTrigger>
-            <TabsTrigger value="manual">Manual Verification</TabsTrigger>
+            <TabsTrigger value="upi">
+              <QrCode className="h-4 w-4 mr-2" />
+              UPI Payment
+            </TabsTrigger>
+            <TabsTrigger value="manual">
+              <CheckCircle2 className="h-4 w-4 mr-2" />
+              Manual Verification
+            </TabsTrigger>
           </TabsList>
           
           <TabsContent value="upi">
@@ -126,6 +150,7 @@ const UpiPayment = ({ amount, reference, onComplete }: UpiPaymentProps) => {
             className="w-full bg-green-600 hover:bg-green-700 text-white"
             size="lg"
           >
+            <CheckCircle2 className="mr-2 h-4 w-4" />
             I've Completed the Payment
           </Button>
         )}

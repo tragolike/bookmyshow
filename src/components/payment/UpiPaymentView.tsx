@@ -4,6 +4,7 @@ import UpiQrCode from './UpiQrCode';
 import UpiIdDisplay from './UpiIdDisplay';
 import PaymentSummaryCard from './PaymentSummaryCard';
 import { PaymentSettings } from './types';
+import { ArrowRight, AlertTriangle, ExternalLink } from 'lucide-react';
 
 interface UpiPaymentViewProps {
   paymentSettings: PaymentSettings;
@@ -32,8 +33,9 @@ const UpiPaymentView = ({
           
           <a 
             href={upiLink}
-            className="inline-flex items-center justify-center gap-2 bg-book-primary text-white py-2 px-4 rounded-md hover:bg-book-primary/90 transition-colors w-full"
+            className="inline-flex items-center justify-center gap-2 bg-book-primary text-white py-2 px-4 rounded-md hover:bg-book-primary/90 transition-colors w-full mt-2"
           >
+            <ExternalLink className="h-4 w-4" />
             <span>Open in UPI App</span>
           </a>
         </div>
@@ -48,7 +50,8 @@ const UpiPaymentView = ({
           className="w-full mt-4"
           variant="outline"
         >
-          I've Completed the Payment
+          <span>I've Completed the Payment</span>
+          <ArrowRight className="ml-2 h-4 w-4" />
         </Button>
       </div>
     </div>

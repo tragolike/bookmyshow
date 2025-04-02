@@ -1,6 +1,6 @@
 
 import { useState } from 'react';
-import { Loader2 } from 'lucide-react';
+import { Loader2, Clock, AlertTriangle, CheckCircle2 } from 'lucide-react';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Button } from '@/components/ui/button';
@@ -55,7 +55,10 @@ const UtrVerification = ({ amount, upiId, countdown, onVerify }: UtrVerification
   return (
     <div className="space-y-6">
       <div className="rounded-lg border p-4 bg-gradient-to-r from-green-50 to-blue-50">
-        <h3 className="font-semibold mb-2 text-green-800">Payment Complete?</h3>
+        <h3 className="font-semibold mb-2 text-green-800 flex items-center">
+          <CheckCircle2 className="h-4 w-4 mr-2 text-green-600" />
+          Payment Complete?
+        </h3>
         <p className="text-sm text-gray-700 mb-4">
           If you've completed your payment, please enter your UPI Transaction Reference Number (UTR) below for verification.
         </p>
@@ -79,13 +82,17 @@ const UtrVerification = ({ amount, upiId, countdown, onVerify }: UtrVerification
           </div>
           
           <div className="flex items-center justify-between">
-            <PaymentCountdown initialTime={countdown} />
+            <div className="flex items-center">
+              <Clock className="h-4 w-4 mr-1 text-amber-600" />
+              <span className="text-sm text-amber-700">Time remaining: {Math.floor(countdown / 60)}:{countdown % 60 < 10 ? '0' : ''}{countdown % 60}</span>
+            </div>
             <span className="text-sm text-gray-500">Payment Amount: ₹{amount.toLocaleString()}</span>
           </div>
         </div>
       </div>
       
       <Alert>
+        <AlertTriangle className="h-4 w-4" />
         <AlertTitle>Need Help?</AlertTitle>
         <AlertDescription>
           <p className="mb-2">If you're facing issues, you can:</p>
@@ -109,7 +116,10 @@ const UtrVerification = ({ amount, upiId, countdown, onVerify }: UtrVerification
             Verifying UTR...
           </>
         ) : (
-          'Verify & Complete Payment'
+          <>
+            <CheckCircle2 className="mr-2 h-4 w-4" />
+            Verify & Complete Payment
+          </>
         )}
       </Button>
     </div>

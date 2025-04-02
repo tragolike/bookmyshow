@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { Header } from '@/components/Header';
@@ -12,7 +11,6 @@ import { useAuth } from '@/contexts/AuthContext';
 import { toast } from 'sonner';
 import { Loader2 } from 'lucide-react';
 
-// Define steps for the booking process
 const BOOKING_STEPS = {
   SELECT_CATEGORY: 0,
   SELECT_SEATS: 1,
@@ -39,7 +37,6 @@ const BookingPage = () => {
   const [isProcessing, setIsProcessing] = useState(false);
   const [event, setEvent] = useState<any>(null);
   
-  // Mock seat categories
   const seatCategories: SeatCategory[] = [
     { id: 'premium', name: 'D Block - RR KABEL PAVL', price: 10000, color: 'bg-blue-500', available: true },
     { id: 'platinum', name: 'E Block - BKT TYRES PAVILION', price: 5000, color: 'bg-cyan-500', available: true },
@@ -109,20 +106,17 @@ const BookingPage = () => {
     try {
       setIsProcessing(true);
       
-      // Generate booking reference
       const bookingRef = `TX-${Math.floor(Math.random() * 1000000)}`;
       
-      // Calculate total amount
       const totalAmount = selectedCategory ? selectedCategory.price * selectedSeats.length : 0;
       
-      // Create booking in Supabase with pending status first
       const { data, error } = await createBooking({
         user_id: user.id,
         event_id: id!,
         seat_numbers: selectedSeats,
         total_amount: totalAmount,
-        payment_status: 'completed', // This should be 'pending' in a real app with webhook integration
-        booking_status: 'confirmed', // This should be 'pending' in a real app with webhook integration
+        payment_status: 'completed',
+        booking_status: 'confirmed',
         utr_number: 'DEMO' + Math.floor(Math.random() * 10000000000)
       });
       
@@ -132,7 +126,6 @@ const BookingPage = () => {
       
       toast.success('Booking successful! Redirecting to confirmation page...');
       
-      // Navigate to confirmation page with booking details
       navigate('/booking-confirmation', { 
         state: { 
           bookingId: data?.id,
@@ -156,7 +149,7 @@ const BookingPage = () => {
     
     const ticketPrice = selectedCategory.price;
     const subtotal = ticketPrice * selectedSeats.length;
-    const convenienceFee = Math.round(subtotal * 0.03); // 3% convenience fee
+    const convenienceFee = Math.round(subtotal * 0.03);
     const total = subtotal + convenienceFee;
     
     return {
@@ -237,7 +230,7 @@ const BookingPage = () => {
               eventId={id}
               selectedCategory={selectedCategory.id}
               onSeatSelect={handleSeatSelect}
-              maxSeats={10} // Maximum number of seats that can be selected
+              maxSeats={10}
             />
           </div>
         );
@@ -279,7 +272,6 @@ const BookingPage = () => {
                   </div>
                 </div>
                 
-                {/* UPI Payment Component */}
                 <UpiPayment 
                   amount={paymentDetails.total}
                   reference={`BOOK-${Math.floor(Math.random() * 1000000)}`}
@@ -290,7 +282,7 @@ const BookingPage = () => {
               <div>
                 <PaymentSummary 
                   details={paymentDetails}
-                  onProceed={() => {}}  // This is handled by UpiPayment now
+                  onProceed={() => {}}
                   isLoading={isProcessing}
                 />
               </div>
@@ -334,7 +326,6 @@ const BookingPage = () => {
   const renderActionButton = () => {
     if (currentStep === BOOKING_STEPS.SELECT_CATEGORY || currentStep === BOOKING_STEPS.PAYMENT) return null;
     
-    // Disable the button if no seats are selected
     const isDisabled = selectedSeats.length === 0;
     
     return (
