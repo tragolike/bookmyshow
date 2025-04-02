@@ -49,7 +49,7 @@ const AdminLoginPage = () => {
             <Alert className="bg-blue-50 border-blue-200">
               <Info className="h-4 w-4 text-blue-500" />
               <AlertDescription className="text-sm text-blue-700">
-                Use <strong>admin@showtix.com</strong> with your password to access the admin panel.
+                Use <strong>ritikpaswal79984@gmail.com</strong> with your password to access the admin panel.
               </AlertDescription>
             </Alert>
           </div>
@@ -72,7 +72,7 @@ const AdminLoginPage = () => {
                       value={email}
                       onChange={(e) => setEmail(e.target.value)}
                       className="pl-10"
-                      placeholder="admin@showtix.com"
+                      placeholder="ritikpaswal79984@gmail.com"
                     />
                   </div>
                 </div>
