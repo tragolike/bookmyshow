@@ -104,7 +104,7 @@ const NotificationSettings = () => {
                 placeholder="Enter booking confirmation template"
               />
               <p className="text-sm text-gray-500">
-                Variables: {{'{{'}}event_name{{'}}'}}, {{'{{'}}booking_id{{'}}'}}, {{'{{'}}event_date{{'}}'}}, {{'{{'}}event_time{{'}}'}}, {{'{{'}}user_name{{'}}'}}
+                Variables: &#123;&#123;event_name&#125;&#125;, &#123;&#123;booking_id&#125;&#125;, &#123;&#123;event_date&#125;&#125;, &#123;&#123;event_time&#125;&#125;, &#123;&#123;user_name&#125;&#125;
               </p>
             </div>
             
@@ -117,7 +117,7 @@ const NotificationSettings = () => {
                 placeholder="Enter booking cancellation template"
               />
               <p className="text-sm text-gray-500">
-                Variables: {{'{{'}}event_name{{'}}'}}, {{'{{'}}booking_id{{'}}'}}, {{'{{'}}refund_amount{{'}}'}}, {{'{{'}}user_name{{'}}'}}
+                Variables: &#123;&#123;event_name&#125;&#125;, &#123;&#123;booking_id&#125;&#125;, &#123;&#123;refund_amount&#125;&#125;, &#123;&#123;user_name&#125;&#125;
               </p>
             </div>
             
@@ -130,7 +130,7 @@ const NotificationSettings = () => {
                 placeholder="Enter event reminder template"
               />
               <p className="text-sm text-gray-500">
-                Variables: {{'{{'}}event_name{{'}}'}}, {{'{{'}}event_date{{'}}'}}, {{'{{'}}event_time{{'}}'}}, {{'{{'}}venue{{'}}'}}, {{'{{'}}user_name{{'}}'}}
+                Variables: &#123;&#123;event_name&#125;&#125;, &#123;&#123;event_date&#125;&#125;, &#123;&#123;event_time&#125;&#125;, &#123;&#123;venue&#125;&#125;, &#123;&#123;user_name&#125;&#125;
               </p>
             </div>
           </div>
