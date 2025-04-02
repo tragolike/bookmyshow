@@ -9,7 +9,165 @@ export type Json =
 export type Database = {
   public: {
     Tables: {
-      [_ in never]: never
+      bookings: {
+        Row: {
+          booking_date: string | null
+          booking_status: string
+          created_at: string | null
+          event_id: string | null
+          id: string
+          movie_id: string | null
+          payment_status: string
+          seat_numbers: string[]
+          total_amount: number
+          user_id: string
+        }
+        Insert: {
+          booking_date?: string | null
+          booking_status?: string
+          created_at?: string | null
+          event_id?: string | null
+          id?: string
+          movie_id?: string | null
+          payment_status?: string
+          seat_numbers: string[]
+          total_amount: number
+          user_id: string
+        }
+        Update: {
+          booking_date?: string | null
+          booking_status?: string
+          created_at?: string | null
+          event_id?: string | null
+          id?: string
+          movie_id?: string | null
+          payment_status?: string
+          seat_numbers?: string[]
+          total_amount?: number
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "bookings_event_id_fkey"
+            columns: ["event_id"]
+            isOneToOne: false
+            referencedRelation: "events"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "bookings_movie_id_fkey"
+            columns: ["movie_id"]
+            isOneToOne: false
+            referencedRelation: "movies"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      events: {
+        Row: {
+          category: string
+          city: string
+          created_at: string | null
+          date: string
+          id: string
+          image: string
+          interested: number | null
+          price: number
+          status: string
+          time: string
+          title: string
+          venue: string
+        }
+        Insert: {
+          category: string
+          city: string
+          created_at?: string | null
+          date: string
+          id?: string
+          image: string
+          interested?: number | null
+          price: number
+          status?: string
+          time: string
+          title: string
+          venue: string
+        }
+        Update: {
+          category?: string
+          city?: string
+          created_at?: string | null
+          date?: string
+          id?: string
+          image?: string
+          interested?: number | null
+          price?: number
+          status?: string
+          time?: string
+          title?: string
+          venue?: string
+        }
+        Relationships: []
+      }
+      movies: {
+        Row: {
+          created_at: string | null
+          format: string | null
+          genre: string
+          id: string
+          image: string
+          language: string
+          rating: number | null
+          title: string
+        }
+        Insert: {
+          created_at?: string | null
+          format?: string | null
+          genre: string
+          id?: string
+          image: string
+          language: string
+          rating?: number | null
+          title: string
+        }
+        Update: {
+          created_at?: string | null
+          format?: string | null
+          genre?: string
+          id?: string
+          image?: string
+          language?: string
+          rating?: number | null
+          title?: string
+        }
+        Relationships: []
+      }
+      profiles: {
+        Row: {
+          avatar_url: string | null
+          created_at: string | null
+          first_name: string | null
+          id: string
+          last_name: string | null
+          phone_number: string | null
+        }
+        Insert: {
+          avatar_url?: string | null
+          created_at?: string | null
+          first_name?: string | null
+          id: string
+          last_name?: string | null
+          phone_number?: string | null
+        }
+        Update: {
+          avatar_url?: string | null
+          created_at?: string | null
+          first_name?: string | null
+          id?: string
+          last_name?: string | null
+          phone_number?: string | null
+        }
+        Relationships: []
+      }
     }
     Views: {
       [_ in never]: never
