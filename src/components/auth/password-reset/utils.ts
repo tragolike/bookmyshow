@@ -2,6 +2,7 @@
 export const extractTokenFromURL = () => {
   try {
     console.log('Extracting token from URL...');
+    console.log('Full URL:', window.location.href);
     
     // First try to get from hash (fragment)
     const hash = window.location.hash.substring(1);
@@ -45,8 +46,17 @@ export const extractTokenFromURL = () => {
     // Look for token=... or access_token=... pattern in the URL
     const tokenMatch = fullUrl.match(/[?&#](token|access_token)=([^&]+)/);
     if (tokenMatch && tokenMatch[2]) {
-      console.log('Found token using regex pattern');
-      return tokenMatch[2];
+      console.log('Found token using regex pattern:', tokenMatch[2].substring(0, 10) + '...');
+      return decodeURIComponent(tokenMatch[2]);
+    }
+    
+    // Check for token in the pathname (for Supabase redirects that put the token in the path)
+    const pathParts = window.location.pathname.split('/');
+    for (let i = 0; i < pathParts.length; i++) {
+      if (pathParts[i] && pathParts[i].length > 30) {
+        console.log('Found potential token in path:', pathParts[i].substring(0, 10) + '...');
+        return pathParts[i];
+      }
     }
     
     console.log('No token found in URL');

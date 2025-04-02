@@ -38,7 +38,7 @@ export function usePasswordReset() {
       if (error) {
         console.error('Session error:', error);
         setHasTokenError(true);
-        toast.error('Invalid or expired password reset link');
+        toast.error('Invalid or expired password reset link. Please request a new one.');
         return false;
       } else {
         console.log('Session set successfully');
@@ -48,7 +48,7 @@ export function usePasswordReset() {
     } catch (err) {
       console.error('Error processing token:', err);
       setHasTokenError(true);
-      toast.error('Error processing your reset link');
+      toast.error('Error processing your reset link. Please try again or request a new link.');
       return false;
     } finally {
       setTokenProcessing(false);
@@ -67,17 +67,17 @@ export function usePasswordReset() {
       
       if (error) {
         console.error('Password update error:', error);
-        toast.error(error.message || 'Failed to update password');
+        toast.error(error.message || 'Failed to update password. Please try again.');
         return false;
       }
       
       console.log('Password updated successfully:', data);
       setIsSuccess(true);
-      toast.success('Password updated successfully');
+      toast.success('Password updated successfully! You can now log in with your new password.');
       return true;
     } catch (error: any) {
       console.error('Password update error:', error);
-      toast.error(error.message || 'An error occurred while updating password');
+      toast.error(error.message || 'An error occurred while updating password. Please try again.');
       return false;
     } finally {
       setIsUpdating(false);
