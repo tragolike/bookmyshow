@@ -205,6 +205,7 @@ const BookingPage = () => {
             seatCategories={seatCategories}
             onCategorySelect={handleCategorySelect}
             selectedCategory={selectedCategory}
+            isAdmin={user?.email?.includes('admin')}
           />
         );
         
