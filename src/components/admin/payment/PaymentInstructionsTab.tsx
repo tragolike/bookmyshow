@@ -4,6 +4,7 @@ import { Label } from '@/components/ui/label';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 import { HelpCircle } from 'lucide-react';
+import { useEffect } from 'react';
 
 interface PaymentInstructionsTabProps {
   instructions: string;
@@ -14,6 +15,12 @@ const PaymentInstructionsTab = ({
   instructions,
   onInstructionsChange
 }: PaymentInstructionsTabProps) => {
+  
+  // Log when props change for debugging
+  useEffect(() => {
+    console.log('PaymentInstructionsTab received instructions:', instructions);
+  }, [instructions]);
+
   return (
     <Card>
       <CardHeader>
@@ -29,7 +36,10 @@ const PaymentInstructionsTab = ({
           <Textarea
             id="payment-instructions"
             value={instructions}
-            onChange={(e) => onInstructionsChange(e.target.value)}
+            onChange={(e) => {
+              console.log('Instruction changed to:', e.target.value);
+              onInstructionsChange(e.target.value);
+            }}
             placeholder="Enter any additional payment instructions or information for users"
             className="min-h-[150px]"
           />

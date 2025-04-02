@@ -19,15 +19,20 @@ const PaymentSettingsForm = () => {
   const { user } = useAuth();
   const queryClient = useQueryClient();
   
+  // Use React Query with cache busting to ensure we get latest data
   const { data, isLoading, error } = useQuery({
     queryKey: ['paymentSettings'],
     queryFn: getPaymentSettings,
+    refetchOnWindowFocus: true,
+    staleTime: 0, // Don't use stale data
+    cacheTime: 5000, // Short cache time
   });
   
   // Update local state when data is fetched
   useEffect(() => {
     if (data?.data) {
-      setUpiId(data.data.upi_id);
+      console.log('Setting form state from fetched data:', data.data);
+      setUpiId(data.data.upi_id || '');
       setQrCodeUrl(data.data.qr_code_url || '');
       setInstructions(data.data.payment_instructions || '');
     }
@@ -37,6 +42,7 @@ const PaymentSettingsForm = () => {
     mutationFn: updatePaymentSettings,
     onSuccess: () => {
       toast.success('Payment settings updated successfully');
+      // Force refresh of payment settings data
       queryClient.invalidateQueries({ queryKey: ['paymentSettings'] });
     },
     onError: (error) => {
@@ -53,11 +59,20 @@ const PaymentSettingsForm = () => {
       return;
     }
     
-    mutation.mutate({
+    // Explicitly log what we're sending to the server
+    console.log('Submitting payment settings:', {
       upi_id: upiId,
       qr_code_url: qrCodeUrl,
       payment_instructions: instructions,
       updated_by: user?.id
+    });
+    
+    mutation.mutate({
+      upi_id: upiId,
+      qr_code_url: qrCodeUrl,
+      payment_instructions: instructions,
+      updated_by: user?.id,
+      updated_at: new Date().toISOString() // Force update timestamp
     });
   };
 
@@ -70,7 +85,7 @@ const PaymentSettingsForm = () => {
     try {
       // In a real app, this would call an API to generate a QR code
       // For now, we'll use an external QR code generator
-      const qrCodeApiUrl = `https://api.qrserver.com/v1/create-qr-code/?size=200x200&data=upi://pay?pa=${encodeURIComponent(upiId)}&pn=ShowTix`;
+      const qrCodeApiUrl = `https://api.qrserver.com/v1/create-qr-code/?size=200x200&data=upi://pay?pa=${encodeURIComponent(upiId)}&pn=ShowTix&cache=${Date.now()}`;
       
       setQrCodeUrl(qrCodeApiUrl);
       toast.success('QR code generated successfully');
@@ -92,9 +107,11 @@ const PaymentSettingsForm = () => {
     }
     
     try {
+      toast.info('Uploading QR code...');
       const { url, error } = await uploadFile(file, 'brand_assets', 'qr_codes');
       if (error) throw error;
       if (url) {
+        console.log('QR code uploaded successfully to:', url);
         setQrCodeUrl(url);
         toast.success('QR code uploaded successfully');
       }
@@ -108,6 +125,18 @@ const PaymentSettingsForm = () => {
     return (
       <div className="flex items-center justify-center p-8">
         <Loader2 className="h-8 w-8 animate-spin text-book-primary" />
+      </div>
+    );
+  }
+
+  if (error) {
+    return (
+      <div className="p-4 border border-red-300 bg-red-50 rounded-md">
+        <h3 className="text-red-700 font-medium mb-2">Error loading payment settings</h3>
+        <p className="text-sm text-red-600">Please try refreshing the page or contact support.</p>
+        <Button variant="outline" className="mt-4" onClick={() => window.location.reload()}>
+          Refresh Page
+        </Button>
       </div>
     );
   }

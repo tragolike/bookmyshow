@@ -30,6 +30,14 @@ export const supabase = createClient(supabaseUrl, supabaseAnonKey, {
     persistSession: true,
     autoRefreshToken: true,
     storage: localStorage
+  },
+  // Add global headers to disable caching
+  global: {
+    headers: {
+      'Cache-Control': 'no-cache',
+      'Pragma': 'no-cache',
+      'Expires': '0',
+    },
   }
 });
 
@@ -91,7 +99,7 @@ export const ensureBucketExists = async (bucketId: string, bucketName: string) =
   }
 };
 
-// Function to upload file to storage
+// Function to upload file to storage with cache busting
 export const uploadFile = async (file: File, bucketId: string, path: string) => {
   try {
     // Ensure bucket exists
@@ -100,6 +108,7 @@ export const uploadFile = async (file: File, bucketId: string, path: string) => 
       throw new Error(`Could not ensure ${bucketId} bucket exists`);
     }
     
+    // Add timestamp to filename for cache busting
     const fileExt = file.name.split('.').pop();
     const fileName = `${Date.now()}.${fileExt}`;
     const filePath = path ? `${path}/${fileName}` : fileName;
@@ -107,7 +116,10 @@ export const uploadFile = async (file: File, bucketId: string, path: string) => 
     // Upload the file
     const { error: uploadError, data } = await supabase.storage
       .from(bucketId)
-      .upload(filePath, file, { upsert: true });
+      .upload(filePath, file, { 
+        upsert: true,
+        cacheControl: 'no-cache, no-store, must-revalidate'
+      });
     
     if (uploadError) throw uploadError;
     
@@ -116,17 +128,22 @@ export const uploadFile = async (file: File, bucketId: string, path: string) => 
       .from(bucketId)
       .getPublicUrl(filePath);
     
-    return { url: publicUrl, path: filePath, error: null };
+    // Add cache-busting query parameter
+    const cacheBustUrl = `${publicUrl}?t=${Date.now()}`;
+    
+    return { url: cacheBustUrl, path: filePath, error: null };
   } catch (error) {
     console.error('File upload error:', error);
     return { url: null, path: null, error };
   }
 };
 
-// Function to get payment settings
+// Function to get payment settings with cache busting
 export const getPaymentSettings = async () => {
   try {
-    console.log('Fetching payment settings...');
+    console.log('Fetching payment settings with cache busting...');
+    
+    // Add cache busting header to ensure we get the latest data
     const { data, error } = await db.paymentSettings()
       .select('*')
       .order('updated_at', { ascending: false })
@@ -166,14 +183,20 @@ export const updatePaymentSettings = async (data: PaymentSettings) => {
     if (existingSettings) {
       console.log('Updating existing payment settings with ID:', existingSettings.id);
       result = await db.paymentSettings()
-        .update(data)
+        .update({
+          ...data,
+          updated_at: new Date().toISOString() // Force updated_at to change
+        })
         .eq('id', existingSettings.id)
         .select()
         .maybeSingle();
     } else {
       console.log('Creating new payment settings entry');
       result = await db.paymentSettings()
-        .insert(data)
+        .insert({
+          ...data,
+          updated_at: new Date().toISOString() // Set explicit updated_at
+        })
         .select()
         .maybeSingle();
     }
@@ -191,10 +214,10 @@ export const updatePaymentSettings = async (data: PaymentSettings) => {
   }
 };
 
-// Function to get brand settings
+// Function to get brand settings with cache busting
 export const getBrandSettings = async () => {
   try {
-    console.log('Fetching brand settings...');
+    console.log('Fetching brand settings with cache busting...');
     const { data, error } = await db.brandSettings()
       .select('*')
       .order('updated_at', { ascending: false })
@@ -234,14 +257,20 @@ export const updateBrandSettings = async (data: any) => {
     if (existingSettings) {
       console.log('Updating existing brand settings with ID:', existingSettings.id);
       result = await db.brandSettings()
-        .update(data)
+        .update({
+          ...data,
+          updated_at: new Date().toISOString() // Force updated_at to change
+        })
         .eq('id', existingSettings.id)
         .select()
         .maybeSingle();
     } else {
       console.log('Creating new brand settings entry');
       result = await db.brandSettings()
-        .insert(data)
+        .insert({
+          ...data,
+          updated_at: new Date().toISOString() // Set explicit updated_at
+        })
         .select()
         .maybeSingle();
     }
