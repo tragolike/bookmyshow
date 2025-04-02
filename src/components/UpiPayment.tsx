@@ -1,8 +1,9 @@
 
 import { useEffect, useState } from 'react';
 import { getPaymentSettings } from '@/integrations/supabase/client';
-import { Loader2, Copy, CheckCircle2 } from 'lucide-react';
+import { Loader2, Copy, CheckCircle2, AlertTriangle, RefreshCw } from 'lucide-react';
 import { toast } from 'sonner';
+import { Button } from '@/components/ui/button';
 
 interface UpiPaymentProps {
   amount: number;
@@ -15,10 +16,12 @@ const UpiPayment = ({ amount, reference, onComplete }: UpiPaymentProps) => {
   const [isLoading, setIsLoading] = useState(true);
   const [countdown, setCountdown] = useState(300); // 5 minutes countdown
   const [copied, setCopied] = useState(false);
+  const [refreshTrigger, setRefreshTrigger] = useState(0);
   
   useEffect(() => {
     const fetchSettings = async () => {
       try {
+        setIsLoading(true);
         const { data, error } = await getPaymentSettings();
         if (error) throw error;
         setPaymentSettings(data);
@@ -31,11 +34,14 @@ const UpiPayment = ({ amount, reference, onComplete }: UpiPaymentProps) => {
     };
     
     fetchSettings();
-  }, []);
+  }, [refreshTrigger]);
   
   // Countdown timer
   useEffect(() => {
-    if (countdown <= 0) return;
+    if (countdown <= 0) {
+      toast.error('Payment time expired. Please try again.');
+      return;
+    }
     
     const timer = setTimeout(() => {
       setCountdown(countdown - 1);
@@ -60,6 +66,11 @@ const UpiPayment = ({ amount, reference, onComplete }: UpiPaymentProps) => {
     setTimeout(() => setCopied(false), 3000);
   };
   
+  const refreshPaymentSettings = () => {
+    setRefreshTrigger(prev => prev + 1);
+    toast.info('Refreshing payment information...');
+  };
+  
   if (isLoading) {
     return (
       <div className="flex flex-col items-center justify-center p-8 space-y-4">
@@ -73,18 +84,31 @@ const UpiPayment = ({ amount, reference, onComplete }: UpiPaymentProps) => {
   if (!paymentSettings || !paymentSettings.upi_id) {
     return (
       <div className="p-6 text-center border border-red-200 rounded-lg bg-red-50">
-        <p className="text-red-600">Payment system is not properly configured. Please contact support.</p>
+        <AlertTriangle className="h-10 w-10 text-red-500 mx-auto mb-2" />
+        <p className="text-red-600 mb-3">Payment system is not properly configured. Please contact support.</p>
+        <Button 
+          variant="outline" 
+          size="sm" 
+          onClick={refreshPaymentSettings}
+          className="mx-auto flex items-center gap-1"
+        >
+          <RefreshCw className="h-3 w-3" />
+          <span>Refresh</span>
+        </Button>
       </div>
     );
   }
   
+  const upiLink = `upi://pay?pa=${paymentSettings.upi_id}&pn=ShowTix&am=${amount}&cu=INR&tn=${reference}`;
+  
   return (
-    <div className="bg-white rounded-lg shadow p-6">
+    <div className="bg-white rounded-lg shadow-lg p-6">
       <div className="text-center mb-6">
         <h2 className="text-xl font-semibold mb-2">Complete Your Payment</h2>
-        <p className="text-gray-600">
-          Please complete the payment within <span className="font-semibold text-book-primary">{formatTime(countdown)}</span>
-        </p>
+        <div className="flex items-center justify-center gap-2 text-gray-600">
+          <span>Please complete the payment within</span>
+          <span className="font-semibold px-2 py-1 bg-red-100 text-red-600 rounded-md">{formatTime(countdown)}</span>
+        </div>
       </div>
       
       <div className="flex flex-col md:flex-row gap-6 items-center justify-between">
@@ -96,6 +120,10 @@ const UpiPayment = ({ amount, reference, onComplete }: UpiPaymentProps) => {
                 src={paymentSettings.qr_code_url} 
                 alt="UPI QR Code" 
                 className="w-64 h-64 object-contain"
+                onError={(e) => {
+                  e.currentTarget.src = '/placeholder.svg';
+                  e.currentTarget.alt = 'Failed to load QR code';
+                }}
               />
             </div>
           ) : (
@@ -118,6 +146,13 @@ const UpiPayment = ({ amount, reference, onComplete }: UpiPaymentProps) => {
                 {copied ? <CheckCircle2 className="w-5 h-5" /> : <Copy className="w-5 h-5" />}
               </button>
             </div>
+            
+            <a 
+              href={upiLink}
+              className="mt-4 inline-flex items-center text-sm text-book-primary hover:underline"
+            >
+              <span>Open in UPI App</span>
+            </a>
           </div>
         </div>
         

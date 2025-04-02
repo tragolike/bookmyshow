@@ -1,6 +1,7 @@
 
 import { useState, useEffect } from 'react';
-import { Info } from 'lucide-react';
+import { Info, AlertTriangle } from 'lucide-react';
+import { Badge } from '@/components/ui/badge';
 
 interface SeatCategory {
   id: string;
@@ -46,11 +47,12 @@ const SeatSelection = ({
   return (
     <div className="flex flex-col h-full">
       {/* Timer Warning */}
-      <div className="timer-warning">
-        <div className="container mx-auto flex flex-col md:flex-row items-center justify-center md:justify-between gap-2">
+      <div className="bg-red-500 text-white py-2">
+        <div className="container mx-auto flex flex-col md:flex-row items-center justify-center md:justify-between gap-2 px-4">
           <div className="flex items-center gap-2">
+            <AlertTriangle className="h-4 w-4" />
             <span>You have approximately</span>
-            <span className="font-bold">{formatTime(remainingTime)}</span> 
+            <span className="font-bold bg-white text-red-500 px-2 py-0.5 rounded">{formatTime(remainingTime)}</span> 
             <span>to select your seats.</span>
           </div>
           <p className="text-sm">Please don't click on 'back' or close this page, else you will have to start afresh.</p>
@@ -59,7 +61,7 @@ const SeatSelection = ({
       
       {/* Venue Layout */}
       <div className="container mx-auto px-4 py-6 flex-1">
-        <h2 className="text-lg font-bold mb-1">{eventName}</h2>
+        <h2 className="text-xl font-bold mb-1">{eventName}</h2>
         <p className="text-sm text-gray-600 mb-6">{venueName}</p>
         
         <div className="relative mb-8">
@@ -83,7 +85,7 @@ const SeatSelection = ({
         <div className="mb-6">
           <h3 className="text-lg font-medium mb-4">Please select category of your choice</h3>
           
-          <div className="space-y-4">
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             {seatCategories.map(category => (
               <div 
                 key={category.id}
@@ -98,13 +100,28 @@ const SeatSelection = ({
                   <div 
                     className={`w-4 h-4 rounded-full ${selectedCategory?.id === category.id ? 'bg-book-primary' : category.color}`}
                   />
-                  <div className="font-medium">₹ {category.price.toLocaleString()}</div>
+                  <div>
+                    <div className="font-medium">{category.name}</div>
+                    <div className="text-xl font-bold">₹ {category.price.toLocaleString()}</div>
+                  </div>
                 </div>
                 
                 <div className="text-sm">
                   {category.available ? (
-                    category.price > 3000 ? 'Fast Filling' : 'Available'
-                  ) : 'Sold Out'}
+                    category.price > 3000 ? (
+                      <Badge variant="outline" className="bg-orange-100 text-orange-800 border-orange-200">
+                        Fast Filling
+                      </Badge>
+                    ) : (
+                      <Badge variant="outline" className="bg-green-100 text-green-800 border-green-200">
+                        Available
+                      </Badge>
+                    )
+                  ) : (
+                    <Badge variant="outline" className="bg-red-100 text-red-800 border-red-200">
+                      Sold Out
+                    </Badge>
+                  )}
                 </div>
               </div>
             ))}

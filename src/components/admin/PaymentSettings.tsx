@@ -6,7 +6,7 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
-import { Loader2, QrCode, IndianRupee, Upload } from 'lucide-react';
+import { Loader2, QrCode, IndianRupee, Upload, RefreshCw } from 'lucide-react';
 import { useAuth } from '@/contexts/AuthContext';
 
 const PaymentSettings = () => {
@@ -14,6 +14,7 @@ const PaymentSettings = () => {
   const [qrCodeUrl, setQrCodeUrl] = useState('');
   const [isLoading, setIsLoading] = useState(false);
   const [isSaving, setIsSaving] = useState(false);
+  const [isGeneratingQr, setIsGeneratingQr] = useState(false);
   const { user } = useAuth();
 
   useEffect(() => {
@@ -38,8 +39,43 @@ const PaymentSettings = () => {
     fetchSettings();
   }, []);
 
+  const generateQRCode = async () => {
+    if (!upiId.trim()) {
+      toast.error('Please enter a valid UPI ID to generate QR code');
+      return;
+    }
+    
+    setIsGeneratingQr(true);
+    try {
+      // In a real app, this would call an API to generate a QR code
+      // For now, we'll simulate it with a fake URL pointing to an external QR code generator
+      const qrCodeApiUrl = `https://api.qrserver.com/v1/create-qr-code/?size=200x200&data=upi://pay?pa=${encodeURIComponent(upiId)}&pn=ShowTix`;
+      
+      setQrCodeUrl(qrCodeApiUrl);
+      toast.success('QR code generated successfully');
+      
+      // Automatically save the settings
+      const { error } = await updatePaymentSettings({
+        upi_id: upiId,
+        qr_code_url: qrCodeApiUrl,
+      });
+      
+      if (error) throw error;
+    } catch (error) {
+      console.error('Error generating QR code:', error);
+      toast.error('Failed to generate QR code');
+    } finally {
+      setIsGeneratingQr(false);
+    }
+  };
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    
+    if (!upiId.trim()) {
+      toast.error('Please enter a valid UPI ID');
+      return;
+    }
     
     setIsSaving(true);
     try {
@@ -95,6 +131,28 @@ const PaymentSettings = () => {
             </p>
           </div>
           
+          <div className="flex justify-center">
+            <Button 
+              type="button" 
+              variant="outline"
+              onClick={generateQRCode}
+              disabled={isGeneratingQr || !upiId.trim()}
+              className="flex items-center gap-2"
+            >
+              {isGeneratingQr ? (
+                <>
+                  <Loader2 className="h-4 w-4 animate-spin" />
+                  Generating...
+                </>
+              ) : (
+                <>
+                  <RefreshCw className="h-4 w-4" />
+                  Generate QR Code
+                </>
+              )}
+            </Button>
+          </div>
+          
           <div className="space-y-2">
             <Label htmlFor="qr-code">QR Code URL</Label>
             <div className="flex relative">
@@ -119,10 +177,22 @@ const PaymentSettings = () => {
                   src={qrCodeUrl}
                   alt="UPI QR Code"
                   className="w-full h-auto"
+                  onError={(e) => {
+                    e.currentTarget.src = '/placeholder.svg';
+                    e.currentTarget.alt = 'Failed to load QR code';
+                  }}
                 />
               </div>
             </div>
           )}
+          
+          <div className="bg-yellow-50 border border-yellow-200 rounded-lg p-4">
+            <h3 className="font-medium text-yellow-800 mb-1">Important Note</h3>
+            <p className="text-sm text-yellow-700">
+              Make sure your UPI ID is active and properly set up to receive payments.
+              Users will use this QR code to make payments for bookings.
+            </p>
+          </div>
         </CardContent>
         
         <CardFooter>

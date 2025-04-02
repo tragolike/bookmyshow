@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from 'react';
 import { getSeatLayoutByEventId, upsertSeatLayout } from '@/integrations/supabase/client';
 import { Loader2, Save, Plus, Minus, AlertCircle, Check } from 'lucide-react';
@@ -164,7 +163,6 @@ const SeatLayoutEditor = ({ eventId }: SeatLayoutEditorProps) => {
     }
   };
   
-  // Add a row of seats
   const addRow = () => {
     if (!seatLayout) return;
     
@@ -199,7 +197,6 @@ const SeatLayoutEditor = ({ eventId }: SeatLayoutEditorProps) => {
     toast.success('Row added successfully!');
   };
   
-  // Remove the last row
   const removeRow = () => {
     if (!seatLayout) return;
     
@@ -227,7 +224,6 @@ const SeatLayoutEditor = ({ eventId }: SeatLayoutEditorProps) => {
     toast.success('Row removed successfully!');
   };
   
-  // Group seats by row
   const getSeatsByRow = () => {
     if (!seatLayout) return {};
     
@@ -345,13 +341,11 @@ const SeatLayoutEditor = ({ eventId }: SeatLayoutEditorProps) => {
       
       <div className="w-full overflow-x-auto">
         <div className="min-w-[600px]">
-          {/* Screen */}
           <div className="relative mb-10">
             <div className="w-3/4 h-8 bg-gray-300 mx-auto rounded-t-full transform perspective-[500px] rotate-x-12"></div>
             <p className="text-center text-sm text-gray-500 mt-2">SCREEN</p>
           </div>
           
-          {/* Seat Map */}
           <div className="space-y-2">
             {sortedRows.map((row) => (
               <div key={row} className="flex items-center justify-center gap-1">
@@ -360,7 +354,6 @@ const SeatLayoutEditor = ({ eventId }: SeatLayoutEditorProps) => {
                   {seatsByRow[row]
                     .sort((a: Seat, b: Seat) => a.number - b.number)
                     .map((seat: Seat) => {
-                      // Get category color
                       const categoryObj = categories.find(c => c.id === seat.category);
                       const categoryColor = categoryObj ? categoryObj.color : 'bg-gray-300';
                       
@@ -387,7 +380,6 @@ const SeatLayoutEditor = ({ eventId }: SeatLayoutEditorProps) => {
         </div>
       </div>
       
-      {/* Legend */}
       <div className="flex flex-wrap justify-center gap-6 mt-10">
         {categories.map(category => (
           <div key={category.id} className="flex items-center gap-2">
