@@ -1,6 +1,5 @@
-
 import { useState, useEffect } from 'react';
-import { getTicketTypes, upsertTicketType } from '@/integrations/supabase/client';
+import { getTicketTypes, upsertTicketType, db } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -48,7 +47,6 @@ const TicketTypeManager = () => {
   const [editingType, setEditingType] = useState<TicketType | null>(null);
   const { user } = useAuth();
   
-  // Form state
   const [category, setCategory] = useState('');
   const [basePrice, setBasePrice] = useState('');
   const [surgePrice, setSurgePrice] = useState('');
@@ -137,8 +135,7 @@ const TicketTypeManager = () => {
   
   const handleDeleteTicketType = async (id: string) => {
     try {
-      const { error } = await supabase
-        .from('ticket_types')
+      const { error } = await db.ticketTypes()
         .delete()
         .eq('id', id);
       
