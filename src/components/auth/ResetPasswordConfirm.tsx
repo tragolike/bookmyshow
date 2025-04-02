@@ -1,6 +1,6 @@
 
 import { useState, useEffect } from 'react';
-import { useNavigate, useLocation } from 'react-router-dom';
+import { useNavigate } from 'react-router-dom';
 import { Lock, EyeOff, Eye, Check, Shield, AlertTriangle } from 'lucide-react';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -18,7 +18,6 @@ const ResetPasswordConfirm = () => {
   const [hasTokenError, setHasTokenError] = useState(false);
   const [tokenProcessing, setTokenProcessing] = useState(true);
   const navigate = useNavigate();
-  const location = useLocation();
 
   // Function to parse JWT token and extract access_token
   const extractTokenFromHash = () => {
@@ -46,6 +45,7 @@ const ResetPasswordConfirm = () => {
     const initializeReset = async () => {
       try {
         setTokenProcessing(true);
+        console.log('Initializing password reset page');
         
         // Extract token from URL hash
         const accessToken = extractTokenFromHash();
@@ -81,7 +81,7 @@ const ResetPasswordConfirm = () => {
     };
     
     initializeReset();
-  }, [location]);
+  }, []);
 
   const handleResetPassword = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();

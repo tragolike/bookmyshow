@@ -6,11 +6,16 @@ import './index.css'
 // Add console error handler for debugging
 window.addEventListener('error', (event) => {
   console.error('Global error:', event.error);
+  console.error('Error message:', event.message);
+  console.error('Error source:', event.filename, 'line:', event.lineno, 'column:', event.colno);
 });
 
 // Add unhandled promise rejection handler
 window.addEventListener('unhandledrejection', (event) => {
   console.error('Unhandled Promise Rejection:', event.reason);
+  if (event.reason && event.reason.stack) {
+    console.error('Rejection stack:', event.reason.stack);
+  }
 });
 
 // Log additional debugging information on page load

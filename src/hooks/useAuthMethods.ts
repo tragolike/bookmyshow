@@ -81,7 +81,7 @@ export function useAuthMethods(fetchProfile: (userId: string) => Promise<void>) 
   // Reset password
   const resetPassword = async (email: string) => {
     try {
-      // Get absolute URL for reset page - ensure we get the full URL including protocol
+      // Use the full absolute URL (including http/https)
       const origin = window.location.origin;
       const resetUrl = `${origin}/reset-password-confirm`;
       
@@ -153,12 +153,35 @@ export function useAuthMethods(fetchProfile: (userId: string) => Promise<void>) 
     }
   };
 
+  // Google sign in
+  const signInWithGoogle = async () => {
+    try {
+      const { error } = await supabase.auth.signInWithOAuth({
+        provider: 'google',
+        options: {
+          redirectTo: `${window.location.origin}/`
+        }
+      });
+      
+      if (error) {
+        toast.error(error.message || 'Failed to sign in with Google');
+        return;
+      }
+      
+      // The redirect to Google happens automatically
+    } catch (error: any) {
+      console.error('Google sign in error:', error);
+      toast.error(error.message || 'An error occurred during Google sign in');
+    }
+  };
+
   return {
     signIn,
     signUp,
     signOut,
     resetPassword,
     updatePassword,
-    updateProfile
+    updateProfile,
+    signInWithGoogle
   };
 }

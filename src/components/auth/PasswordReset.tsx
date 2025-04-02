@@ -26,7 +26,7 @@ const PasswordReset = () => {
     try {
       setIsLoading(true);
       
-      // Get the current origin for the redirect URL
+      // Get the full absolute URL for redirect
       const origin = window.location.origin;
       const redirectTo = `${origin}/reset-password-confirm`;
       
