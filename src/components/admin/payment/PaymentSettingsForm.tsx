@@ -1,3 +1,4 @@
+
 import { useState, useEffect } from 'react';
 import { toast } from 'sonner';
 import { supabase, uploadFile } from '@/integrations/supabase/client';
@@ -171,7 +172,18 @@ const PaymentSettingsForm = () => {
       
       if (result.error) throw result.error;
       
-      setQrCodeUrl(result.url || '');
+      // Fix: Check if url property exists in the result
+      if (result.url) {
+        setQrCodeUrl(result.url);
+      } else if (result.data) {
+        // Get the public URL from data
+        const { data: { publicUrl } } = supabase.storage
+          .from('brand_assets')
+          .getPublicUrl(result.data.path || result.path || '');
+          
+        setQrCodeUrl(publicUrl);
+      }
+      
       toast.success('QR code uploaded successfully');
     } catch (error) {
       console.error('QR code upload error:', error);

@@ -1,27 +1,18 @@
-
 import { useState, useEffect } from 'react';
-import { toast } from 'sonner';
-import { useQueryClient } from '@tanstack/react-query';
-import { Trash2, Upload, Plus, GripVertical, Check, X, ExternalLink, Image as ImageIcon } from 'lucide-react';
-import { supabase, uploadFile } from '@/integrations/supabase/client';
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
+import { Textarea } from '@/components/ui/textarea';
 import { Switch } from '@/components/ui/switch';
-import { 
-  Dialog,
-  DialogContent,
-  DialogDescription,
-  DialogFooter,
-  DialogHeader,
-  DialogTitle,
-  DialogTrigger,
-} from "@/components/ui/dialog";
-import { Skeleton } from '@/components/ui/skeleton';
+import { supabase, uploadFile } from '@/integrations/supabase/client';
+import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
+import { toast } from 'sonner';
 import { DragDropContext, Droppable, Draggable } from '@hello-pangea/dnd';
+import { Pencil, Trash2, Image, Move, Eye, EyeOff, Plus, ArrowUp, ArrowDown, Loader2 } from 'lucide-react';
+import { cn } from '@/lib/utils';
 
-// Hero slide type
+// Local types
 interface HeroSlide {
   id: string;
   title: string;
@@ -32,519 +23,603 @@ interface HeroSlide {
   is_active: boolean;
 }
 
-type HeroSlideFormData = Omit<HeroSlide, 'id' | 'sort_order'> & {
-  id?: string;
-  imageFile?: File | null;
-};
-
 const HeroSliderManager = () => {
   const [slides, setSlides] = useState<HeroSlide[]>([]);
-  const [isLoading, setIsLoading] = useState(true);
-  const [isSubmitting, setIsSubmitting] = useState(false);
-  const [dialogOpen, setDialogOpen] = useState(false);
-  const [currentSlide, setCurrentSlide] = useState<HeroSlideFormData>({
-    title: '',
-    subtitle: '',
-    image_url: '',
-    link: '',
-    is_active: true,
-    imageFile: null
-  });
   const [isEditing, setIsEditing] = useState(false);
-  const [previewUrl, setPreviewUrl] = useState<string | null>(null);
-  
+  const [currentSlide, setCurrentSlide] = useState<HeroSlide | null>(null);
+  const [isUploading, setIsUploading] = useState(false);
   const queryClient = useQueryClient();
 
-  useEffect(() => {
-    fetchSlides();
-  }, []);
-
-  const fetchSlides = async () => {
-    setIsLoading(true);
-    try {
+  // Fetch slides
+  const { data, isLoading, error } = useQuery({
+    queryKey: ['heroSlides'],
+    queryFn: async () => {
       const { data, error } = await supabase
         .from('hero_slides')
         .select('*')
         .order('sort_order', { ascending: true });
       
       if (error) throw error;
+      return data || [];
+    }
+  });
+
+  // Update slides when data changes
+  useEffect(() => {
+    if (data) {
+      setSlides(data);
+    }
+  }, [data]);
+
+  // Create slide mutation
+  const createSlideMutation = useMutation({
+    mutationFn: async (slide: Omit<HeroSlide, 'id'>) => {
+      const { data, error } = await supabase
+        .from('hero_slides')
+        .insert(slide)
+        .select()
+        .single();
       
-      setSlides(data || []);
-    } catch (error) {
-      console.error('Error fetching hero slides:', error);
-      toast.error('Failed to load hero slides');
-    } finally {
-      setIsLoading(false);
-    }
-  };
-
-  const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const { name, value } = e.target;
-    setCurrentSlide(prev => ({
-      ...prev,
-      [name]: value
-    }));
-  };
-
-  const handleToggleChange = (checked: boolean) => {
-    setCurrentSlide(prev => ({
-      ...prev,
-      is_active: checked
-    }));
-  };
-
-  const handleImageChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0];
-    if (!file) return;
-
-    if (file.size > 5 * 1024 * 1024) {
-      toast.error('Image size must be less than 5MB');
-      return;
-    }
-
-    if (!['image/jpeg', 'image/png', 'image/webp'].includes(file.type)) {
-      toast.error('Only JPEG, PNG and WEBP images are allowed');
-      return;
-    }
-
-    setCurrentSlide(prev => ({
-      ...prev,
-      imageFile: file
-    }));
-
-    // Create a preview URL
-    const url = URL.createObjectURL(file);
-    setPreviewUrl(url);
-
-    // Clean up preview URL when component unmounts
-    return () => URL.revokeObjectURL(url);
-  };
-
-  const resetForm = () => {
-    setCurrentSlide({
-      title: '',
-      subtitle: '',
-      image_url: '',
-      link: '',
-      is_active: true,
-      imageFile: null
-    });
-    setPreviewUrl(null);
-    setIsEditing(false);
-  };
-
-  const handleAddSlide = () => {
-    resetForm();
-    setDialogOpen(true);
-  };
-
-  const handleEditSlide = (slide: HeroSlide) => {
-    setCurrentSlide({
-      id: slide.id,
-      title: slide.title,
-      subtitle: slide.subtitle || '',
-      image_url: slide.image_url,
-      link: slide.link,
-      is_active: slide.is_active
-    });
-    setPreviewUrl(slide.image_url);
-    setIsEditing(true);
-    setDialogOpen(true);
-  };
-
-  const uploadImage = async (file: File): Promise<string> => {
-    try {
-      const result = await uploadFile(file, 'hero_images', 'slides');
-      
-      if (result.error) throw result.error;
-      
-      return result.url || '';
-    } catch (error) {
-      console.error('Error uploading image:', error);
-      throw new Error('Failed to upload image');
-    }
-  };
-
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
-    setIsSubmitting(true);
-
-    try {
-      let imageUrl = currentSlide.image_url;
-
-      // Upload image if provided
-      if (currentSlide.imageFile) {
-        imageUrl = await uploadImage(currentSlide.imageFile);
-      } else if (!currentSlide.image_url && !isEditing) {
-        throw new Error('Please select an image');
-      }
-
-      const slideData = {
-        title: currentSlide.title,
-        subtitle: currentSlide.subtitle || null,
-        image_url: imageUrl,
-        link: currentSlide.link,
-        is_active: currentSlide.is_active
-      };
-
-      if (isEditing && currentSlide.id) {
-        // Update existing slide
-        const { error } = await supabase
-          .from('hero_slides')
-          .update(slideData)
-          .eq('id', currentSlide.id);
-        
-        if (error) throw error;
-        
-        toast.success('Slide updated successfully');
-      } else {
-        // Calculate the next sort order
-        const maxOrder = slides.length > 0 
-          ? Math.max(...slides.map(s => s.sort_order))
-          : 0;
-        
-        // Create new slide
-        const { error } = await supabase
-          .from('hero_slides')
-          .insert({
-            ...slideData,
-            sort_order: maxOrder + 1
-          });
-        
-        if (error) throw error;
-        
-        toast.success('Slide added successfully');
-      }
-
-      // Reset form and fetch updated slides
+      if (error) throw error;
+      return data;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['heroSlides'] });
+      toast.success('Slide created successfully');
       resetForm();
-      setDialogOpen(false);
-      fetchSlides();
-    } catch (error: any) {
-      console.error('Error saving slide:', error);
-      toast.error(error.message || 'Failed to save slide');
-    } finally {
-      setIsSubmitting(false);
+    },
+    onError: (error) => {
+      console.error('Error creating slide:', error);
+      toast.error('Failed to create slide');
     }
-  };
+  });
 
-  const handleDeleteSlide = async (id: string) => {
-    if (!confirm('Are you sure you want to delete this slide?')) return;
+  // Update slide mutation
+  const updateSlideMutation = useMutation({
+    mutationFn: async (slide: HeroSlide) => {
+      const { data, error } = await supabase
+        .from('hero_slides')
+        .update(slide)
+        .eq('id', slide.id)
+        .select()
+        .single();
+      
+      if (error) throw error;
+      return data;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['heroSlides'] });
+      toast.success('Slide updated successfully');
+      resetForm();
+    },
+    onError: (error) => {
+      console.error('Error updating slide:', error);
+      toast.error('Failed to update slide');
+    }
+  });
 
-    try {
+  // Delete slide mutation
+  const deleteSlideMutation = useMutation({
+    mutationFn: async (id: string) => {
       const { error } = await supabase
         .from('hero_slides')
         .delete()
         .eq('id', id);
       
       if (error) throw error;
-      
+      return id;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['heroSlides'] });
       toast.success('Slide deleted successfully');
-      fetchSlides();
-    } catch (error) {
+    },
+    onError: (error) => {
       console.error('Error deleting slide:', error);
       toast.error('Failed to delete slide');
     }
-  };
+  });
 
-  const handleToggleActive = async (id: string, isActive: boolean) => {
-    try {
-      const { error } = await supabase
+  // Update slide order mutation
+  const updateOrderMutation = useMutation({
+    mutationFn: async (updatedSlides: HeroSlide[]) => {
+      // Create an array of update operations
+      const updates = updatedSlides.map((slide) => ({
+        id: slide.id,
+        sort_order: slide.sort_order
+      }));
+
+      // Use upsert to update multiple rows
+      const { data, error } = await supabase
         .from('hero_slides')
-        .update({ is_active: !isActive })
-        .eq('id', id);
+        .upsert(updates);
       
       if (error) throw error;
+      return updatedSlides;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['heroSlides'] });
+      toast.success('Slide order updated');
+    },
+    onError: (error) => {
+      console.error('Error updating slide order:', error);
+      toast.error('Failed to update slide order');
+    }
+  });
+
+  // Toggle slide active status
+  const toggleActiveMutation = useMutation({
+    mutationFn: async ({ id, isActive }: { id: string; isActive: boolean }) => {
+      const { data, error } = await supabase
+        .from('hero_slides')
+        .update({ is_active: isActive })
+        .eq('id', id)
+        .select()
+        .single();
       
-      setSlides(slides.map(slide => 
-        slide.id === id 
-          ? { ...slide, is_active: !isActive } 
-          : slide
-      ));
-      
-      toast.success(`Slide ${!isActive ? 'activated' : 'deactivated'} successfully`);
-    } catch (error) {
+      if (error) throw error;
+      return data;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['heroSlides'] });
+    },
+    onError: (error) => {
       console.error('Error toggling slide status:', error);
       toast.error('Failed to update slide status');
     }
+  });
+
+  // Handle form submission
+  const handleSubmit = (e: React.FormEvent) => {
+    e.preventDefault();
+    
+    if (!currentSlide) return;
+    
+    if (!currentSlide.title.trim()) {
+      toast.error('Title is required');
+      return;
+    }
+    
+    if (!currentSlide.image_url) {
+      toast.error('Image is required');
+      return;
+    }
+    
+    if (!currentSlide.link.trim()) {
+      toast.error('Link is required');
+      return;
+    }
+    
+    if (isEditing && currentSlide.id) {
+      updateSlideMutation.mutate(currentSlide);
+    } else {
+      // For new slides, calculate the next sort order
+      const maxOrder = slides.length > 0 
+        ? Math.max(...slides.map(s => s.sort_order))
+        : 0;
+      
+      createSlideMutation.mutate({
+        ...currentSlide,
+        sort_order: maxOrder + 1
+      });
+    }
   };
 
-  const handleDragEnd = async (result: any) => {
+  // Reset form
+  const resetForm = () => {
+    setCurrentSlide(null);
+    setIsEditing(false);
+  };
+
+  // Edit slide
+  const editSlide = (slide: HeroSlide) => {
+    setCurrentSlide({ ...slide });
+    setIsEditing(true);
+  };
+
+  // Add new slide
+  const addNewSlide = () => {
+    setCurrentSlide({
+      id: '',
+      title: '',
+      subtitle: '',
+      image_url: '',
+      link: '',
+      sort_order: 0,
+      is_active: true
+    });
+    setIsEditing(false);
+  };
+
+  // Handle image upload
+  const handleImageUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    
+    if (file.size > 5 * 1024 * 1024) {
+      toast.error('Image must be less than 5MB');
+      return;
+    }
+    
+    try {
+      setIsUploading(true);
+      toast.info('Uploading image...');
+      
+      const result = await uploadFile(file, 'hero_slides', 'images');
+      
+      if (result.error) throw result.error;
+      
+      // Handle the result based on its structure
+      let imageUrl = '';
+      if (result.url) {
+        imageUrl = result.url;
+      } else if (result.data) {
+        // Get the public URL from data
+        const { data: { publicUrl } } = supabase.storage
+          .from('hero_slides')
+          .getPublicUrl(result.data.path || result.path || '');
+          
+        imageUrl = publicUrl;
+      }
+      
+      if (currentSlide) {
+        setCurrentSlide({
+          ...currentSlide,
+          image_url: imageUrl
+        });
+      }
+      
+      toast.success('Image uploaded successfully');
+    } catch (error) {
+      console.error('Error uploading image:', error);
+      toast.error('Failed to upload image');
+    } finally {
+      setIsUploading(false);
+    }
+  };
+
+  // Handle drag and drop reordering
+  const handleDragEnd = (result: any) => {
     if (!result.destination) return;
     
     const items = Array.from(slides);
     const [reorderedItem] = items.splice(result.source.index, 1);
     items.splice(result.destination.index, 0, reorderedItem);
     
-    // Update the order in the UI
-    setSlides(items);
+    // Update sort_order values
+    const updatedItems = items.map((item, index) => ({
+      ...item,
+      sort_order: index + 1
+    }));
     
-    // Update sort_order in the database
-    try {
-      const updates = items.map((item, index) => ({
-        id: item.id,
-        sort_order: index + 1
-      }));
-      
-      // Use a transaction to update all slides at once
-      for (const update of updates) {
-        const { error } = await supabase
-          .from('hero_slides')
-          .update({ sort_order: update.sort_order })
-          .eq('id', update.id);
-        
-        if (error) throw error;
-      }
-      
-      toast.success('Slide order updated successfully');
-    } catch (error) {
-      console.error('Error updating slide order:', error);
-      toast.error('Failed to update slide order');
-      // Revert to original order
-      fetchSlides();
-    }
+    setSlides(updatedItems);
+    updateOrderMutation.mutate(updatedItems);
   };
 
+  // Move slide up or down
+  const moveSlide = (index: number, direction: 'up' | 'down') => {
+    if (
+      (direction === 'up' && index === 0) || 
+      (direction === 'down' && index === slides.length - 1)
+    ) {
+      return;
+    }
+    
+    const newIndex = direction === 'up' ? index - 1 : index + 1;
+    const items = Array.from(slides);
+    const [movedItem] = items.splice(index, 1);
+    items.splice(newIndex, 0, movedItem);
+    
+    // Update sort_order values
+    const updatedItems = items.map((item, idx) => ({
+      ...item,
+      sort_order: idx + 1
+    }));
+    
+    setSlides(updatedItems);
+    updateOrderMutation.mutate(updatedItems);
+  };
+
+  // Toggle slide active status
+  const toggleActive = (id: string, currentStatus: boolean) => {
+    toggleActiveMutation.mutate({
+      id,
+      isActive: !currentStatus
+    });
+  };
+
+  if (isLoading) {
+    return (
+      <div className="flex items-center justify-center p-8">
+        <Loader2 className="h-8 w-8 animate-spin text-primary" />
+      </div>
+    );
+  }
+
+  if (error) {
+    return (
+      <div className="p-4 border border-red-300 bg-red-50 rounded-md">
+        <h3 className="text-red-700 font-medium mb-2">Error loading slides</h3>
+        <p className="text-sm text-red-600">Please try refreshing the page.</p>
+        <Button variant="outline" className="mt-4" onClick={() => window.location.reload()}>
+          Refresh Page
+        </Button>
+      </div>
+    );
+  }
+
   return (
-    <Card>
-      <CardHeader>
-        <CardTitle>Hero Slider Management</CardTitle>
-        <CardDescription>
-          Manage the hero slider images shown on the homepage
-        </CardDescription>
-      </CardHeader>
-      
-      <CardContent>
-        {isLoading ? (
-          <div className="space-y-3">
-            {[1, 2, 3].map(i => (
-              <div key={i} className="flex items-center space-x-4">
-                <Skeleton className="h-12 w-12 rounded-md" />
-                <div className="space-y-2 flex-1">
-                  <Skeleton className="h-4 w-full" />
-                  <Skeleton className="h-4 w-3/4" />
-                </div>
-              </div>
-            ))}
-          </div>
-        ) : (
-          <>
+    <div className="space-y-6">
+      <Card>
+        <CardHeader>
+          <CardTitle>Hero Slider Management</CardTitle>
+          <CardDescription>
+            Manage the slides that appear in the hero section of the homepage
+          </CardDescription>
+        </CardHeader>
+        <CardContent>
+          <div className="flex justify-between items-center mb-6">
+            <h3 className="text-lg font-medium">
+              {slides.length} {slides.length === 1 ? 'Slide' : 'Slides'}
+            </h3>
             <Button 
-              onClick={handleAddSlide}
-              className="mb-6"
+              onClick={addNewSlide}
+              className="bg-[#ff2366] hover:bg-[#e01f59] text-white"
             >
-              <Plus className="mr-2 h-4 w-4" />
+              <Plus className="h-4 w-4 mr-2" />
               Add New Slide
             </Button>
-            
+          </div>
+          
+          {slides.length === 0 ? (
+            <div className="text-center p-8 border border-dashed rounded-md">
+              <p className="text-muted-foreground">No slides found. Add your first slide to get started.</p>
+            </div>
+          ) : (
             <DragDropContext onDragEnd={handleDragEnd}>
               <Droppable droppableId="slides">
                 {(provided) => (
                   <div
                     {...provided.droppableProps}
                     ref={provided.innerRef}
-                    className="space-y-3"
+                    className="space-y-4"
                   >
-                    {slides.length === 0 ? (
-                      <div className="flex flex-col items-center justify-center py-8 border border-dashed border-gray-300 rounded-lg">
-                        <ImageIcon className="h-8 w-8 text-gray-400 mb-2" />
-                        <p className="text-gray-500">No slides added yet</p>
-                        <Button 
-                          variant="link" 
-                          onClick={handleAddSlide}
-                          className="mt-2"
-                        >
-                          Add your first slide
-                        </Button>
-                      </div>
-                    ) : (
-                      slides.map((slide, index) => (
-                        <Draggable key={slide.id} draggableId={slide.id} index={index}>
-                          {(provided) => (
-                            <div
-                              ref={provided.innerRef}
-                              {...provided.draggableProps}
-                              className={`flex items-center p-3 rounded-lg border ${slide.is_active ? 'bg-white' : 'bg-gray-50'}`}
+                    {slides.map((slide, index) => (
+                      <Draggable key={slide.id} draggableId={slide.id} index={index}>
+                        {(provided) => (
+                          <div
+                            ref={provided.innerRef}
+                            {...provided.draggableProps}
+                            className="flex items-center gap-4 p-4 border rounded-md bg-card"
+                          >
+                            <div 
+                              {...provided.dragHandleProps}
+                              className="cursor-move text-muted-foreground hover:text-foreground"
                             >
-                              <div 
-                                {...provided.dragHandleProps}
-                                className="mr-3 cursor-grab text-gray-400"
-                              >
-                                <GripVertical className="h-5 w-5" />
-                              </div>
-                              
-                              <div className="h-14 w-24 bg-gray-100 rounded-md overflow-hidden mr-4 flex-shrink-0">
+                              <Move className="h-5 w-5" />
+                            </div>
+                            
+                            <div className="h-16 w-24 relative overflow-hidden rounded-md border">
+                              {slide.image_url ? (
                                 <img 
-                                  src={slide.image_url}
+                                  src={slide.image_url} 
                                   alt={slide.title}
                                   className="h-full w-full object-cover"
                                   onError={(e) => {
                                     e.currentTarget.src = '/placeholder.svg';
                                   }}
                                 />
-                              </div>
-                              
-                              <div className="flex-1">
-                                <h4 className="font-medium text-sm">{slide.title}</h4>
-                                {slide.subtitle && (
-                                  <p className="text-xs text-gray-500">{slide.subtitle}</p>
-                                )}
-                                <a 
-                                  href={slide.link}
-                                  target="_blank"
-                                  rel="noopener noreferrer"
-                                  className="text-xs flex items-center text-blue-600 hover:underline mt-1"
-                                >
-                                  {slide.link} 
-                                  <ExternalLink className="h-3 w-3 ml-1" />
-                                </a>
-                              </div>
-                              
-                              <div className="flex items-center gap-2">
-                                <Switch
-                                  checked={slide.is_active}
-                                  onCheckedChange={() => handleToggleActive(slide.id, slide.is_active)}
-                                />
-                                
-                                <Button
-                                  variant="outline"
-                                  size="sm"
-                                  onClick={() => handleEditSlide(slide)}
-                                >
-                                  Edit
-                                </Button>
-                                
-                                <Button
-                                  variant="ghost"
-                                  size="sm"
-                                  onClick={() => handleDeleteSlide(slide.id)}
-                                  className="text-red-500 hover:text-red-600 hover:bg-red-50"
-                                >
-                                  <Trash2 className="h-4 w-4" />
-                                </Button>
+                              ) : (
+                                <div className="h-full w-full flex items-center justify-center bg-muted">
+                                  <Image className="h-6 w-6 text-muted-foreground" />
+                                </div>
+                              )}
+                            </div>
+                            
+                            <div className="flex-1 min-w-0">
+                              <h4 className="font-medium truncate">{slide.title}</h4>
+                              <p className="text-sm text-muted-foreground truncate">
+                                {slide.subtitle || 'No subtitle'}
+                              </p>
+                              <div className="flex items-center gap-2 mt-1">
+                                <span className="text-xs px-2 py-0.5 rounded-full bg-muted">
+                                  Order: {slide.sort_order}
+                                </span>
+                                <span className={cn(
+                                  "text-xs px-2 py-0.5 rounded-full",
+                                  slide.is_active 
+                                    ? "bg-green-100 text-green-800" 
+                                    : "bg-amber-100 text-amber-800"
+                                )}>
+                                  {slide.is_active ? 'Active' : 'Hidden'}
+                                </span>
                               </div>
                             </div>
-                          )}
-                        </Draggable>
-                      ))
-                    )}
+                            
+                            <div className="flex items-center gap-2">
+                              <Button
+                                variant="outline"
+                                size="icon"
+                                onClick={() => toggleActive(slide.id, slide.is_active)}
+                                title={slide.is_active ? 'Hide slide' : 'Show slide'}
+                              >
+                                {slide.is_active ? (
+                                  <EyeOff className="h-4 w-4" />
+                                ) : (
+                                  <Eye className="h-4 w-4" />
+                                )}
+                              </Button>
+                              
+                              <Button
+                                variant="outline"
+                                size="icon"
+                                onClick={() => moveSlide(index, 'up')}
+                                disabled={index === 0}
+                                title="Move up"
+                              >
+                                <ArrowUp className="h-4 w-4" />
+                              </Button>
+                              
+                              <Button
+                                variant="outline"
+                                size="icon"
+                                onClick={() => moveSlide(index, 'down')}
+                                disabled={index === slides.length - 1}
+                                title="Move down"
+                              >
+                                <ArrowDown className="h-4 w-4" />
+                              </Button>
+                              
+                              <Button
+                                variant="outline"
+                                size="icon"
+                                onClick={() => editSlide(slide)}
+                                title="Edit slide"
+                              >
+                                <Pencil className="h-4 w-4" />
+                              </Button>
+                              
+                              <Button
+                                variant="outline"
+                                size="icon"
+                                onClick={() => {
+                                  if (window.confirm('Are you sure you want to delete this slide?')) {
+                                    deleteSlideMutation.mutate(slide.id);
+                                  }
+                                }}
+                                className="text-destructive hover:bg-destructive/10"
+                                title="Delete slide"
+                              >
+                                <Trash2 className="h-4 w-4" />
+                              </Button>
+                            </div>
+                          </div>
+                        )}
+                      </Draggable>
+                    ))}
                     {provided.placeholder}
                   </div>
                 )}
               </Droppable>
             </DragDropContext>
-          </>
-        )}
-      </CardContent>
+          )}
+        </CardContent>
+      </Card>
       
-      <CardFooter className="border-t pt-4 text-sm text-gray-500">
-        <p>
-          Drag and drop slides to reorder. Toggle the switch to show/hide slides.
-        </p>
-      </CardFooter>
-      
-      {/* Add/Edit Slide Dialog */}
-      <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
-        <DialogContent className="sm:max-w-md">
-          <DialogHeader>
-            <DialogTitle>{isEditing ? 'Edit Slide' : 'Add New Slide'}</DialogTitle>
-            <DialogDescription>
+      {currentSlide && (
+        <Card>
+          <CardHeader>
+            <CardTitle>{isEditing ? 'Edit Slide' : 'Add New Slide'}</CardTitle>
+            <CardDescription>
               {isEditing 
-                ? 'Update the details for this slide' 
-                : 'Add a new slide to the homepage hero slider'}
-            </DialogDescription>
-          </DialogHeader>
-          
+                ? 'Update the details of this slide' 
+                : 'Create a new slide for the hero section'}
+            </CardDescription>
+          </CardHeader>
           <form onSubmit={handleSubmit}>
-            <div className="grid gap-4 py-4">
-              <div className="grid gap-2">
+            <CardContent className="space-y-4">
+              <div className="space-y-2">
                 <Label htmlFor="title">Title</Label>
                 <Input
                   id="title"
-                  name="title"
                   value={currentSlide.title}
-                  onChange={handleInputChange}
+                  onChange={(e) => setCurrentSlide({
+                    ...currentSlide,
+                    title: e.target.value
+                  })}
+                  placeholder="Enter slide title"
                   required
                 />
               </div>
               
-              <div className="grid gap-2">
+              <div className="space-y-2">
                 <Label htmlFor="subtitle">Subtitle (Optional)</Label>
-                <Input
+                <Textarea
                   id="subtitle"
-                  name="subtitle"
                   value={currentSlide.subtitle || ''}
-                  onChange={handleInputChange}
+                  onChange={(e) => setCurrentSlide({
+                    ...currentSlide,
+                    subtitle: e.target.value
+                  })}
+                  placeholder="Enter slide subtitle"
+                  rows={2}
                 />
               </div>
               
-              <div className="grid gap-2">
+              <div className="space-y-2">
                 <Label htmlFor="link">Link URL</Label>
                 <Input
                   id="link"
-                  name="link"
                   value={currentSlide.link}
-                  onChange={handleInputChange}
-                  placeholder="e.g., /events/123"
+                  onChange={(e) => setCurrentSlide({
+                    ...currentSlide,
+                    link: e.target.value
+                  })}
+                  placeholder="e.g., /events/123 or https://example.com"
                   required
                 />
+                <p className="text-sm text-muted-foreground">
+                  Enter a relative path (e.g., /events/123) or full URL
+                </p>
               </div>
               
-              <div className="grid gap-2">
-                <Label>Slide Image</Label>
-                <div className="flex flex-col items-center gap-4">
-                  {previewUrl ? (
-                    <div className="w-full h-[200px] bg-gray-100 rounded-md overflow-hidden relative">
-                      <img 
-                        src={previewUrl}
-                        alt="Preview"
-                        className="w-full h-full object-cover"
+              <div className="space-y-2">
+                <Label>Image</Label>
+                <div className="flex flex-col gap-4">
+                  <div className="flex items-center gap-4">
+                    <Button
+                      type="button"
+                      variant="outline"
+                      onClick={() => document.getElementById('slide-image')?.click()}
+                      disabled={isUploading}
+                      className="w-full sm:w-auto"
+                    >
+                      {isUploading ? (
+                        <>
+                          <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                          Uploading...
+                        </>
+                      ) : (
+                        <>
+                          <Image className="h-4 w-4 mr-2" />
+                          {currentSlide.image_url ? 'Change Image' : 'Upload Image'}
+                        </>
+                      )}
+                    </Button>
+                    <input
+                      id="slide-image"
+                      type="file"
+                      accept="image/*"
+                      className="hidden"
+                      onChange={handleImageUpload}
+                      disabled={isUploading}
+                    />
+                    
+                    {currentSlide.image_url && (
+                      <Input
+                        value={currentSlide.image_url}
+                        onChange={(e) => setCurrentSlide({
+                          ...currentSlide,
+                          image_url: e.target.value
+                        })}
+                        placeholder="Image URL"
+                        className="flex-1"
                       />
-                      <button
-                        type="button"
-                        onClick={() => {
-                          setPreviewUrl(null);
-                          setCurrentSlide(prev => ({
-                            ...prev,
-                            imageFile: null,
-                            image_url: ''
-                          }));
+                    )}
+                  </div>
+                  
+                  {currentSlide.image_url && (
+                    <div className="relative h-40 w-full sm:w-80 border rounded-md overflow-hidden">
+                      <img
+                        src={currentSlide.image_url}
+                        alt="Slide preview"
+                        className="h-full w-full object-cover"
+                        onError={(e) => {
+                          e.currentTarget.src = '/placeholder.svg';
+                          e.currentTarget.alt = 'Failed to load image';
                         }}
-                        className="absolute top-2 right-2 bg-red-500 text-white rounded-full p-1"
-                      >
-                        <X className="h-4 w-4" />
-                      </button>
-                    </div>
-                  ) : (
-                    <div className="w-full h-[200px] bg-gray-100 rounded-md flex flex-col items-center justify-center border-2 border-dashed border-gray-300">
-                      <Upload className="h-8 w-8 text-gray-400 mb-2" />
-                      <p className="text-sm text-gray-500">Upload an image</p>
-                      <p className="text-xs text-gray-400 mt-1">JPG, PNG or WebP (max 5MB)</p>
+                      />
                     </div>
                   )}
-                  
-                  <div className="flex items-center justify-center w-full">
-                    <label
-                      htmlFor="image-upload"
-                      className="flex flex-col items-center justify-center w-full cursor-pointer"
-                    >
-                      <Button 
-                        type="button"
-                        variant={previewUrl ? "outline" : "secondary"}
-                        className="w-full"
-                      >
-                        <Upload className="mr-2 h-4 w-4" />
-                        {previewUrl ? 'Change Image' : 'Upload Image'}
-                      </Button>
-                      <input
-                        id="image-upload"
-                        type="file"
-                        accept="image/jpeg,image/png,image/webp"
-                        className="hidden"
-                        onChange={handleImageChange}
-                      />
-                    </label>
-                  </div>
                 </div>
               </div>
               
@@ -552,47 +627,42 @@ const HeroSliderManager = () => {
                 <Switch
                   id="is-active"
                   checked={currentSlide.is_active}
-                  onCheckedChange={handleToggleChange}
+                  onCheckedChange={(checked) => setCurrentSlide({
+                    ...currentSlide,
+                    is_active: checked
+                  })}
                 />
                 <Label htmlFor="is-active">Active</Label>
+                <p className="text-sm text-muted-foreground ml-2">
+                  {currentSlide.is_active 
+                    ? 'This slide will be visible on the homepage' 
+                    : 'This slide will be hidden from the homepage'}
+                </p>
               </div>
-            </div>
-            
-            <DialogFooter>
+            </CardContent>
+            <CardFooter className="flex justify-between">
               <Button
                 type="button"
                 variant="outline"
-                onClick={() => {
-                  resetForm();
-                  setDialogOpen(false);
-                }}
-                disabled={isSubmitting}
+                onClick={resetForm}
               >
                 Cancel
               </Button>
-              <Button type="submit" disabled={isSubmitting}>
-                {isSubmitting ? (
-                  <>
-                    <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                    Saving...
-                  </>
-                ) : isEditing ? (
-                  <>
-                    <Check className="mr-2 h-4 w-4" />
-                    Update Slide
-                  </>
-                ) : (
-                  <>
-                    <Plus className="mr-2 h-4 w-4" />
-                    Add Slide
-                  </>
+              <Button 
+                type="submit"
+                className="bg-[#ff2366] hover:bg-[#e01f59] text-white"
+                disabled={isUploading || createSlideMutation.isPending || updateSlideMutation.isPending}
+              >
+                {(createSlideMutation.isPending || updateSlideMutation.isPending) && (
+                  <Loader2 className="h-4 w-4 mr-2 animate-spin" />
                 )}
+                {isEditing ? 'Update Slide' : 'Create Slide'}
               </Button>
-            </DialogFooter>
+            </CardFooter>
           </form>
-        </DialogContent>
-      </Dialog>
-    </Card>
+        </Card>
+      )}
+    </div>
   );
 };
 
