@@ -6,7 +6,20 @@ import type { Database } from './types';
 const SUPABASE_URL = "https://gfmxvjxgjswbxbtkseap.supabase.co";
 const SUPABASE_PUBLISHABLE_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImdmbXh2anhnanN3YnhidGtzZWFwIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NDM1OTg2OTEsImV4cCI6MjA1OTE3NDY5MX0.ajBWfE7Ici2KiCBL3Hnl24ocJS4-1MZLX8ehvHX9b6c";
 
+// Define our custom Database interface that matches our actual Supabase schema
+export type Tables = Database['public']['Tables']
+
 // Import the supabase client like this:
 // import { supabase } from "@/integrations/supabase/client";
 
 export const supabase = createClient<Database>(SUPABASE_URL, SUPABASE_PUBLISHABLE_KEY);
+
+// Add a typed helper function to make working with the database easier
+export const db = {
+  profiles: () => supabase.from('profiles'),
+  events: () => supabase.from('events'),
+  movies: () => supabase.from('movies'),
+  bookings: () => supabase.from('bookings'),
+  cities: () => supabase.from('cities'),
+  countries: () => supabase.from('countries')
+};

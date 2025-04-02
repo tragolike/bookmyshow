@@ -1,10 +1,9 @@
-
 import { useEffect, useState } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
 import { Header } from '@/components/Header';
 import Footer from '@/components/Footer';
 import { useAuth } from '@/contexts/AuthContext';
-import { supabase } from '@/integrations/supabase/client';
+import { db } from '@/integrations/supabase/client';
 import { CalendarCheck, Loader2, ChevronRight, Download, Tag, MapPin } from 'lucide-react';
 
 const MyBookings = () => {
@@ -22,8 +21,7 @@ const MyBookings = () => {
     const fetchBookings = async () => {
       try {
         setIsLoading(true);
-        const { data, error } = await supabase
-          .from('bookings')
+        const { data, error } = await db.bookings()
           .select(`
             *,
             events:event_id (*),

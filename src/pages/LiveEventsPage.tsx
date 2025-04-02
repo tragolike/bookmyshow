@@ -5,7 +5,7 @@ import Footer from '@/components/Footer';
 import EventCard, { EventProps } from '@/components/EventCard';
 import CitySelector from '@/components/CitySelector';
 import { Search, Filter, ChevronLeft, ChevronRight } from 'lucide-react';
-import { supabase } from '@/integrations/supabase/client';
+import { db } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
 
 interface CategoryProps {
@@ -32,7 +32,7 @@ const LiveEventsPage = () => {
     const fetchEvents = async () => {
       try {
         setIsLoading(true);
-        let query = supabase.from('events').select('*');
+        let query = db.events().select('*');
         
         if (selectedCategory) {
           query = query.eq('category', selectedCategory);
@@ -48,21 +48,23 @@ const LiveEventsPage = () => {
           throw error;
         }
         
-        const formattedEvents = data.map(event => ({
-          id: event.id,
-          title: event.title,
-          image: event.image,
-          date: event.date,
-          time: event.time,
-          venue: event.venue,
-          city: event.city,
-          category: event.category,
-          price: event.price,
-          status: event.status || 'available',
-          interested: event.interested || 0
-        }));
-        
-        setEvents(formattedEvents);
+        if (data) {
+          const formattedEvents = data.map(event => ({
+            id: event.id,
+            title: event.title,
+            image: event.image,
+            date: event.date,
+            time: event.time,
+            venue: event.venue,
+            city: event.city,
+            category: event.category,
+            price: event.price,
+            status: event.status || 'available',
+            interested: event.interested || 0
+          }));
+          
+          setEvents(formattedEvents);
+        }
       } catch (error) {
         console.error('Error fetching events:', error);
         toast.error('Failed to load events');

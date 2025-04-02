@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
 import { Film, Music, Ticket, Calendar, ChevronRight } from 'lucide-react';
@@ -9,7 +8,7 @@ import EventCard, { EventProps } from '@/components/EventCard';
 import MovieCard, { MovieProps } from '@/components/MovieCard';
 import CategoryFilter from '@/components/CategoryFilter';
 import LanguageSelector from '@/components/LanguageSelector';
-import { supabase } from '@/integrations/supabase/client';
+import { db } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
 
 const Index = () => {
@@ -45,8 +44,7 @@ const Index = () => {
         setIsLoading(true);
         
         // Fetch events
-        const { data: eventsData, error: eventsError } = await supabase
-          .from('events')
+        const { data: eventsData, error: eventsError } = await db.events()
           .select('*')
           .order('interested', { ascending: false })
           .limit(4);
@@ -54,8 +52,7 @@ const Index = () => {
         if (eventsError) throw eventsError;
         
         // Fetch movies
-        const { data: moviesData, error: moviesError } = await supabase
-          .from('movies')
+        const { data: moviesData, error: moviesError } = await db.movies()
           .select('*')
           .order('rating', { ascending: false })
           .limit(4);

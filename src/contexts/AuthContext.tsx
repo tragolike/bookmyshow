@@ -1,6 +1,6 @@
 
 import { createContext, useContext, useEffect, useState } from 'react';
-import { supabase } from '@/integrations/supabase/client';
+import { supabase, db } from '@/integrations/supabase/client';
 import { useNavigate } from 'react-router-dom';
 import { toast } from 'sonner';
 import type { Session, User } from '@supabase/supabase-js';
@@ -60,8 +60,7 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
   // Fetch the user profile
   const fetchProfile = async (userId: string) => {
     try {
-      const { data, error } = await supabase
-        .from('profiles')
+      const { data, error } = await db.profiles()
         .select('*')
         .eq('id', userId)
         .single();
@@ -155,8 +154,7 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
       }
 
       setIsLoading(true);
-      const { error } = await supabase
-        .from('profiles')
+      const { error } = await db.profiles()
         .update(data)
         .eq('id', user.id);
 

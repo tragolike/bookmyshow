@@ -1,9 +1,8 @@
-
 import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import AdminLayout from '@/components/admin/AdminLayout';
 import { useAuth } from '@/contexts/AuthContext';
-import { supabase } from '@/integrations/supabase/client';
+import { db } from '@/integrations/supabase/client';
 import { 
   Search, 
   Filter, 
@@ -53,8 +52,7 @@ const AdminUsers = () => {
         setIsLoading(true);
         
         // First get all profiles
-        const { data: profiles, error: profilesError } = await supabase
-          .from('profiles')
+        const { data: profiles, error: profilesError } = await db.profiles()
           .select('*')
           .order('created_at', { ascending: false });
           
@@ -64,12 +62,14 @@ const AdminUsers = () => {
         // but for this demo, we'll just use what we have in the profiles table
         // and add some mock email data
         
-        const enhancedProfiles = profiles.map(profile => ({
-          ...profile,
-          email: `user_${profile.id.slice(0, 5)}@example.com` // Mock email for demo purposes
-        }));
-        
-        setUsers(enhancedProfiles || []);
+        if (profiles) {
+          const enhancedProfiles = profiles.map(profile => ({
+            ...profile,
+            email: `user_${profile.id.slice(0, 5)}@example.com` // Mock email for demo purposes
+          }));
+          
+          setUsers(enhancedProfiles);
+        }
       } catch (error) {
         console.error('Error fetching users:', error);
         toast.error('Failed to load users');
@@ -83,23 +83,11 @@ const AdminUsers = () => {
     }
   }, [user]);
   
-  const filteredUsers = users.filter(user => {
-    const searchLower = searchTerm.toLowerCase();
-    const fullName = `${user.first_name} ${user.last_name}`.toLowerCase();
-    
-    return (
-      fullName.includes(searchLower) ||
-      (user.email && user.email.toLowerCase().includes(searchLower)) ||
-      (user.phone_number && user.phone_number.includes(searchTerm))
-    );
-  });
-  
   const handleDeleteUser = async (id: string) => {
     try {
       // In a real app with proper admin access, you would use admin endpoints to delete users
       // For this demo, we'll just delete from profiles
-      const { error } = await supabase
-        .from('profiles')
+      const { error } = await db.profiles()
         .delete()
         .eq('id', id);
         

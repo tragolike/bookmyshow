@@ -7,7 +7,7 @@ import MovieCard, { MovieProps } from '@/components/MovieCard';
 import LanguageSelector from '@/components/LanguageSelector';
 import CitySelector from '@/components/CitySelector';
 import { Search, Filter, Calendar, ChevronRight } from 'lucide-react';
-import { supabase } from '@/integrations/supabase/client';
+import { db } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
 
 const MoviesPage = () => {
@@ -22,25 +22,26 @@ const MoviesPage = () => {
     const fetchMovies = async () => {
       try {
         setIsLoading(true);
-        const { data, error } = await supabase
-          .from('movies')
+        const { data, error } = await db.movies()
           .select('*');
           
         if (error) {
           throw error;
         }
         
-        const formattedMovies = data.map(movie => ({
-          id: movie.id,
-          title: movie.title,
-          image: movie.image,
-          rating: movie.rating || 0,
-          language: movie.language,
-          genre: movie.genre,
-          format: movie.format || '2D'
-        }));
-        
-        setMovies(formattedMovies);
+        if (data) {
+          const formattedMovies = data.map(movie => ({
+            id: movie.id,
+            title: movie.title,
+            image: movie.image,
+            rating: movie.rating || 0,
+            language: movie.language,
+            genre: movie.genre,
+            format: movie.format || '2D'
+          }));
+          
+          setMovies(formattedMovies);
+        }
       } catch (error) {
         console.error('Error fetching movies:', error);
         toast.error('Failed to load movies');

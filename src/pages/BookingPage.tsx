@@ -6,7 +6,7 @@ import Footer from '@/components/Footer';
 import SeatSelection from '@/components/SeatSelection';
 import TicketCounter from '@/components/TicketCounter';
 import PaymentSummary from '@/components/PaymentSummary';
-import { supabase } from '@/integrations/supabase/client';
+import { db } from '@/integrations/supabase/client';
 import { useAuth } from '@/contexts/AuthContext';
 import { toast } from 'sonner';
 import { Loader2 } from 'lucide-react';
@@ -48,8 +48,9 @@ const BookingPage = () => {
     const fetchEvent = async () => {
       try {
         setIsLoading(true);
-        const { data, error } = await supabase
-          .from('events')
+        if (!id) return;
+        
+        const { data, error } = await db.events()
           .select('*')
           .eq('id', id)
           .single();
@@ -107,8 +108,7 @@ const BookingPage = () => {
       const totalAmount = selectedCategory ? selectedCategory.price * ticketCount : 0;
       
       // Create booking in Supabase
-      const { data, error } = await supabase
-        .from('bookings')
+      const { data, error } = await db.bookings()
         .insert({
           user_id: user.id,
           event_id: id,
@@ -129,7 +129,7 @@ const BookingPage = () => {
       // Navigate to confirmation page with booking details
       navigate('/booking-confirmation', { 
         state: { 
-          bookingId: data.id,
+          bookingId: data?.id,
           eventId: id,
           seats: ticketCount,
           seatNumbers,
