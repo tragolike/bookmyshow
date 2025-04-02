@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from 'react';
 import { toast } from 'sonner';
 import { supabase, uploadFile } from '@/integrations/supabase/client';
@@ -19,7 +18,6 @@ const PaymentSettingsForm = () => {
   const { user } = useAuth();
   const queryClient = useQueryClient();
   
-  // Use a direct database query for guaranteed fresh data
   const fetchSettings = async () => {
     console.log('Fetching payment settings directly from database...');
     const { data, error } = await supabase
@@ -38,16 +36,14 @@ const PaymentSettingsForm = () => {
     return { data };
   };
   
-  // Use React Query with cache busting
   const { data, isLoading, error } = useQuery({
-    queryKey: ['paymentSettings', Date.now()], // Add timestamp to force refresh
+    queryKey: ['paymentSettings', Date.now()],
     queryFn: fetchSettings,
     refetchOnWindowFocus: true,
-    staleTime: 0, // Always fetch fresh data
-    gcTime: 0, // Don't cache the data
+    staleTime: 0,
+    gcTime: 0,
   });
   
-  // Update local state when data is fetched
   useEffect(() => {
     if (data?.data) {
       console.log('Setting form state from fetched data:', data.data);
@@ -65,11 +61,9 @@ const PaymentSettingsForm = () => {
       return;
     }
     
-    // Direct database update for guaranteed write
     const saveSettings = async () => {
       console.log('Saving payment settings directly to database...');
       
-      // Check if settings exist
       const { data: existingData, error: checkError } = await supabase
         .from('payment_settings')
         .select('id')
@@ -77,7 +71,6 @@ const PaymentSettingsForm = () => {
         .single();
       
       if (checkError && checkError.code !== 'PGRST116') {
-        // If error is not "no rows returned", it's a real error
         console.error('Error checking payment settings:', checkError);
         throw checkError;
       }
@@ -87,11 +80,10 @@ const PaymentSettingsForm = () => {
         qr_code_url: qrCodeUrl,
         payment_instructions: instructions,
         updated_by: user?.id,
-        updated_at: new Date().toISOString() // Force update timestamp
+        updated_at: new Date().toISOString()
       };
       
       let result;
-      // If settings exist, update them
       if (existingData?.id) {
         console.log('Updating existing settings with ID:', existingData.id);
         result = await supabase
@@ -100,7 +92,6 @@ const PaymentSettingsForm = () => {
           .eq('id', existingData.id)
           .select();
       } else {
-        // Otherwise, insert new settings
         console.log('Creating new payment settings');
         result = await supabase
           .from('payment_settings')
@@ -123,10 +114,8 @@ const PaymentSettingsForm = () => {
       toast.dismiss();
       toast.success('Payment settings saved successfully');
       
-      // Force refresh all payment settings data
       queryClient.invalidateQueries({ queryKey: ['paymentSettings'] });
       
-      // Wait a moment to ensure the database update is complete
       setTimeout(() => {
         queryClient.invalidateQueries({ queryKey: ['paymentSettings'] });
       }, 1000);
@@ -144,7 +133,6 @@ const PaymentSettingsForm = () => {
     }
     
     try {
-      // Use an external QR code generator
       const qrCodeApiUrl = `https://api.qrserver.com/v1/create-qr-code/?size=200x200&data=upi://pay?pa=${encodeURIComponent(upiId)}&pn=ShowTix&cache=${Date.now()}`;
       
       setQrCodeUrl(qrCodeApiUrl);
@@ -172,12 +160,9 @@ const PaymentSettingsForm = () => {
       
       if (result.error) throw result.error;
       
-      // Get the image URL using the correct property
       if (result.url) {
-        // If url is directly available, use it
         setQrCodeUrl(result.url);
       } else if (result.path) {
-        // If path is available but no url, generate the public URL
         const { data: { publicUrl } } = supabase.storage
           .from('brand_assets')
           .getPublicUrl(result.path);
@@ -186,9 +171,9 @@ const PaymentSettingsForm = () => {
       }
       
       toast.success('QR code uploaded successfully');
-    } catch (error) {
+    } catch (error: any) {
       console.error('QR code upload error:', error);
-      toast.error('Failed to upload QR code');
+      toast.error(`Failed to upload QR code: ${error.message}`);
     }
   };
 

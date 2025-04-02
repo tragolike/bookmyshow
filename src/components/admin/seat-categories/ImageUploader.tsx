@@ -1,4 +1,3 @@
-
 import { useState, useRef } from 'react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -41,61 +40,26 @@ const ImageUploader = () => {
 
     try {
       // First check if bucket exists in storage
-      const { data: buckets } = await supabase.storage.listBuckets();
-      const bucketExists = buckets?.some(bucket => bucket.id === 'venue_layouts');
-      
-      // Create bucket if it doesn't exist
-      if (!bucketExists) {
-        const { data, error } = await supabase.storage.createBucket('venue_layouts', {
-          public: true
-        });
-        
-        if (error) {
-          console.error('Error creating venue_layouts bucket:', error);
-          throw new Error('Failed to create bucket. Please try again.');
-        }
-        
-        console.log('Created venue_layouts bucket:', data);
-        
-        // Create public policy for viewing files
-        const { error: policyError } = await supabase.rpc('create_storage_policy', {
-          bucket_id: 'venue_layouts',
-          policy_name: 'Public Access',
-          definition: 'bucket_id = \'venue_layouts\''
-        });
-        
-        if (policyError) {
-          console.warn('Failed to create storage policy:', policyError);
-          // Continue anyway, as this is not critical
-        }
-      }
+      await ensureBucketExists('venue_layouts', 'Venue Layouts');
       
       // Upload the file with custom path
       const timestamp = Date.now();
       const fileName = `${timestamp}-${selectedFile.name}`;
       
-      const { data, error } = await supabase.storage
-        .from('venue_layouts')
-        .upload(`layouts/${fileName}`, selectedFile, {
-          cacheControl: 'public, max-age=31536000',
-          upsert: true
-        });
+      const result = await uploadFile(selectedFile, 'venue_layouts', 'layouts');
       
-      if (error) throw error;
+      if (result.error) throw result.error;
       
-      if (data) {
-        // Get the public URL
-        const { data: { publicUrl } } = supabase.storage
-          .from('venue_layouts')
-          .getPublicUrl(`layouts/${fileName}`);
-        
+      if (result.url) {
         toast.success('Venue layout uploaded successfully');
         setUploadSuccess(true);
         
         // Copy the URL to clipboard
-        navigator.clipboard.writeText(publicUrl)
+        navigator.clipboard.writeText(result.url)
           .then(() => toast.success('URL copied to clipboard'))
           .catch(() => toast.error('Failed to copy URL'));
+      } else {
+        throw new Error('Failed to get upload URL');
       }
     } catch (error: any) {
       console.error('Error uploading venue layout:', error);

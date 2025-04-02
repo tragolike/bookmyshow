@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from 'react';
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -13,7 +12,6 @@ import { DragDropContext, Droppable, Draggable } from '@hello-pangea/dnd';
 import { Pencil, Trash2, Image, Move, Eye, EyeOff, Plus, ArrowUp, ArrowDown, Loader2 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 
-// Local types
 interface HeroSlide {
   id: string;
   title: string;
@@ -31,7 +29,6 @@ const HeroSliderManager = () => {
   const [isUploading, setIsUploading] = useState(false);
   const queryClient = useQueryClient();
 
-  // Fetch slides
   const { data, isLoading, error } = useQuery({
     queryKey: ['heroSlides'],
     queryFn: async () => {
@@ -45,14 +42,12 @@ const HeroSliderManager = () => {
     }
   });
 
-  // Update slides when data changes
   useEffect(() => {
     if (data) {
       setSlides(data);
     }
   }, [data]);
 
-  // Create slide mutation
   const createSlideMutation = useMutation({
     mutationFn: async (slide: Omit<HeroSlide, 'id'>) => {
       const { data, error } = await supabase
@@ -75,7 +70,6 @@ const HeroSliderManager = () => {
     }
   });
 
-  // Update slide mutation
   const updateSlideMutation = useMutation({
     mutationFn: async (slide: HeroSlide) => {
       const { data, error } = await supabase
@@ -99,7 +93,6 @@ const HeroSliderManager = () => {
     }
   });
 
-  // Delete slide mutation
   const deleteSlideMutation = useMutation({
     mutationFn: async (id: string) => {
       const { error } = await supabase
@@ -120,16 +113,13 @@ const HeroSliderManager = () => {
     }
   });
 
-  // Update slide order mutation
   const updateOrderMutation = useMutation({
     mutationFn: async (updatedSlides: HeroSlide[]) => {
-      // Create an array of update operations
       const updates = updatedSlides.map((slide) => ({
         id: slide.id,
         sort_order: slide.sort_order
       }));
 
-      // Use upsert to update multiple rows
       const { data, error } = await supabase
         .from('hero_slides')
         .upsert(updates);
@@ -147,7 +137,6 @@ const HeroSliderManager = () => {
     }
   });
 
-  // Toggle slide active status
   const toggleActiveMutation = useMutation({
     mutationFn: async ({ id, isActive }: { id: string; isActive: boolean }) => {
       const { data, error } = await supabase
@@ -169,7 +158,6 @@ const HeroSliderManager = () => {
     }
   });
 
-  // Handle form submission
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     
@@ -193,7 +181,6 @@ const HeroSliderManager = () => {
     if (isEditing && currentSlide.id) {
       updateSlideMutation.mutate(currentSlide);
     } else {
-      // For new slides, calculate the next sort order
       const maxOrder = slides.length > 0 
         ? Math.max(...slides.map(s => s.sort_order))
         : 0;
@@ -205,19 +192,16 @@ const HeroSliderManager = () => {
     }
   };
 
-  // Reset form
   const resetForm = () => {
     setCurrentSlide(null);
     setIsEditing(false);
   };
 
-  // Edit slide
   const editSlide = (slide: HeroSlide) => {
     setCurrentSlide({ ...slide });
     setIsEditing(true);
   };
 
-  // Add new slide
   const addNewSlide = () => {
     setCurrentSlide({
       id: '',
@@ -231,7 +215,6 @@ const HeroSliderManager = () => {
     setIsEditing(false);
   };
 
-  // Handle image upload
   const handleImageUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (!file) return;
@@ -249,37 +232,35 @@ const HeroSliderManager = () => {
       
       if (result.error) throw result.error;
       
-      // Get the image URL using the correct property
-      let imageUrl = '';
       if (result.url) {
-        // If url is directly available, use it
-        imageUrl = result.url;
+        if (currentSlide) {
+          setCurrentSlide({
+            ...currentSlide,
+            image_url: result.url
+          });
+        }
       } else if (result.path) {
-        // If path is available but no url, generate the public URL
         const { data: { publicUrl } } = supabase.storage
           .from('hero_slides')
           .getPublicUrl(result.path);
           
-        imageUrl = publicUrl;
-      }
-      
-      if (currentSlide) {
-        setCurrentSlide({
-          ...currentSlide,
-          image_url: imageUrl
-        });
+        if (currentSlide) {
+          setCurrentSlide({
+            ...currentSlide,
+            image_url: publicUrl
+          });
+        }
       }
       
       toast.success('Image uploaded successfully');
-    } catch (error) {
+    } catch (error: any) {
       console.error('Error uploading image:', error);
-      toast.error('Failed to upload image');
+      toast.error(`Failed to upload image: ${error.message}`);
     } finally {
       setIsUploading(false);
     }
   };
 
-  // Handle drag and drop reordering
   const handleDragEnd = (result: any) => {
     if (!result.destination) return;
     
@@ -287,7 +268,6 @@ const HeroSliderManager = () => {
     const [reorderedItem] = items.splice(result.source.index, 1);
     items.splice(result.destination.index, 0, reorderedItem);
     
-    // Update sort_order values
     const updatedItems = items.map((item, index) => ({
       ...item,
       sort_order: index + 1
@@ -297,7 +277,6 @@ const HeroSliderManager = () => {
     updateOrderMutation.mutate(updatedItems);
   };
 
-  // Move slide up or down
   const moveSlide = (index: number, direction: 'up' | 'down') => {
     if (
       (direction === 'up' && index === 0) || 
@@ -311,7 +290,6 @@ const HeroSliderManager = () => {
     const [movedItem] = items.splice(index, 1);
     items.splice(newIndex, 0, movedItem);
     
-    // Update sort_order values
     const updatedItems = items.map((item, idx) => ({
       ...item,
       sort_order: idx + 1
@@ -321,7 +299,6 @@ const HeroSliderManager = () => {
     updateOrderMutation.mutate(updatedItems);
   };
 
-  // Toggle slide active status
   const toggleActive = (id: string, currentStatus: boolean) => {
     toggleActiveMutation.mutate({
       id,
