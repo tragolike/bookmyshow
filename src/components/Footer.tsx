@@ -1,10 +1,7 @@
-
 import { Link } from 'react-router-dom';
 import { Home, Film, Ticket, User } from 'lucide-react';
-
 const Footer = () => {
-  return (
-    <footer className="mt-auto">
+  return <footer className="mt-auto">
       <div className="hidden md:block border-t border-gray-200 dark:border-gray-800">
         <div className="container mx-auto px-4 py-8">
           <div className="grid grid-cols-1 md:grid-cols-4 gap-8">
@@ -64,7 +61,7 @@ const Footer = () => {
           </div>
           
           <div className="border-t border-gray-200 mt-8 pt-8 text-center text-sm text-gray-500">
-            <p>© {new Date().getFullYear()} ShowTix. All rights reserved.</p>
+            <p className="text-left text-base text-zinc-50">© {new Date().getFullYear()} ShowTix. All rights reserved.</p>
           </div>
         </div>
       </div>
@@ -90,8 +87,6 @@ const Footer = () => {
           </Link>
         </div>
       </div>
-    </footer>
-  );
+    </footer>;
 };
-
 export default Footer;

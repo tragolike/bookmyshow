@@ -295,7 +295,7 @@ const Index = () => {
           <section className="rounded-2xl overflow-hidden bg-gradient-to-r from-book-dark to-purple-900 mb-12">
             <div className="grid grid-cols-1 md:grid-cols-2">
               <div className="p-6 md:p-12 flex flex-col justify-center">
-                <h2 className="text-white text-3xl font-bold mb-4">Download the ShowTix App</h2>
+                <h2 className="text-white text-3xl font-bold mb-4">Download the Book My Show App</h2>
                 <p className="text-white/80 mb-6">Get the best experience on your phone. Book tickets, explore events, and more!</p>
                 
                 <div className="flex flex-col sm:flex-row gap-4">
@@ -309,7 +309,7 @@ const Index = () => {
               </div>
               
               <div className="hidden md:flex items-center justify-center p-12">
-                <img src="https://assets-in.bmscdn.com/webin/dev-app-image/appCTA/app-qr-code.png" alt="App QR Code" className="max-h-60" />
+                <img alt="App QR Code" className="max-h-60" src="https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcRXqzmafEsSnqftFi6w33hGSpkcLE70MZzO7kUsyqCk9TOH5nsgRLUHhSZdCa74HxNwEIk&usqp=CAU" />
               </div>
             </div>
           </section>
