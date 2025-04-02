@@ -1,10 +1,11 @@
 
 import { useState } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
-import { Mail, Lock, Loader2, Info } from 'lucide-react';
+import { Mail, Lock, Info } from 'lucide-react';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Alert, AlertDescription } from '@/components/ui/alert';
+import { Button } from '@/components/ui/button';
 import { useAuth } from '@/contexts/AuthContext';
 import { toast } from 'sonner';
 
@@ -17,12 +18,18 @@ const AdminLoginPage = () => {
   const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
     
+    if (!email || !password) {
+      toast.error('Please enter both email and password');
+      return;
+    }
+    
     try {
       await signIn(email, password);
       
       // The redirect to admin dashboard is handled in the AuthContext
       // if the user is an admin
-    } catch (error) {
+    } catch (error: any) {
+      console.error('Admin login error:', error);
       toast.error('Failed to log in. Please check your credentials.');
     }
   };
@@ -111,20 +118,15 @@ const AdminLoginPage = () => {
                 </div>
 
                 <div>
-                  <button
+                  <Button
                     type="submit"
                     disabled={isLoading}
-                    className="w-full flex justify-center py-2 px-4 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-indigo-600 hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500"
+                    variant="primary"
+                    className="w-full"
+                    isLoading={isLoading}
                   >
-                    {isLoading ? (
-                      <>
-                        <Loader2 className="animate-spin -ml-1 mr-2 h-4 w-4" />
-                        Signing in...
-                      </>
-                    ) : (
-                      'Sign in to Admin Panel'
-                    )}
-                  </button>
+                    Sign in to Admin Panel
+                  </Button>
                 </div>
               </form>
 

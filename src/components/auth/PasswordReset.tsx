@@ -5,6 +5,7 @@ import { Mail, Loader2, ArrowLeft } from 'lucide-react';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Alert, AlertDescription } from '@/components/ui/alert';
+import { Button } from '@/components/ui/button';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
 
@@ -67,13 +68,14 @@ const PasswordReset = () => {
               </p>
               
               <div className="flex flex-col space-y-4">
-                <button
+                <Button
                   onClick={() => navigate('/login')}
-                  className="btn-outline w-full flex justify-center items-center"
+                  variant="outline"
+                  className="w-full flex justify-center items-center"
                 >
                   <ArrowLeft className="h-4 w-4 mr-2" />
                   Return to login
-                </button>
+                </Button>
                 
                 <button
                   onClick={() => {
@@ -111,30 +113,26 @@ const PasswordReset = () => {
                   </div>
 
                   <div>
-                    <button
+                    <Button
                       type="submit"
                       disabled={isLoading}
-                      className="w-full flex justify-center py-2 px-4 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-indigo-600 hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500"
+                      variant="primary"
+                      className="w-full"
+                      isLoading={isLoading}
                     >
-                      {isLoading ? (
-                        <>
-                          <Loader2 className="animate-spin -ml-1 mr-2 h-4 w-4" />
-                          Sending reset link...
-                        </>
-                      ) : (
-                        'Send reset link'
-                      )}
-                    </button>
+                      Send reset link
+                    </Button>
                   </div>
                 </form>
 
                 <div className="mt-6 text-center">
-                  <button 
+                  <Button 
                     onClick={() => navigate('/login')}
+                    variant="link"
                     className="text-sm text-indigo-600 hover:text-indigo-500"
                   >
                     Back to login
-                  </button>
+                  </Button>
                 </div>
               </div>
             </div>

@@ -1,10 +1,11 @@
 
 import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Lock, EyeOff, Eye, Loader2, Check, Shield } from 'lucide-react';
+import { Lock, EyeOff, Eye, Check, Shield } from 'lucide-react';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Alert, AlertDescription } from '@/components/ui/alert';
+import { Button } from '@/components/ui/button';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
 
@@ -20,6 +21,7 @@ const ResetPasswordConfirm = () => {
     // Check if we have a hash parameter in the URL
     const hashParams = new URLSearchParams(window.location.hash.substring(1));
     if (!hashParams.get('access_token')) {
+      console.log('Invalid reset link - no access token found');
       toast.error('Invalid or expired password reset link');
       navigate('/password-reset');
     }
@@ -46,6 +48,7 @@ const ResetPasswordConfirm = () => {
       });
       
       if (error) {
+        console.error('Password reset error:', error);
         toast.error(error.message);
         return;
       }
@@ -61,6 +64,7 @@ const ResetPasswordConfirm = () => {
         navigate('/login');
       }, 3000);
     } catch (error: any) {
+      console.error('Password reset error:', error);
       toast.error(error.message || 'An error occurred during password reset');
     } finally {
       setIsLoading(false);
@@ -94,7 +98,13 @@ const ResetPasswordConfirm = () => {
               </Alert>
               
               <div className="flex justify-center">
-                <Loader2 className="animate-spin h-5 w-5 text-indigo-600" />
+                <Button
+                  variant="primary"
+                  className="w-full"
+                  onClick={() => navigate('/login')}
+                >
+                  Go to login
+                </Button>
               </div>
             </div>
           ) : (
@@ -156,20 +166,15 @@ const ResetPasswordConfirm = () => {
                   </div>
 
                   <div>
-                    <button
+                    <Button
                       type="submit"
                       disabled={isLoading}
-                      className="w-full flex justify-center py-2 px-4 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-indigo-600 hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500"
+                      variant="primary"
+                      className="w-full"
+                      isLoading={isLoading}
                     >
-                      {isLoading ? (
-                        <>
-                          <Loader2 className="animate-spin -ml-1 mr-2 h-4 w-4" />
-                          Resetting password...
-                        </>
-                      ) : (
-                        'Reset Password'
-                      )}
-                    </button>
+                      Reset Password
+                    </Button>
                   </div>
                 </form>
               </div>

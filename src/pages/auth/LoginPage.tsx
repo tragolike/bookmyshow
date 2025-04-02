@@ -5,9 +5,11 @@ import { Header } from '@/components/Header';
 import Footer from '@/components/Footer';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
+import { Button } from '@/components/ui/button';
 import { useAuth } from '@/contexts/AuthContext';
-import { Mail, Lock, Loader2, Info } from 'lucide-react';
+import { Mail, Lock, Info } from 'lucide-react';
 import { Alert, AlertDescription } from '@/components/ui/alert';
+import { toast } from 'sonner';
 
 const LoginPage = () => {
   const [email, setEmail] = useState('');
@@ -16,7 +18,18 @@ const LoginPage = () => {
 
   const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
-    await signIn(email, password);
+    
+    if (!email || !password) {
+      toast.error('Please enter both email and password');
+      return;
+    }
+    
+    try {
+      await signIn(email, password);
+    } catch (error: any) {
+      console.error('Login error:', error);
+      toast.error(error.message || 'Failed to sign in. Please check your credentials.');
+    }
   };
 
   return (
@@ -108,20 +121,15 @@ const LoginPage = () => {
                 </div>
 
                 <div>
-                  <button
+                  <Button
                     type="submit"
                     disabled={isLoading}
-                    className="btn-primary w-full flex justify-center items-center"
+                    variant="primary"
+                    className="w-full"
+                    isLoading={isLoading}
                   >
-                    {isLoading ? (
-                      <>
-                        <Loader2 className="animate-spin -ml-1 mr-2 h-4 w-4" />
-                        Signing in...
-                      </>
-                    ) : (
-                      'Sign in'
-                    )}
-                  </button>
+                    Sign in
+                  </Button>
                 </div>
               </form>
 
