@@ -1,3 +1,4 @@
+
 import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import AdminLayout from '@/components/admin/AdminLayout';
@@ -12,7 +13,8 @@ import {
   Check, 
   X,
   MoreVertical,
-  Clock
+  Clock,
+  MapPin
 } from 'lucide-react';
 import { toast } from 'sonner';
 
