@@ -111,24 +111,44 @@ const TicketTypeManager = () => {
     try {
       const typeData: TicketType = {
         id: editingType?.id,
-        category,
+        category: category.trim(),
         base_price: Number(basePrice),
         surge_price: surgePrice ? Number(surgePrice) : undefined,
         color: selectedColor
       };
       
-      const { error } = await upsertTicketType(typeData);
+      const { data, error } = await upsertTicketType(typeData);
       
-      if (error) throw error;
+      if (error) {
+        console.error('Error saving ticket type:', error);
+        throw error;
+      }
       
       toast.success(`Ticket type ${editingType ? 'updated' : 'created'} successfully`);
       resetForm();
       fetchTicketTypes();
     } catch (error) {
       console.error('Error saving ticket type:', error);
-      toast.error('Failed to save ticket type');
+      toast.error('Failed to save ticket type. Please try again.');
     } finally {
       setIsSaving(false);
+    }
+  };
+  
+  const handleDeleteTicketType = async (id: string) => {
+    try {
+      const { error } = await supabase
+        .from('ticket_types')
+        .delete()
+        .eq('id', id);
+      
+      if (error) throw error;
+      
+      toast.success('Ticket type deleted successfully');
+      fetchTicketTypes();
+    } catch (error) {
+      console.error('Error deleting ticket type:', error);
+      toast.error('Failed to delete ticket type');
     }
   };
   
@@ -297,10 +317,7 @@ const TicketTypeManager = () => {
                         <AlertDialogCancel>Cancel</AlertDialogCancel>
                         <AlertDialogAction
                           className="bg-red-500 hover:bg-red-600"
-                          onClick={() => {
-                            // Implement delete functionality
-                            toast.error("Delete functionality not yet implemented");
-                          }}
+                          onClick={() => type.id && handleDeleteTicketType(type.id)}
                         >
                           Delete
                         </AlertDialogAction>

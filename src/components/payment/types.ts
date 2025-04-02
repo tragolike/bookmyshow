@@ -11,3 +11,16 @@ export interface UpiPaymentProps {
   reference: string;
   onComplete: () => void;
 }
+
+export interface PaymentSummaryCardProps {
+  amount: number;
+  reference: string;
+}
+
+export interface UpiQrCodeProps {
+  qrCodeUrl?: string;
+}
+
+export interface UpiIdDisplayProps {
+  upiId: string;
+}

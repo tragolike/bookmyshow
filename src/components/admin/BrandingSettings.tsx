@@ -1,7 +1,7 @@
 
 import { useState, useEffect } from 'react';
 import { toast } from 'sonner';
-import { db, supabase } from '@/integrations/supabase/client';
+import { supabase } from '@/integrations/supabase/client';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -40,19 +40,66 @@ const BrandingSettings = () => {
   const fetchSettings = async () => {
     setIsLoading(true);
     try {
-      // Check if brand_settings table exists, if not this is a placeholder for the implementation
-      // In a real app, we would fetch from the database
-      setSettings({
-        site_name: 'ShowTix',
-        primary_color: '#ff3366',
-        logo_url: null,
-        favicon_url: null
-      });
+      // Try to fetch from brand_settings table
+      const { data, error } = await supabase
+        .from('brand_settings')
+        .select('*')
+        .maybeSingle();
+      
+      if (error && error.code !== 'PGRST116') {
+        throw error;
+      }
+      
+      if (data) {
+        setSettings({
+          id: data.id,
+          site_name: data.site_name,
+          primary_color: data.primary_color,
+          logo_url: data.logo_url,
+          favicon_url: data.favicon_url
+        });
+        
+        if (data.logo_url) {
+          setLogoPreview(data.logo_url);
+        }
+        
+        if (data.favicon_url) {
+          setFaviconPreview(data.favicon_url);
+        }
+      } else {
+        // No settings found, use defaults
+        setSettings({
+          site_name: 'ShowTix',
+          primary_color: '#ff3366'
+        });
+      }
     } catch (error) {
       console.error('Error fetching brand settings:', error);
       toast.error('Failed to load branding settings');
     } finally {
       setIsLoading(false);
+    }
+  };
+
+  const createBrandAssetsBucket = async () => {
+    try {
+      // Check if bucket exists
+      const { data: buckets } = await supabase.storage.listBuckets();
+      const bucketExists = buckets?.some(b => b.name === 'brand_assets');
+      
+      if (!bucketExists) {
+        const { error } = await supabase.storage.createBucket('brand_assets', {
+          public: true,
+          fileSizeLimit: 5242880 // 5MB
+        });
+        
+        if (error) throw error;
+      }
+      
+      return true;
+    } catch (error) {
+      console.error('Error creating bucket:', error);
+      return false;
     }
   };
 
@@ -103,31 +150,44 @@ const BrandingSettings = () => {
   const handleRemoveLogo = () => {
     setLogoFile(null);
     setLogoPreview(null);
-    setSettings(prev => ({ ...prev, logo_url: null }));
+    setSettings(prev => ({ ...prev, logo_url: undefined }));
   };
 
   const handleRemoveFavicon = () => {
     setFaviconFile(null);
     setFaviconPreview(null);
-    setSettings(prev => ({ ...prev, favicon_url: null }));
+    setSettings(prev => ({ ...prev, favicon_url: undefined }));
   };
 
   const uploadFile = async (file: File, path: string) => {
-    const fileExt = file.name.split('.').pop();
-    const fileName = `${Date.now()}.${fileExt}`;
-    const filePath = `${path}/${fileName}`;
-    
-    const { error: uploadError, data } = await supabase.storage
-      .from('brand_assets')
-      .upload(filePath, file);
-    
-    if (uploadError) throw uploadError;
-    
-    const { data: { publicUrl } } = supabase.storage
-      .from('brand_assets')
-      .getPublicUrl(filePath);
-    
-    return publicUrl;
+    try {
+      // Ensure bucket exists
+      const bucketCreated = await createBrandAssetsBucket();
+      if (!bucketCreated) {
+        throw new Error('Could not ensure storage bucket exists');
+      }
+      
+      const fileExt = file.name.split('.').pop();
+      const fileName = `${Date.now()}.${fileExt}`;
+      const filePath = `${path}/${fileName}`;
+      
+      // Upload the file
+      const { error: uploadError } = await supabase.storage
+        .from('brand_assets')
+        .upload(filePath, file, { upsert: true });
+      
+      if (uploadError) throw uploadError;
+      
+      // Get the public URL
+      const { data: { publicUrl } } = supabase.storage
+        .from('brand_assets')
+        .getPublicUrl(filePath);
+      
+      return publicUrl;
+    } catch (error) {
+      console.error('File upload error:', error);
+      throw error;
+    }
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -144,18 +204,58 @@ const BrandingSettings = () => {
       
       // Upload logo if changed
       if (logoFile) {
-        const logoUrl = await uploadFile(logoFile, 'logos');
-        updatedSettings.logo_url = logoUrl;
+        try {
+          const logoUrl = await uploadFile(logoFile, 'logos');
+          updatedSettings.logo_url = logoUrl;
+        } catch (error) {
+          console.error('Logo upload error:', error);
+          toast.error('Failed to upload logo');
+          // Continue with other operations
+        }
       }
       
       // Upload favicon if changed
       if (faviconFile) {
-        const faviconUrl = await uploadFile(faviconFile, 'favicons');
-        updatedSettings.favicon_url = faviconUrl;
+        try {
+          const faviconUrl = await uploadFile(faviconFile, 'favicons');
+          updatedSettings.favicon_url = faviconUrl;
+        } catch (error) {
+          console.error('Favicon upload error:', error);
+          toast.error('Failed to upload favicon');
+          // Continue with other operations
+        }
       }
       
-      // In a real application, save to a brand_settings table
-      // For now, we just simulate success
+      // Update or insert to brand_settings table
+      let response;
+      if (settings.id) {
+        // Update existing record
+        response = await supabase
+          .from('brand_settings')
+          .update({
+            site_name: updatedSettings.site_name,
+            primary_color: updatedSettings.primary_color,
+            logo_url: updatedSettings.logo_url,
+            favicon_url: updatedSettings.favicon_url,
+            updated_by: user?.id,
+            updated_at: new Date().toISOString()
+          })
+          .eq('id', settings.id);
+      } else {
+        // Insert new record
+        response = await supabase
+          .from('brand_settings')
+          .insert({
+            site_name: updatedSettings.site_name,
+            primary_color: updatedSettings.primary_color,
+            logo_url: updatedSettings.logo_url,
+            favicon_url: updatedSettings.favicon_url,
+            updated_by: user?.id
+          });
+      }
+      
+      if (response.error) throw response.error;
+      
       setSettings(updatedSettings);
       toast.success('Branding settings updated successfully');
       
@@ -372,19 +472,6 @@ const BrandingSettings = () => {
           </CardContent>
         </Card>
       </div>
-      
-      <Alert className="mt-6">
-        <AlertTriangle className="h-4 w-4" />
-        <AlertTitle>Implementation Note</AlertTitle>
-        <AlertDescription>
-          <p>This is a UI prototype for branding settings. The storage functionality would require:</p>
-          <ul className="list-disc ml-6 mt-2 space-y-1">
-            <li>Setting up a Supabase storage bucket called 'brand_assets'</li>
-            <li>Creating a brand_settings table in the database</li>
-            <li>Implementing the actual saving and loading functions</li>
-          </ul>
-        </AlertDescription>
-      </Alert>
     </form>
   );
 };

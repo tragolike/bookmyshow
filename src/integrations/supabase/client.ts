@@ -1,6 +1,7 @@
 
 import { createClient } from '@supabase/supabase-js';
 import { PostgrestError } from '@supabase/supabase-js';
+import { PaymentSettings } from '@/components/payment/types';
 
 // Get Supabase URL and Anon Key from environment variables
 const envSupabaseUrl = import.meta.env.VITE_SUPABASE_URL;
@@ -60,107 +61,168 @@ export const db = {
   paymentSettings: () => supabase.from('payment_settings'),
   cities: () => supabase.from('cities'),
   ticketTypes: () => supabase.from('ticket_types'),
+  brandSettings: () => supabase.from('brand_settings'),
 };
 
 // Function to get payment settings
 export const getPaymentSettings = async () => {
-  return await db.paymentSettings()
-    .select('*')
-    .order('updated_at', { ascending: false })
-    .limit(1)
-    .maybeSingle();
+  try {
+    const { data, error } = await db.paymentSettings()
+      .select('*')
+      .order('updated_at', { ascending: false })
+      .limit(1)
+      .maybeSingle();
+      
+    if (error) {
+      console.error('Error in getPaymentSettings:', error);
+      throw error;
+    }
+    
+    return { data, error: null };
+  } catch (error) {
+    console.error('Exception in getPaymentSettings:', error);
+    return { data: null, error: error as PostgrestError };
+  }
 };
 
 // Function to update payment settings
-export const updatePaymentSettings = async (data: {
-  upi_id: string;
-  qr_code_url?: string;
-  payment_instructions?: string;
-  updated_by?: string;
-}) => {
-  // Check if any settings exist
-  const { data: existingSettings, error: checkError } = await db.paymentSettings()
-    .select('id')
-    .limit(1)
-    .maybeSingle();
-
-  if (checkError) {
-    return { error: checkError, data: null };
-  }
-
-  // If settings exist, update them, otherwise insert new settings
-  if (existingSettings) {
-    return await db.paymentSettings()
-      .update(data)
-      .eq('id', existingSettings.id)
-      .select()
+export const updatePaymentSettings = async (data: PaymentSettings) => {
+  try {
+    // Check if any settings exist
+    const { data: existingSettings, error: checkError } = await db.paymentSettings()
+      .select('id')
+      .limit(1)
       .maybeSingle();
-  } else {
-    return await db.paymentSettings()
-      .insert(data)
-      .select()
-      .maybeSingle();
+
+    if (checkError) {
+      console.error('Error checking existing settings:', checkError);
+      return { error: checkError, data: null };
+    }
+
+    // If settings exist, update them, otherwise insert new settings
+    let result;
+    if (existingSettings) {
+      result = await db.paymentSettings()
+        .update(data)
+        .eq('id', existingSettings.id)
+        .select()
+        .maybeSingle();
+    } else {
+      result = await db.paymentSettings()
+        .insert(data)
+        .select()
+        .maybeSingle();
+    }
+    
+    if (result.error) {
+      console.error('Error updating payment settings:', result.error);
+    }
+    
+    return result;
+  } catch (error) {
+    console.error('Exception in updatePaymentSettings:', error);
+    return { data: null, error: error as PostgrestError };
   }
 };
 
 // Function to get event by ID
 export const getEventById = async (id: string) => {
-  return await db.events()
-    .select('*')
-    .eq('id', id)
-    .maybeSingle();
+  try {
+    const result = await db.events()
+      .select('*')
+      .eq('id', id)
+      .maybeSingle();
+      
+    if (result.error) {
+      console.error('Error in getEventById:', result.error);
+    }
+    
+    return result;
+  } catch (error) {
+    console.error('Exception in getEventById:', error);
+    return { data: null, error: error as PostgrestError };
+  }
 };
 
 // Function to get events by city
 export const getEventsByCity = async (city: string) => {
-  return await db.events()
-    .select('*')
-    .ilike('city', `%${city}%`)
-    .order('date', { ascending: true });
+  try {
+    const result = await db.events()
+      .select('*')
+      .ilike('city', `%${city}%`)
+      .order('date', { ascending: true });
+      
+    if (result.error) {
+      console.error('Error in getEventsByCity:', result.error);
+    }
+    
+    return result;
+  } catch (error) {
+    console.error('Exception in getEventsByCity:', error);
+    return { data: [], error: error as PostgrestError };
+  }
 };
 
 // Function to get seat layout by event ID
 export const getSeatLayoutByEventId = async (eventId: string) => {
-  return await db.seatLayouts()
-    .select('*')
-    .eq('event_id', eventId)
-    .maybeSingle();
+  try {
+    const result = await db.seatLayouts()
+      .select('*')
+      .eq('event_id', eventId)
+      .maybeSingle();
+      
+    if (result.error) {
+      console.error('Error in getSeatLayoutByEventId:', result.error);
+    }
+    
+    return result;
+  } catch (error) {
+    console.error('Exception in getSeatLayoutByEventId:', error);
+    return { data: null, error: error as PostgrestError };
+  }
 };
 
 // Function to create or update seat layout
 export const upsertSeatLayout = async (eventId: string, layoutData: any) => {
-  // Check if a layout already exists for this event
-  const { data: existingLayout, error: checkError } = await db.seatLayouts()
-    .select('id')
-    .eq('event_id', eventId)
-    .maybeSingle();
-  
-  if (checkError) {
-    return { error: checkError, data: null, isNew: false };
-  }
-  
-  // If the layout exists, update it, otherwise create a new one
-  if (existingLayout) {
-    const { data, error } = await db.seatLayouts()
-      .update({
-        layout_data: layoutData,
-        updated_at: new Date().toISOString()
-      })
-      .eq('id', existingLayout.id)
-      .select()
+  try {
+    // Check if a layout already exists for this event
+    const { data: existingLayout, error: checkError } = await db.seatLayouts()
+      .select('id')
+      .eq('event_id', eventId)
       .maybeSingle();
-      
-    return { data, error, isNew: false };
-  } else {
-    const { data, error } = await db.seatLayouts()
-      .insert({
-        event_id: eventId,
-        layout_data: layoutData
-      })
-      .select()
-      .maybeSingle();
-      
-    return { data, error, isNew: true };
+    
+    if (checkError) {
+      console.error('Error checking existing layout:', checkError);
+      return { error: checkError, data: null, isNew: false };
+    }
+    
+    // If the layout exists, update it, otherwise create a new one
+    let result;
+    if (existingLayout) {
+      result = await db.seatLayouts()
+        .update({
+          layout_data: layoutData,
+          updated_at: new Date().toISOString()
+        })
+        .eq('id', existingLayout.id)
+        .select()
+        .maybeSingle();
+        
+      return { ...result, isNew: false };
+    } else {
+      result = await db.seatLayouts()
+        .insert({
+          event_id: eventId,
+          layout_data: layoutData
+        })
+        .select()
+        .maybeSingle();
+        
+      return { ...result, isNew: true };
+    }
+  } catch (error) {
+    console.error('Exception in upsertSeatLayout:', error);
+    return { data: null, error: error as PostgrestError, isNew: false };
   }
 };
 
@@ -175,15 +237,18 @@ export const createBooking = async (bookingData: {
   utr_number?: string;
 }) => {
   try {
-    const { data, error } = await db.bookings()
+    const result = await db.bookings()
       .insert(bookingData)
       .select()
       .single();
       
-    if (error) throw error;
-    return { data, error: null };
+    if (result.error) {
+      console.error('Error in createBooking:', result.error);
+    }
+    
+    return result;
   } catch (error) {
-    console.error('Error creating booking:', error);
+    console.error('Exception in createBooking:', error);
     return { data: null, error: error as PostgrestError };
   }
 };
@@ -191,7 +256,7 @@ export const createBooking = async (bookingData: {
 // Function to verify UTR and confirm booking
 export const verifyUtrAndConfirmBooking = async (bookingId: string, utrNumber: string) => {
   try {
-    const { data, error } = await db.bookings()
+    const result = await db.bookings()
       .update({
         payment_status: 'completed',
         booking_status: 'confirmed', 
@@ -202,19 +267,33 @@ export const verifyUtrAndConfirmBooking = async (bookingId: string, utrNumber: s
       .select()
       .single();
       
-    if (error) throw error;
-    return { data, error: null };
+    if (result.error) {
+      console.error('Error in verifyUtrAndConfirmBooking:', result.error);
+    }
+    
+    return result;
   } catch (error) {
-    console.error('Error verifying UTR:', error);
+    console.error('Exception in verifyUtrAndConfirmBooking:', error);
     return { data: null, error: error as PostgrestError };
   }
 };
 
 // Get all ticket types
 export const getTicketTypes = async () => {
-  return await db.ticketTypes()
-    .select('*')
-    .order('created_at', { ascending: false });
+  try {
+    const result = await db.ticketTypes()
+      .select('*')
+      .order('created_at', { ascending: false });
+      
+    if (result.error) {
+      console.error('Error in getTicketTypes:', result.error);
+    }
+    
+    return result;
+  } catch (error) {
+    console.error('Exception in getTicketTypes:', error);
+    return { data: [], error: error as PostgrestError };
+  }
 };
 
 // Create or update a ticket type
@@ -225,26 +304,39 @@ export const upsertTicketType = async (data: {
   surge_price?: number;
   color?: string;
 }) => {
-  if (data.id) {
-    return await db.ticketTypes()
-      .update({
-        category: data.category,
-        base_price: data.base_price,
-        surge_price: data.surge_price,
-        color: data.color
-      })
-      .eq('id', data.id)
-      .select()
-      .single();
-  } else {
-    return await db.ticketTypes()
-      .insert({
-        category: data.category,
-        base_price: data.base_price,
-        surge_price: data.surge_price,
-        color: data.color
-      })
-      .select()
-      .single();
+  try {
+    let result;
+    
+    if (data.id) {
+      result = await db.ticketTypes()
+        .update({
+          category: data.category,
+          base_price: data.base_price,
+          surge_price: data.surge_price,
+          color: data.color
+        })
+        .eq('id', data.id)
+        .select()
+        .single();
+    } else {
+      result = await db.ticketTypes()
+        .insert({
+          category: data.category,
+          base_price: data.base_price,
+          surge_price: data.surge_price,
+          color: data.color
+        })
+        .select()
+        .single();
+    }
+    
+    if (result.error) {
+      console.error('Error in upsertTicketType:', result.error);
+    }
+    
+    return result;
+  } catch (error) {
+    console.error('Exception in upsertTicketType:', error);
+    return { data: null, error: error as PostgrestError };
   }
 };

@@ -84,11 +84,14 @@ const PaymentSettings = () => {
         updated_by: user?.id
       });
       
-      if (error) throw error;
+      if (error) {
+        console.error('Update error:', error);
+        throw error;
+      }
       toast.success('Payment settings updated successfully');
     } catch (error) {
       console.error('Error updating payment settings:', error);
-      toast.error('Failed to update payment settings');
+      toast.error('Failed to update payment settings. Please try again.');
     } finally {
       setIsSaving(false);
     }
