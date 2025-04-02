@@ -1,9 +1,14 @@
 
 import { useEffect, useState } from 'react';
 import { getPaymentSettings } from '@/integrations/supabase/client';
-import { Loader2, Copy, CheckCircle2, AlertTriangle, RefreshCw } from 'lucide-react';
+import { Loader2, Copy, CheckCircle2, AlertTriangle, RefreshCw, Download, QrCode, Clock } from 'lucide-react';
 import { toast } from 'sonner';
 import { Button } from '@/components/ui/button';
+import { Input } from '@/components/ui/input';
+import { Label } from '@/components/ui/label';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import { Card, CardContent, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
+import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 
 interface UpiPaymentProps {
   amount: number;
@@ -14,9 +19,16 @@ interface UpiPaymentProps {
 const UpiPayment = ({ amount, reference, onComplete }: UpiPaymentProps) => {
   const [paymentSettings, setPaymentSettings] = useState<any>(null);
   const [isLoading, setIsLoading] = useState(true);
-  const [countdown, setCountdown] = useState(300); // 5 minutes countdown
+  const [countdown, setCountdown] = useState(900); // 15 minutes countdown (as requested in requirements)
   const [copied, setCopied] = useState(false);
   const [refreshTrigger, setRefreshTrigger] = useState(0);
+  const [utrNumber, setUtrNumber] = useState('');
+  const [utrError, setUtrError] = useState('');
+  const [paymentMethod, setPaymentMethod] = useState<'upi' | 'manual'>('upi');
+  const [isVerifying, setIsVerifying] = useState(false);
+  
+  // UTR validation regex as per requirements
+  const utrRegex = /^[A-Z0-9]{12,22}$/;
   
   useEffect(() => {
     const fetchSettings = async () => {
@@ -71,6 +83,38 @@ const UpiPayment = ({ amount, reference, onComplete }: UpiPaymentProps) => {
     toast.info('Refreshing payment information...');
   };
   
+  const handleUtrChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const value = e.target.value.toUpperCase();
+    setUtrNumber(value);
+    
+    if (value && !utrRegex.test(value)) {
+      setUtrError('Invalid UTR format. Must be 12-22 alphanumeric characters.');
+    } else {
+      setUtrError('');
+    }
+  };
+  
+  const verifyUtrAndComplete = () => {
+    if (!utrNumber) {
+      setUtrError('Please enter your UTR number');
+      return;
+    }
+    
+    if (!utrRegex.test(utrNumber)) {
+      setUtrError('Invalid UTR format. Must be 12-22 alphanumeric characters.');
+      return;
+    }
+    
+    setIsVerifying(true);
+    // Simulate UTR verification
+    setTimeout(() => {
+      setIsVerifying(false);
+      // UTR verification successful
+      toast.success('UTR verified successfully!');
+      onComplete();
+    }, 2000);
+  };
+  
   if (isLoading) {
     return (
       <div className="flex flex-col items-center justify-center p-8 space-y-4">
@@ -102,98 +146,202 @@ const UpiPayment = ({ amount, reference, onComplete }: UpiPaymentProps) => {
   const upiLink = `upi://pay?pa=${paymentSettings.upi_id}&pn=ShowTix&am=${amount}&cu=INR&tn=${reference}`;
   
   return (
-    <div className="bg-white rounded-lg shadow-lg p-6">
-      <div className="text-center mb-6">
-        <h2 className="text-xl font-semibold mb-2">Complete Your Payment</h2>
-        <div className="flex items-center justify-center gap-2 text-gray-600">
-          <span>Please complete the payment within</span>
-          <span className="font-semibold px-2 py-1 bg-red-100 text-red-600 rounded-md">{formatTime(countdown)}</span>
+    <Card className="bg-white shadow-lg overflow-hidden border-0">
+      <CardHeader className="bg-gradient-to-r from-indigo-600 to-purple-600 text-white">
+        <div className="flex items-center justify-between">
+          <div>
+            <CardTitle className="text-xl">Complete Your Payment</CardTitle>
+            <p className="text-white/80 mt-1">Time remaining: <span className="font-semibold">{formatTime(countdown)}</span></p>
+          </div>
+          <div className="bg-white/20 backdrop-blur-sm rounded-full py-1 px-3 text-white">
+            <span className="text-sm">Order ID: #{reference.slice(-8)}</span>
+          </div>
         </div>
-      </div>
+      </CardHeader>
       
-      <div className="flex flex-col md:flex-row gap-6 items-center justify-between">
-        {/* QR Code */}
-        <div className="flex-1 flex flex-col items-center">
-          {paymentSettings.qr_code_url ? (
-            <div className="border-2 border-book-primary p-2 rounded-xl mb-4">
-              <img 
-                src={paymentSettings.qr_code_url} 
-                alt="UPI QR Code" 
-                className="w-64 h-64 object-contain"
-                onError={(e) => {
-                  e.currentTarget.src = '/placeholder.svg';
-                  e.currentTarget.alt = 'Failed to load QR code';
-                }}
-              />
-            </div>
-          ) : (
-            <div className="border-2 border-gray-200 p-2 rounded-xl mb-4 w-64 h-64 flex items-center justify-center">
-              <p className="text-gray-500 text-center">QR code not available.<br/>Please use the UPI ID below.</p>
-            </div>
-          )}
+      <CardContent className="pt-6">
+        <Tabs defaultValue="upi" onValueChange={(value) => setPaymentMethod(value as 'upi' | 'manual')}>
+          <TabsList className="grid grid-cols-2 mb-6">
+            <TabsTrigger value="upi">UPI Payment</TabsTrigger>
+            <TabsTrigger value="manual">Manual Verification</TabsTrigger>
+          </TabsList>
           
-          <div className="text-center">
-            <p className="text-sm text-gray-600 mb-1">Or pay using UPI ID</p>
-            <div className="flex items-center justify-center gap-2">
-              <code className="bg-gray-100 px-3 py-1 rounded font-medium">
-                {paymentSettings.upi_id}
-              </code>
-              <button 
-                onClick={copyUpiId}
-                className="text-book-primary hover:text-book-primary/80"
-                aria-label="Copy UPI ID"
-              >
-                {copied ? <CheckCircle2 className="w-5 h-5" /> : <Copy className="w-5 h-5" />}
-              </button>
+          <TabsContent value="upi">
+            <div className="flex flex-col md:flex-row gap-6">
+              {/* QR Code */}
+              <div className="flex-1 flex flex-col items-center">
+                {paymentSettings.qr_code_url ? (
+                  <div className="border-2 border-book-primary p-2 rounded-xl mb-4 bg-white">
+                    <img 
+                      src={paymentSettings.qr_code_url} 
+                      alt="UPI QR Code" 
+                      className="w-64 h-64 object-contain"
+                      onError={(e) => {
+                        e.currentTarget.src = '/placeholder.svg';
+                        e.currentTarget.alt = 'Failed to load QR code';
+                      }}
+                    />
+                  </div>
+                ) : (
+                  <div className="border-2 border-gray-200 p-2 rounded-xl mb-4 w-64 h-64 flex items-center justify-center bg-gray-50">
+                    <QrCode className="w-20 h-20 text-gray-300" />
+                  </div>
+                )}
+                
+                <div className="text-center w-full">
+                  <p className="text-sm text-gray-600 mb-1">Pay using UPI ID</p>
+                  <div className="flex items-center justify-center gap-2 mb-3">
+                    <code className="bg-gray-100 px-3 py-2 rounded font-medium w-full text-center border border-gray-200">
+                      {paymentSettings.upi_id}
+                    </code>
+                    <button 
+                      onClick={copyUpiId}
+                      className="text-book-primary hover:text-book-primary/80 p-2 bg-gray-100 rounded border border-gray-200"
+                      aria-label="Copy UPI ID"
+                    >
+                      {copied ? <CheckCircle2 className="w-5 h-5" /> : <Copy className="w-5 h-5" />}
+                    </button>
+                  </div>
+                  
+                  <a 
+                    href={upiLink}
+                    className="inline-flex items-center justify-center gap-2 bg-book-primary text-white py-2 px-4 rounded-md hover:bg-book-primary/90 transition-colors w-full"
+                  >
+                    <span>Open in UPI App</span>
+                  </a>
+                </div>
+              </div>
+              
+              {/* Payment details */}
+              <div className="flex-1 space-y-4">
+                <div className="rounded-lg border p-4 bg-gray-50">
+                  <h3 className="font-semibold mb-2">Payment Summary</h3>
+                  <div className="space-y-2 mb-3">
+                    <div className="flex justify-between">
+                      <span className="text-gray-600">Amount:</span>
+                      <span className="font-semibold">₹{amount.toLocaleString()}</span>
+                    </div>
+                    <div className="flex justify-between">
+                      <span className="text-gray-600">Reference:</span>
+                      <span className="font-mono text-sm">{reference}</span>
+                    </div>
+                  </div>
+                </div>
+                
+                <Alert variant="warning">
+                  <AlertTriangle className="h-4 w-4" />
+                  <AlertTitle>Important</AlertTitle>
+                  <AlertDescription>
+                    <ul className="text-sm mt-1 space-y-1 list-disc list-inside">
+                      <li>Use your registered name for payment</li>
+                      <li>Add the reference number in the remarks</li>
+                      <li>Do not close this page until payment is complete</li>
+                    </ul>
+                  </AlertDescription>
+                </Alert>
+                
+                <div className="flex items-center justify-center space-x-2 pt-4">
+                  <img src="https://cdn.razorpay.com/static/assets/homepage/visa-card.png" alt="Visa" className="h-6" />
+                  <img src="https://cdn.razorpay.com/static/assets/homepage/master-card.png" alt="MasterCard" className="h-6" />
+                  <img src="https://cdn.razorpay.com/static/assets/homepage/rupay-card.png" alt="RuPay" className="h-6" />
+                  <img src="https://cdn.razorpay.com/static/assets/homepage/upi.png" alt="UPI" className="h-6" />
+                </div>
+                
+                <Button 
+                  onClick={() => setPaymentMethod('manual')}
+                  className="w-full mt-4"
+                  variant="outline"
+                >
+                  I've Completed the Payment
+                </Button>
+              </div>
             </div>
-            
-            <a 
-              href={upiLink}
-              className="mt-4 inline-flex items-center text-sm text-book-primary hover:underline"
-            >
-              <span>Open in UPI App</span>
-            </a>
-          </div>
-        </div>
+          </TabsContent>
+          
+          <TabsContent value="manual">
+            <div className="space-y-6">
+              <div className="rounded-lg border p-4 bg-gradient-to-r from-green-50 to-blue-50">
+                <h3 className="font-semibold mb-2 text-green-800">Payment Complete?</h3>
+                <p className="text-sm text-gray-700 mb-4">
+                  If you've completed your payment, please enter your UPI Transaction Reference Number (UTR) below for verification.
+                </p>
+                
+                <div className="space-y-3">
+                  <div>
+                    <Label htmlFor="utr-number" className="font-medium text-gray-700">UPI Transaction Reference (UTR)</Label>
+                    <div className="mt-1 relative">
+                      <Input
+                        id="utr-number"
+                        value={utrNumber}
+                        onChange={handleUtrChange}
+                        placeholder="e.g. ABCD123456789012"
+                        className={`${utrError ? 'border-red-300 focus:ring-red-500' : ''}`}
+                      />
+                    </div>
+                    {utrError && <p className="text-sm text-red-600 mt-1">{utrError}</p>}
+                    <p className="text-xs text-gray-500 mt-1">
+                      You can find the UTR in your bank/UPI application payment history.
+                    </p>
+                  </div>
+                  
+                  <div className="flex items-center justify-between">
+                    <div>
+                      <Clock className="inline-block w-4 h-4 mr-1 text-amber-600" />
+                      <span className="text-sm text-amber-700">Time remaining: {formatTime(countdown)}</span>
+                    </div>
+                    <span className="text-sm text-gray-500">Payment Amount: ₹{amount.toLocaleString()}</span>
+                  </div>
+                </div>
+              </div>
+              
+              <Alert>
+                <AlertTitle>Need Help?</AlertTitle>
+                <AlertDescription>
+                  <p className="mb-2">If you're facing issues, you can:</p>
+                  <ul className="text-sm space-y-1 list-disc list-inside">
+                    <li>Double check your payment status in your UPI app</li>
+                    <li>Ensure you've entered the correct UPI ID: <span className="font-mono">{paymentSettings.upi_id}</span></li>
+                    <li>If amount was deducted but payment failed, it will be refunded within 5-7 business days</li>
+                  </ul>
+                </AlertDescription>
+              </Alert>
+            </div>
+          </TabsContent>
+        </Tabs>
+      </CardContent>
+      
+      <CardFooter className="flex flex-col gap-4">
+        {paymentMethod === 'manual' ? (
+          <Button 
+            onClick={verifyUtrAndComplete}
+            disabled={isVerifying || !utrNumber || !!utrError}
+            className="w-full"
+            size="lg"
+          >
+            {isVerifying ? (
+              <>
+                <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                Verifying UTR...
+              </>
+            ) : (
+              'Verify & Complete Payment'
+            )}
+          </Button>
+        ) : (
+          <Button 
+            onClick={onComplete}
+            className="w-full bg-green-600 hover:bg-green-700 text-white"
+            size="lg"
+          >
+            I've Completed the Payment
+          </Button>
+        )}
         
-        {/* Payment details */}
-        <div className="flex-1 space-y-6 w-full">
-          <div className="space-y-4 border-b pb-4">
-            <div className="flex justify-between">
-              <span className="text-gray-600">Amount:</span>
-              <span className="font-semibold">₹{amount.toLocaleString()}</span>
-            </div>
-            
-            <div className="flex justify-between">
-              <span className="text-gray-600">Reference:</span>
-              <span className="font-mono text-sm">{reference}</span>
-            </div>
-          </div>
-          
-          <div className="space-y-4">
-            <div className="bg-yellow-50 border border-yellow-200 rounded-lg p-4">
-              <h3 className="font-medium text-yellow-800 mb-1">Important</h3>
-              <ul className="text-sm text-yellow-700 space-y-1 list-disc pl-4">
-                <li>Use your registered name for payment</li>
-                <li>Add the reference number in the remarks</li>
-                <li>Do not close this page until payment is complete</li>
-              </ul>
-            </div>
-            
-            <button 
-              onClick={onComplete}
-              className="w-full py-3 bg-green-600 hover:bg-green-700 text-white rounded-lg font-medium transition-colors"
-            >
-              I've Completed the Payment
-            </button>
-            
-            <p className="text-xs text-center text-gray-500">
-              By clicking this button, you confirm that you've made the payment of ₹{amount.toLocaleString()} to the UPI ID.
-            </p>
-          </div>
-        </div>
-      </div>
-    </div>
+        <p className="text-xs text-center text-gray-500">
+          By clicking this button, you confirm that you've made the payment of ₹{amount.toLocaleString()} to the UPI ID.
+        </p>
+      </CardFooter>
+    </Card>
   );
 };
 

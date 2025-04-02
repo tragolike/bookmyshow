@@ -7,7 +7,7 @@ import { AuthProvider } from "./contexts/AuthContext";
 import { useAuth } from "./contexts/AuthContext";
 import { Loader2 } from "lucide-react";
 import ErrorBoundary from "./components/ErrorBoundary";
-import { TooltipProvider } from "@radix-ui/react-tooltip";
+import { TooltipProvider } from "@/components/ui/tooltip";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 
 // Lazy load the pages for better performance
@@ -94,39 +94,41 @@ const App = () => {
       <QueryClientProvider client={queryClient}>
         <BrowserRouter>
           <AuthProvider>
-            <Toaster />
-            <Sonner position="top-right" closeButton={true} />
-            <Suspense fallback={<PageLoader />}>
-              <Routes>
-                {/* User-facing routes */}
-                <Route path="/" element={<Index />} />
-                <Route path="/events/:id" element={<EventDetail />} />
-                <Route path="/events/:id/booking" element={<UserRoute element={<BookingPage />} />} />
-                <Route path="/booking-confirmation" element={<UserRoute element={<BookingConfirmation />} />} />
-                <Route path="/login" element={<LoginPage />} />
-                <Route path="/register" element={<RegisterPage />} />
-                <Route path="/password-reset" element={<PasswordReset />} />
-                <Route path="/reset-password-confirm" element={<ResetPasswordConfirm />} />
-                <Route path="/profile" element={<UserRoute element={<ProfilePage />} />} />
-                <Route path="/my-bookings" element={<UserRoute element={<MyBookings />} />} />
-                <Route path="/movies" element={<MoviesPage />} />
-                <Route path="/live-events" element={<LiveEventsPage />} />
-                
-                {/* Admin login route */}
-                <Route path="/admin/login" element={<AdminLoginPage />} />
-                
-                {/* Admin routes */}
-                <Route path="/admin" element={<AdminRoute element={<AdminDashboard />} />} />
-                <Route path="/admin/events" element={<AdminRoute element={<AdminEvents />} />} />
-                <Route path="/admin/users" element={<AdminRoute element={<AdminUsers />} />} />
-                <Route path="/admin/bookings" element={<AdminRoute element={<AdminBookings />} />} />
-                <Route path="/admin/reports" element={<AdminRoute element={<AdminReports />} />} />
-                <Route path="/admin/settings" element={<AdminRoute element={<AdminSettings />} />} />
-                
-                {/* Catch-all route */}
-                <Route path="*" element={<NotFound />} />
-              </Routes>
-            </Suspense>
+            <TooltipProvider>
+              <Toaster />
+              <Sonner position="top-right" closeButton={true} />
+              <Suspense fallback={<PageLoader />}>
+                <Routes>
+                  {/* User-facing routes */}
+                  <Route path="/" element={<Index />} />
+                  <Route path="/events/:id" element={<EventDetail />} />
+                  <Route path="/events/:id/booking" element={<UserRoute element={<BookingPage />} />} />
+                  <Route path="/booking-confirmation" element={<UserRoute element={<BookingConfirmation />} />} />
+                  <Route path="/login" element={<LoginPage />} />
+                  <Route path="/register" element={<RegisterPage />} />
+                  <Route path="/password-reset" element={<PasswordReset />} />
+                  <Route path="/reset-password-confirm" element={<ResetPasswordConfirm />} />
+                  <Route path="/profile" element={<UserRoute element={<ProfilePage />} />} />
+                  <Route path="/my-bookings" element={<UserRoute element={<MyBookings />} />} />
+                  <Route path="/movies" element={<MoviesPage />} />
+                  <Route path="/live-events" element={<LiveEventsPage />} />
+                  
+                  {/* Admin login route */}
+                  <Route path="/admin/login" element={<AdminLoginPage />} />
+                  
+                  {/* Admin routes */}
+                  <Route path="/admin" element={<AdminRoute element={<AdminDashboard />} />} />
+                  <Route path="/admin/events" element={<AdminRoute element={<AdminEvents />} />} />
+                  <Route path="/admin/users" element={<AdminRoute element={<AdminUsers />} />} />
+                  <Route path="/admin/bookings" element={<AdminRoute element={<AdminBookings />} />} />
+                  <Route path="/admin/reports" element={<AdminRoute element={<AdminReports />} />} />
+                  <Route path="/admin/settings" element={<AdminRoute element={<AdminSettings />} />} />
+                  
+                  {/* Catch-all route */}
+                  <Route path="*" element={<NotFound />} />
+                </Routes>
+              </Suspense>
+            </TooltipProvider>
           </AuthProvider>
         </BrowserRouter>
       </QueryClientProvider>

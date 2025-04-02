@@ -34,6 +34,7 @@ export const supabase = createClient(supabaseUrl, supabaseAnonKey, {
 // Define types for status enums
 export type EventStatus = 'available' | 'fast-filling' | 'sold-out';
 export type BookingStatus = 'confirmed' | 'pending' | 'cancelled';
+export type PaymentStatus = 'completed' | 'pending' | 'failed' | 'refunded';
 
 // Check if a user is an admin based on their email
 export const isUserAdmin = (email?: string | null): boolean => {
@@ -57,6 +58,7 @@ export const db = {
   seatLayouts: () => supabase.from('seat_layouts'),
   paymentSettings: () => supabase.from('payment_settings'),
   cities: () => supabase.from('cities'),
+  ticketTypes: () => supabase.from('ticket_types'),
 };
 
 // Function to get payment settings
@@ -72,6 +74,7 @@ export const getPaymentSettings = async () => {
 export const updatePaymentSettings = async (data: {
   upi_id: string;
   qr_code_url?: string;
+  payment_instructions?: string;
   updated_by?: string;
 }) => {
   // Check if any settings exist
@@ -157,5 +160,74 @@ export const upsertSeatLayout = async (eventId: string, layoutData: any) => {
       .maybeSingle();
       
     return { data, error, isNew: true };
+  }
+};
+
+// Function to create a new booking with UTR support
+export const createBooking = async (bookingData: {
+  user_id: string;
+  event_id: string;
+  seat_numbers: string[];
+  total_amount: number;
+  payment_status: PaymentStatus;
+  booking_status: BookingStatus;
+  utr_number?: string;
+}) => {
+  return await db.bookings()
+    .insert(bookingData)
+    .select()
+    .single();
+};
+
+// Function to verify UTR and confirm booking
+export const verifyUtrAndConfirmBooking = async (bookingId: string, utrNumber: string) => {
+  return await db.bookings()
+    .update({
+      payment_status: 'completed',
+      booking_status: 'confirmed', 
+      utr_number: utrNumber,
+      verified_at: new Date().toISOString()
+    })
+    .eq('id', bookingId)
+    .select()
+    .single();
+};
+
+// Get all ticket types
+export const getTicketTypes = async () => {
+  return await db.ticketTypes()
+    .select('*')
+    .order('created_at', { ascending: false });
+};
+
+// Create or update a ticket type
+export const upsertTicketType = async (data: {
+  id?: string;
+  category: string;
+  base_price: number;
+  surge_price?: number;
+  color?: string;
+}) => {
+  if (data.id) {
+    return await db.ticketTypes()
+      .update({
+        category: data.category,
+        base_price: data.base_price,
+        surge_price: data.surge_price,
+        color: data.color
+      })
+      .eq('id', data.id)
+      .select()
+      .single();
+  } else {
+    return await db.ticketTypes()
+      .insert({
+        category: data.category,
+        base_price: data.base_price,
+        surge_price: data.surge_price,
+        color: data.color
+      })
+      .select()
+      .single();
   }
 };
