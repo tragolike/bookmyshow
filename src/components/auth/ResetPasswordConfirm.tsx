@@ -1,6 +1,6 @@
 
 import { useState, useEffect } from 'react';
-import { useNavigate, useLocation } from 'react-router-dom';
+import { useNavigate } from 'react-router-dom';
 import { Lock, EyeOff, Eye, Check, Shield } from 'lucide-react';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -17,20 +17,26 @@ const ResetPasswordConfirm = () => {
   const [isSuccess, setIsSuccess] = useState(false);
   const [hasTokenError, setHasTokenError] = useState(false);
   const navigate = useNavigate();
-  const location = useLocation();
 
   useEffect(() => {
     // Check if we have a hash parameter in the URL
     const hashParams = new URLSearchParams(window.location.hash.substring(1));
     const accessToken = hashParams.get('access_token');
+    const type = hashParams.get('type');
     
-    if (!accessToken) {
-      console.log('Invalid reset link - no access token found');
+    console.log('Hash params:', { accessToken: !!accessToken, type });
+    
+    if (!accessToken || type !== 'recovery') {
+      console.log('Invalid reset link - token missing or incorrect type');
       setHasTokenError(true);
-    } else {
-      console.log('Access token found in URL');
-      // Set the access token for the session
-      const setSession = async () => {
+      toast.error('Invalid or expired reset link');
+      return;
+    }
+    
+    console.log('Access token found in URL');
+    // Set the access token for the session
+    const setSession = async () => {
+      try {
         const { error } = await supabase.auth.setSession({
           access_token: accessToken,
           refresh_token: '',
@@ -41,10 +47,14 @@ const ResetPasswordConfirm = () => {
           setHasTokenError(true);
           toast.error('Invalid or expired reset link');
         }
-      };
-      
-      setSession();
-    }
+      } catch (err) {
+        console.error('Exception setting session:', err);
+        setHasTokenError(true);
+        toast.error('Something went wrong processing your reset link');
+      }
+    };
+    
+    setSession();
   }, []);
 
   const handleResetPassword = async (e: React.FormEvent<HTMLFormElement>) => {

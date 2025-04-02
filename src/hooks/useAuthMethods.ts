@@ -2,7 +2,6 @@
 import { useNavigate } from 'react-router-dom';
 import { supabase, db } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
-import { User } from '@supabase/supabase-js';
 
 export function useAuthMethods(fetchProfile: (userId: string) => Promise<void>) {
   const navigate = useNavigate();
@@ -10,7 +9,7 @@ export function useAuthMethods(fetchProfile: (userId: string) => Promise<void>) 
   // Sign in with email and password
   const signIn = async (email: string, password: string) => {
     try {
-      const { error } = await supabase.auth.signInWithPassword({ email, password });
+      const { error, data } = await supabase.auth.signInWithPassword({ email, password });
 
       if (error) {
         toast.error(error.message);
@@ -79,8 +78,12 @@ export function useAuthMethods(fetchProfile: (userId: string) => Promise<void>) 
   // Reset password
   const resetPassword = async (email: string) => {
     try {
+      // Use explicit URL with origin for complete path
+      const resetUrl = `${window.location.origin}/reset-password-confirm`;
+      console.log('Reset password redirect URL:', resetUrl);
+      
       const { error } = await supabase.auth.resetPasswordForEmail(email, {
-        redirectTo: `${window.location.origin}/reset-password-confirm`,
+        redirectTo: resetUrl,
       });
       
       if (error) {
@@ -97,8 +100,7 @@ export function useAuthMethods(fetchProfile: (userId: string) => Promise<void>) 
   // Update profile
   const updateProfile = async (data: { first_name?: string; last_name?: string; phone_number?: string; avatar_url?: string }) => {
     try {
-      const currentUser = supabase.auth.getUser().then(({ data }) => data.user);
-      const user = await currentUser;
+      const { data: { user } } = await supabase.auth.getUser();
       
       if (!user) {
         toast.error('You must be logged in to update your profile');
