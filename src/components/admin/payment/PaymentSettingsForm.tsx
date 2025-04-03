@@ -5,8 +5,9 @@ import { toast } from 'sonner';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import UpiSettingsTab from './UpiSettingsTab';
 import { useAuth } from '@/contexts/AuthContext';
-import { Loader2 } from 'lucide-react';
+import { Loader2, AlertTriangle } from 'lucide-react';
 import { usePaymentSettings, PaymentSettings } from '@/hooks/usePaymentSettings';
+import { Alert, AlertDescription } from '@/components/ui/alert';
 
 const PaymentSettingsForm = () => {
   const { user } = useAuth();
@@ -16,6 +17,7 @@ const PaymentSettingsForm = () => {
   const { 
     paymentSettings, 
     isLoading, 
+    error: paymentSettingsError,
     isUpdating, 
     updateSettings, 
     refreshPaymentSettings 
@@ -42,10 +44,10 @@ const PaymentSettingsForm = () => {
     try {
       if (!upiId.trim()) {
         toast.error('Please enter a UPI ID first');
-        return;
+        return '';
       }
       
-      // This would typically call an API to generate a QR code
+      // Generate QR code URL for the UPI ID
       const qrCodeApiUrl = `https://api.qrserver.com/v1/create-qr-code/?size=200x200&data=upi://pay?pa=${encodeURIComponent(
         upiId
       )}&pn=ShowTix&mc=0000&tn=Payment&am=0`;
@@ -57,7 +59,7 @@ const PaymentSettingsForm = () => {
     } catch (error) {
       console.error('Error generating QR code:', error);
       toast.error('Failed to generate QR code');
-      return null;
+      return '';
     }
   };
   
@@ -87,6 +89,11 @@ const PaymentSettingsForm = () => {
       return;
     }
     
+    if (!upiId.trim()) {
+      toast.error('UPI ID cannot be empty');
+      return;
+    }
+    
     console.log("Saving UPI ID:", upiId);
     
     const settingsToSave: PaymentSettings = {
@@ -98,7 +105,8 @@ const PaymentSettingsForm = () => {
     
     try {
       // Use our mutation from the hook
-      await updateSettings(settingsToSave);
+      const result = await updateSettings(settingsToSave);
+      console.log('Update settings result:', result);
       
       // Force refresh after updating to ensure we have the latest data
       setTimeout(() => {
@@ -119,6 +127,15 @@ const PaymentSettingsForm = () => {
   
   return (
     <div className="space-y-6">
+      {paymentSettingsError && (
+        <Alert variant="destructive">
+          <AlertTriangle className="h-4 w-4" />
+          <AlertDescription>
+            Error loading payment settings. This may be due to database permissions. Please ensure you have the correct permissions.
+          </AlertDescription>
+        </Alert>
+      )}
+      
       <Tabs value={activeTab} onValueChange={setActiveTab}>
         <TabsList className="mb-4">
           <TabsTrigger value="upi">UPI Settings</TabsTrigger>
@@ -144,7 +161,7 @@ const PaymentSettingsForm = () => {
           type="button"
           className="px-4 py-2 bg-primary text-white rounded-md hover:bg-primary/90 transition-colors"
           onClick={handleSaveSettings}
-          disabled={isUpdating}
+          disabled={isUpdating || !upiId.trim()}
         >
           {isUpdating ? (
             <>

@@ -360,7 +360,13 @@ export const updatePaymentSettings = async (settings: any) => {
       console.log('Updating existing payment settings with ID:', existingData.id);
       result = await supabase
         .from('payment_settings')
-        .update(settings)
+        .update({
+          upi_id: settings.upi_id,
+          qr_code_url: settings.qr_code_url,
+          payment_instructions: settings.payment_instructions,
+          updated_by: settings.updated_by,
+          updated_at: new Date().toISOString()
+        })
         .eq('id', existingData.id)
         .select();
     } else {
@@ -368,7 +374,12 @@ export const updatePaymentSettings = async (settings: any) => {
       console.log('Inserting new payment settings');
       result = await supabase
         .from('payment_settings')
-        .insert(settings)
+        .insert({
+          upi_id: settings.upi_id,
+          qr_code_url: settings.qr_code_url,
+          payment_instructions: settings.payment_instructions,
+          updated_by: settings.updated_by
+        })
         .select();
     }
     
@@ -378,7 +389,7 @@ export const updatePaymentSettings = async (settings: any) => {
     }
     
     console.log('Payment settings updated successfully:', result.data);
-    return { data: result.data, error: null };
+    return { data: result.data[0], error: null };
   } catch (error) {
     console.error('Error updating payment settings:', error);
     return { data: null, error };

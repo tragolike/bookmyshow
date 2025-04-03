@@ -1,6 +1,6 @@
 
-import { useState } from 'react';
-import { Link } from 'react-router-dom';
+import { useState, useEffect } from 'react';
+import { Link, useNavigate, useLocation } from 'react-router-dom';
 import { Header } from '@/components/Header';
 import Footer from '@/components/Footer';
 import { Input } from '@/components/ui/input';
@@ -15,7 +15,26 @@ const LoginPage = () => {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [isGoogleLoading, setIsGoogleLoading] = useState(false);
-  const { signIn, signInWithGoogle, isLoading } = useAuth();
+  const { signIn, signInWithGoogle, isLoading, user, isAdmin } = useAuth();
+  const navigate = useNavigate();
+  const location = useLocation();
+  
+  // Get the redirect path from location state or default to '/'
+  const from = location.state?.from || '/';
+  
+  // Redirect if already logged in
+  useEffect(() => {
+    if (user) {
+      console.log('User already logged in, redirecting to:', from);
+      
+      // Redirect to admin dashboard if user is admin
+      if (isAdmin && from === '/') {
+        navigate('/admin', { replace: true });
+      } else {
+        navigate(from, { replace: true });
+      }
+    }
+  }, [user, isAdmin, navigate, from]);
 
   const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
@@ -26,7 +45,12 @@ const LoginPage = () => {
     }
     
     try {
-      await signIn(email, password);
+      const success = await signIn(email, password);
+      
+      if (success) {
+        // Redirect will happen in the useEffect above when user state updates
+        console.log('Login successful, waiting for redirect...');
+      }
     } catch (error: any) {
       console.error('Login error:', error);
       toast.error(error.message || 'Failed to sign in. Please check your credentials.');
@@ -45,6 +69,16 @@ const LoginPage = () => {
       setTimeout(() => setIsGoogleLoading(false), 3000);
     }
   };
+
+  // If already logged in, show a loading state while redirecting
+  if (user) {
+    return (
+      <div className="min-h-screen flex items-center justify-center">
+        <Loader2 className="w-8 h-8 animate-spin text-book-primary" />
+        <span className="ml-2">Redirecting...</span>
+      </div>
+    );
+  }
 
   return (
     <div className="min-h-screen flex flex-col">

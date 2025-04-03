@@ -17,7 +17,7 @@ export const usePaymentSettings = () => {
   const [paymentSettings, setPaymentSettings] = useState<PaymentSettings | null>(null);
   const queryClient = useQueryClient();
   
-  // Fix: Provide a proper queryFn that doesn't take parameters directly
+  // Fetch payment settings with better error handling
   const { 
     data, 
     isLoading, 
@@ -25,14 +25,33 @@ export const usePaymentSettings = () => {
     refetch 
   } = useQuery({
     queryKey: ['paymentSettings'],
-    queryFn: () => getPaymentSettings(true), // Always pass skipCache=true to ensure fresh data
-    staleTime: 1000 * 10, // 10 seconds
-    gcTime: 1000 * 60 * 5, // 5 minutes
+    queryFn: async () => {
+      try {
+        console.log('Fetching payment settings with skip cache');
+        const result = await getPaymentSettings(true);
+        console.log('Payment settings fetch result:', result);
+        return result;
+      } catch (err) {
+        console.error('Error in payment settings query function:', err);
+        throw err;
+      }
+    },
+    staleTime: 1000 * 10,
+    gcTime: 1000 * 60 * 5,
     retry: 3,
   });
   
+  // Mutation with better error handling
   const mutation = useMutation({
-    mutationFn: (newSettings: PaymentSettings) => updatePaymentSettings(newSettings),
+    mutationFn: async (newSettings: PaymentSettings) => {
+      console.log('Mutation running with settings:', newSettings);
+      const result = await updatePaymentSettings(newSettings);
+      if (result.error) {
+        console.error('Error from updatePaymentSettings:', result.error);
+        throw result.error;
+      }
+      return result;
+    },
     onSuccess: () => {
       // Invalidate and refetch
       queryClient.invalidateQueries({ queryKey: ['paymentSettings'] });
@@ -80,7 +99,7 @@ export const usePaymentSettings = () => {
   const updateSettings = async (newSettings: PaymentSettings) => {
     try {
       console.log('Updating payment settings:', newSettings);
-      return mutation.mutate(newSettings);
+      return await mutation.mutateAsync(newSettings);
     } catch (error) {
       console.error('Error in updateSettings:', error);
       throw error;

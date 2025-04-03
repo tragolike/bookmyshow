@@ -1,7 +1,7 @@
 
 import { useState, useEffect } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
-import { Mail, Lock, Info } from 'lucide-react';
+import { Mail, Lock, Info, Loader2 } from 'lucide-react';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Alert, AlertDescription } from '@/components/ui/alert';
@@ -19,7 +19,11 @@ const AdminLoginPage = () => {
   useEffect(() => {
     if (user && isAdmin) {
       console.log('User already logged in as admin, redirecting to admin dashboard');
-      navigate('/admin');
+      navigate('/admin', { replace: true });
+    } else if (user && !isAdmin) {
+      console.log('User logged in but not admin, redirecting to home');
+      navigate('/', { replace: true });
+      toast.error('You do not have admin privileges');
     }
   }, [user, isAdmin, navigate]);
 
@@ -35,16 +39,25 @@ const AdminLoginPage = () => {
       console.log('Admin login attempt:', { email });
       const success = await signIn(email, password);
       
-      // Only log success or failure, the redirect is handled in the AuthContext
-      if (!success) {
-        console.error('Admin login failed');
-        // Toast already shown in signIn method
+      if (success) {
+        // Redirect will happen in the useEffect when user state updates
+        console.log('Login successful, waiting for admin check and redirect...');
       }
     } catch (error: any) {
       console.error('Admin login error:', error);
       toast.error('Failed to log in. Please check your credentials.');
     }
   };
+
+  // If already logged in, show loading while redirecting
+  if (user) {
+    return (
+      <div className="min-h-screen flex items-center justify-center">
+        <Loader2 className="w-8 h-8 animate-spin text-indigo-600" />
+        <span className="ml-2">Redirecting...</span>
+      </div>
+    );
+  }
 
   return (
     <div className="min-h-screen flex flex-col bg-gray-100">

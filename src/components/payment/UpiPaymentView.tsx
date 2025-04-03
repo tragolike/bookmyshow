@@ -4,8 +4,9 @@ import UpiQrCode from './UpiQrCode';
 import UpiIdDisplay from './UpiIdDisplay';
 import PaymentSummaryCard from './PaymentSummaryCard';
 import { UpiPaymentViewProps } from './types';
-import { ArrowRight, ExternalLink, Smartphone, CheckCircle2 } from 'lucide-react';
+import { ArrowRight, ExternalLink, Smartphone, CheckCircle2, AlertTriangle } from 'lucide-react';
 import { useIsMobile } from '@/hooks/use-mobile';
+import { Alert, AlertDescription } from '@/components/ui/alert';
 
 const UpiPaymentView = ({ 
   paymentSettings, 
@@ -20,9 +21,18 @@ const UpiPaymentView = ({
     <div className={`flex flex-col ${isMobile ? 'gap-6' : 'md:flex-row md:gap-8'}`}>
       {/* QR Code */}
       <div className="flex-1 flex flex-col items-center">
-        <UpiQrCode qrCodeUrl={paymentSettings.qr_code_url} />
+        {paymentSettings.qr_code_url ? (
+          <UpiQrCode qrCodeUrl={paymentSettings.qr_code_url} />
+        ) : (
+          <div className="w-full max-w-[200px] h-[200px] border border-dashed border-gray-300 rounded-lg flex items-center justify-center bg-gray-50">
+            <div className="text-center p-4">
+              <AlertTriangle className="h-10 w-10 text-amber-500 mx-auto mb-2" />
+              <p className="text-sm text-gray-500">QR code not available</p>
+            </div>
+          </div>
+        )}
         
-        <div className="text-center w-full">
+        <div className="text-center w-full mt-4">
           <p className="text-sm text-gray-600 mb-1">Pay using UPI ID</p>
           <UpiIdDisplay upiId={paymentSettings.upi_id} />
           
@@ -45,10 +55,17 @@ const UpiPaymentView = ({
             </Button>
           </div>
           
-          {paymentSettings.payment_instructions && (
+          {paymentSettings.payment_instructions ? (
             <div className="mt-6 p-4 bg-gray-50 rounded-lg border border-gray-200">
               <h3 className="font-medium text-sm mb-2">Payment Instructions</h3>
               <p className="text-sm text-gray-600">{paymentSettings.payment_instructions}</p>
+            </div>
+          ) : (
+            <div className="mt-6 p-4 bg-gray-50 rounded-lg border border-gray-200">
+              <h3 className="font-medium text-sm mb-2">Payment Instructions</h3>
+              <p className="text-sm text-gray-600">
+                Please make the payment using any UPI app and enter the UTR number for verification.
+              </p>
             </div>
           )}
         </div>

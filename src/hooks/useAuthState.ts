@@ -39,16 +39,25 @@ export function useAuthState() {
     
     // Set up auth state listener first to avoid race conditions
     const { data: { subscription } } = supabase.auth.onAuthStateChange(
-      (event, currentSession) => {
+      async (event, currentSession) => {
         console.log('Auth state changed:', event);
         setSession(currentSession);
-        setUser(currentSession?.user ?? null);
-        setIsAdmin(isUserAdmin(currentSession?.user?.email));
         
-        if (currentSession?.user) {
+        const currentUser = currentSession?.user ?? null;
+        setUser(currentUser);
+        
+        if (currentUser?.email) {
+          const adminStatus = isUserAdmin(currentUser.email);
+          console.log('User admin status:', adminStatus);
+          setIsAdmin(adminStatus);
+        } else {
+          setIsAdmin(false);
+        }
+        
+        if (currentUser) {
           // Use setTimeout to avoid deadlocks in Supabase auth callbacks
           setTimeout(() => {
-            fetchProfile(currentSession.user.id);
+            fetchProfile(currentUser.id);
           }, 0);
         } else {
           setProfile(null);
@@ -66,11 +75,17 @@ export function useAuthState() {
         console.log('Initial session:', initialSession ? 'exists' : 'null');
         
         setSession(initialSession);
-        setUser(initialSession?.user ?? null);
-        setIsAdmin(isUserAdmin(initialSession?.user?.email));
+        const initialUser = initialSession?.user ?? null;
+        setUser(initialUser);
+        
+        if (initialUser?.email) {
+          const adminStatus = isUserAdmin(initialUser.email);
+          console.log('Initial user admin status:', adminStatus);
+          setIsAdmin(adminStatus);
+        }
 
-        if (initialSession?.user) {
-          await fetchProfile(initialSession.user.id);
+        if (initialUser) {
+          await fetchProfile(initialUser.id);
         }
       } catch (error) {
         console.error('Error initializing auth:', error);

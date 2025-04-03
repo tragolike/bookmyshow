@@ -21,7 +21,16 @@ export function useAuthMethods() {
       }
       
       console.log('Sign in successful:', data);
-      toast.success('Signed in successfully');
+      
+      // Check if user is admin
+      const isAdmin = isUserAdmin(email);
+      
+      if (isAdmin) {
+        toast.success('Welcome, admin! Redirecting to dashboard...');
+      } else {
+        toast.success('Signed in successfully');
+      }
+      
       return true;
     } catch (error: any) {
       console.error('Exception during sign in:', error);
@@ -73,6 +82,7 @@ export function useAuthMethods() {
   const signOut = async () => {
     try {
       console.log('Attempting to sign out');
+      setIsLoading(true);
       const { error } = await supabase.auth.signOut();
 
       if (error) {
@@ -88,12 +98,15 @@ export function useAuthMethods() {
       console.error('Exception during sign out:', error);
       toast.error(error.message || 'An unexpected error occurred');
       return false;
+    } finally {
+      setIsLoading(false);
     }
   };
 
   // Reset password
   const resetPassword = async (email: string) => {
     try {
+      setIsLoading(true);
       const origin = window.location.origin;
       const resetUrl = `${origin}/reset-password-confirm`;
       
@@ -117,12 +130,15 @@ export function useAuthMethods() {
       console.error('Exception during password reset:', error);
       toast.error(error.message || 'An unexpected error occurred');
       return false;
+    } finally {
+      setIsLoading(false);
     }
   };
   
   // Update password (when already logged in)
   const updatePassword = async (password: string) => {
     try {
+      setIsLoading(true);
       console.log('Attempting to update password');
       const { error } = await supabase.auth.updateUser({
         password: password,
@@ -141,12 +157,15 @@ export function useAuthMethods() {
       console.error('Exception during password update:', error);
       toast.error(error.message || 'An unexpected error occurred');
       return false;
+    } finally {
+      setIsLoading(false);
     }
   };
 
   // Update profile
   const updateProfile = async (data: UpdateProfileData) => {
     try {
+      setIsLoading(true);
       console.log('Fetching current user');
       const { data: { user } } = await supabase.auth.getUser();
       
@@ -175,12 +194,15 @@ export function useAuthMethods() {
       console.error('Exception during profile update:', error);
       toast.error(error.message || 'An unexpected error occurred');
       return false;
+    } finally {
+      setIsLoading(false);
     }
   };
 
   // Google sign in
   const signInWithGoogle = async () => {
     try {
+      setIsLoading(true);
       console.log('Attempting to sign in with Google');
       const { error, data } = await supabase.auth.signInWithOAuth({
         provider: 'google',
@@ -201,6 +223,8 @@ export function useAuthMethods() {
       console.error('Exception during Google sign in:', error);
       toast.error(error.message || 'An unexpected error occurred');
       return false;
+    } finally {
+      setIsLoading(false);
     }
   };
 
