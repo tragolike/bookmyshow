@@ -8,10 +8,10 @@ import { useQuery } from '@tanstack/react-query';
 import { Info } from 'lucide-react';
 
 const PaymentSettings = () => {
-  // Add a diagnostic fetch to verify database connectivity
+  // Fix: Provide a proper queryFn that doesn't take parameters
   const { data, isLoading, error } = useQuery({
     queryKey: ['paymentSettingsDiagnostic'],
-    queryFn: getPaymentSettings,
+    queryFn: () => getPaymentSettings(true), // Pass true here to skip cache
     staleTime: 0,
     retry: 2,
   });

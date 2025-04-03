@@ -17,6 +17,7 @@ export const usePaymentSettings = (isManualFetch = false) => {
   const [paymentSettings, setPaymentSettings] = useState<PaymentSettings | null>(null);
   const queryClient = useQueryClient();
   
+  // Fix: Provide a proper queryFn that doesn't take parameters directly
   const { 
     data, 
     isLoading, 
@@ -24,7 +25,7 @@ export const usePaymentSettings = (isManualFetch = false) => {
     refetch 
   } = useQuery({
     queryKey: ['paymentSettings'],
-    queryFn: () => getPaymentSettings(true), // Force skip cache
+    queryFn: () => getPaymentSettings(true), // Pass skipCache=true here
     enabled: !isManualFetch, // Only auto-fetch if not manually triggered
     staleTime: 1000 * 30, // 30 seconds
     gcTime: 1000 * 60 * 5, // 5 minutes

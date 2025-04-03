@@ -1,4 +1,3 @@
-
 import { createClient } from '@supabase/supabase-js';
 import type { EventStatus } from '@/types/events';
 
@@ -151,25 +150,25 @@ export const uploadFile = async (file: File, bucketId: string, folderPath: strin
   }
 };
 
-// Improved function to fetch brand settings with enhanced error handling and caching control
+// Fix: Don't use .then() which breaks the query builder chain
 export const getBrandSettings = async (skipCache = false) => {
   try {
     console.log('Fetching brand settings, skipCache:', skipCache);
+    
+    // Create the query without chaining .then()
     let query = supabase
       .from('brand_settings')
       .select('*')
       .order('updated_at', { ascending: false })
       .limit(1);
     
-    if (skipCache) {
-      query = query.then(res => {
-        // Log for debugging
-        console.log('Brand settings fetch response:', res);
-        return res;
-      });
-    }
-    
+    // Execute the query
     const { data, error } = await query.maybeSingle();
+    
+    // Optional logging for debugging
+    if (skipCache) {
+      console.log('Brand settings fetch response:', { data, error });
+    }
       
     if (error) {
       console.error('Error fetching brand settings:', error);
@@ -267,25 +266,25 @@ export const updateBrandSettings = async (settings: any) => {
   }
 };
 
-// Improved get payment settings with better fallback, error handling, and caching control
+// Fix: Don't use .then() which breaks the query builder chain
 export const getPaymentSettings = async (skipCache = false) => {
   try {
     console.log('Fetching payment settings, skipCache:', skipCache);
+    
+    // Create the query without chaining .then()
     let query = supabase
       .from('payment_settings')
       .select('*')
       .order('updated_at', { ascending: false })
       .limit(1);
     
-    if (skipCache) {
-      query = query.then(res => {
-        // Log for debugging
-        console.log('Payment settings fetch response:', res);
-        return res;
-      });
-    }
-    
+    // Execute the query
     const { data, error } = await query.maybeSingle();
+    
+    // Optional logging for debugging
+    if (skipCache) {
+      console.log('Payment settings fetch response:', { data, error });
+    }
       
     if (error) {
       console.error('Error fetching payment settings:', error);
@@ -328,7 +327,7 @@ export const getPaymentSettings = async (skipCache = false) => {
   }
 };
 
-// Updated function to save payment settings with proper admin checks
+// Improved function to update payment settings with better error handling and admin check
 export const updatePaymentSettings = async (settings: any) => {
   try {
     // Check if user is admin
@@ -385,6 +384,8 @@ export const updatePaymentSettings = async (settings: any) => {
 export const getHeroSlides = async (skipCache = false, activeOnly = false) => {
   try {
     console.log('Fetching hero slides, skipCache:', skipCache, 'activeOnly:', activeOnly);
+    
+    // Create the query without chaining .then()
     let query = supabase
       .from('hero_slides')
       .select('*')
@@ -394,15 +395,13 @@ export const getHeroSlides = async (skipCache = false, activeOnly = false) => {
       query = query.eq('is_active', true);
     }
     
-    if (skipCache) {
-      query = query.then(res => {
-        // Log for debugging
-        console.log('Hero slides fetch response:', res);
-        return res;
-      });
-    }
-    
+    // Execute the query
     const { data, error } = await query;
+    
+    // Optional logging for debugging
+    if (skipCache) {
+      console.log('Hero slides fetch response:', { data, error });
+    }
       
     if (error) {
       console.error('Error fetching hero slides:', error);
