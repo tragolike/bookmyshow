@@ -24,8 +24,8 @@ interface WeeklyEvent {
   event_price?: number;
 }
 
-// Define a type for the events nested object in the response
-interface EventsResponse {
+// Define the type for the raw response data from Supabase
+interface RawWeeklyEventResponse {
   id: string;
   event_id: string;
   is_featured: boolean;
@@ -85,8 +85,8 @@ const fetchWeeklyEvents = async () => {
     
     console.log('Successfully fetched weekly events:', data);
     
-    // Cast the data to the correct type and map it
-    return (data as EventsResponse[] || []).map(item => ({
+    // Map the raw response to the WeeklyEvent format
+    return (data as unknown as RawWeeklyEventResponse[] || []).map(item => ({
       id: item.id,
       event_id: item.event_id,
       is_featured: item.is_featured,
