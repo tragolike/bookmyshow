@@ -15,7 +15,7 @@ const NotFound = () => {
   
   return (
     <div className="min-h-screen bg-black text-white flex flex-col">
-      {/* Mobile navigation at bottom */}
+      {/* Main content */}
       <div className="flex-1 flex flex-col items-center justify-center p-4">
         <div className={`text-center ${isMobile ? 'w-full' : 'max-w-md'}`}>
           <h1 className="text-9xl font-bold text-[#ff3366] mb-4">404</h1>
@@ -35,6 +35,7 @@ const NotFound = () => {
         </div>
       </div>
       
+      {/* Mobile navigation at bottom */}
       {isMobile && (
         <div className="mt-auto">
           <MainNavigation />

@@ -22,13 +22,13 @@ const UpiPayment = ({ amount, reference, onComplete }: UpiPaymentProps) => {
   const [retryCount, setRetryCount] = useState(0);
   const isMobile = useIsMobile();
   
-  // Fix 1: Update the usePaymentSettings hook call to match its signature
+  // Fix 1: Remove the second argument from usePaymentSettings
   const { 
     paymentSettings, 
     isLoading, 
     error, 
     refreshPaymentSettings 
-  } = usePaymentSettings(isManualFetch);
+  } = usePaymentSettings();
   
   // Format time as MM:SS
   const formatTime = (seconds: number): string => {
