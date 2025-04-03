@@ -22,12 +22,13 @@ const UpiPayment = ({ amount, reference, onComplete }: UpiPaymentProps) => {
   const [retryCount, setRetryCount] = useState(0);
   const isMobile = useIsMobile();
   
+  // Fix 1: Update the usePaymentSettings hook call to match its signature
   const { 
     paymentSettings, 
     isLoading, 
     error, 
     refreshPaymentSettings 
-  } = usePaymentSettings(isManualFetch, retryCount);
+  } = usePaymentSettings(isManualFetch);
   
   // Format time as MM:SS
   const formatTime = (seconds: number): string => {
@@ -101,7 +102,8 @@ const UpiPayment = ({ amount, reference, onComplete }: UpiPaymentProps) => {
           <CardTitle className="text-amber-800">Payment Configuration Issue</CardTitle>
         </CardHeader>
         <CardContent className="pt-6">
-          <Alert variant="warning" className="mb-6">
+          {/* Fix 2: Change variant from "warning" to "destructive" */}
+          <Alert variant="destructive" className="mb-6">
             <AlertTriangle className="h-4 w-4 mr-2" />
             <AlertDescription>
               The payment system is not properly configured. This might be a temporary issue.
