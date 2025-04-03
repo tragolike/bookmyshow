@@ -1,6 +1,6 @@
 
 import { useState, useEffect } from 'react';
-import { CheckCircle2, Loader2, AlertTriangle } from 'lucide-react';
+import { CheckCircle2, Loader2, AlertTriangle, RefreshCw } from 'lucide-react';
 import { toast } from 'sonner';
 import { Card, CardContent, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -22,7 +22,7 @@ const UpiPayment = ({ amount, reference, onComplete }: UpiPaymentProps) => {
   const [retryCount, setRetryCount] = useState(0);
   const isMobile = useIsMobile();
   
-  // Use the payment settings hook without any arguments
+  // Use the payment settings hook with retry control
   const { 
     paymentSettings, 
     isLoading, 
@@ -62,13 +62,21 @@ const UpiPayment = ({ amount, reference, onComplete }: UpiPaymentProps) => {
   const refreshPaymentInfo = async () => {
     setIsManualFetch(true);
     setRetryCount(prev => prev + 1);
-    const success = await refreshPaymentSettings();
-    setIsManualFetch(false);
+    toast.info('Refreshing payment information...');
     
-    if (!success) {
-      toast.error('Failed to refresh payment information');
-    } else {
-      toast.success('Payment information refreshed');
+    try {
+      const success = await refreshPaymentSettings();
+      
+      if (!success) {
+        toast.error('Failed to refresh payment information');
+      } else {
+        toast.success('Payment information refreshed');
+      }
+    } catch (error) {
+      console.error('Error refreshing payment settings:', error);
+      toast.error('Failed to refresh payment information. Please try again.');
+    } finally {
+      setIsManualFetch(false);
     }
   };
   
@@ -78,16 +86,20 @@ const UpiPayment = ({ amount, reference, onComplete }: UpiPaymentProps) => {
       return;
     }
     
+    toast.info('Verifying payment...');
+    
     // Save UTR to localStorage for future reference
     localStorage.setItem('lastUtrNumber', utrNumber);
     
     // Simulate UTR verification - in production this should call a backend API
-    toast.success('UTR verified successfully!');
-    
-    // Add delay to show success message before completing
     setTimeout(() => {
-      onComplete();
-    }, 1000);
+      toast.success('UTR verified successfully!');
+      
+      // Add delay to show success message before completing
+      setTimeout(() => {
+        onComplete();
+      }, 1000);
+    }, 1500);
   };
   
   if (isLoading && !isManualFetch) {
@@ -105,7 +117,7 @@ const UpiPayment = ({ amount, reference, onComplete }: UpiPaymentProps) => {
           <Alert variant="destructive" className="mb-6">
             <AlertTriangle className="h-4 w-4 mr-2" />
             <AlertDescription>
-              The payment system is not properly configured. This might be a temporary issue.
+              The payment system configuration could not be loaded. This might be a temporary issue.
             </AlertDescription>
           </Alert>
           
@@ -114,11 +126,12 @@ const UpiPayment = ({ amount, reference, onComplete }: UpiPaymentProps) => {
               onClick={refreshPaymentInfo}
               variant="outline"
               className="mt-4"
+              disabled={isManualFetch}
             >
               {isManualFetch ? (
                 <Loader2 className="h-4 w-4 mr-2 animate-spin" />
               ) : (
-                <></>
+                <RefreshCw className="h-4 w-4 mr-2" />
               )}
               Refresh Payment Information
             </Button>
@@ -128,7 +141,7 @@ const UpiPayment = ({ amount, reference, onComplete }: UpiPaymentProps) => {
     );
   }
   
-  const upiLink = `upi://pay?pa=${paymentSettings.upi_id}&pn=ShowTix&am=${amount}&cu=INR&tn=${reference}`;
+  const upiLink = `upi://pay?pa=${encodeURIComponent(paymentSettings.upi_id)}&pn=ShowTix&am=${amount}&cu=INR&tn=${reference}`;
   
   return (
     <Card className={`bg-white shadow-lg overflow-hidden border-0 ${isMobile ? 'max-w-full' : 'max-w-3xl mx-auto'}`}>
@@ -143,6 +156,29 @@ const UpiPayment = ({ amount, reference, onComplete }: UpiPaymentProps) => {
       </CardHeader>
       
       <CardContent className="pt-6">
+        {error && (
+          <Alert variant="destructive" className="mb-4">
+            <AlertTriangle className="h-4 w-4 mr-2" />
+            <AlertDescription className="flex items-center justify-between">
+              <span>Error loading payment details. Please try refreshing.</span>
+              <Button 
+                variant="outline" 
+                size="sm" 
+                onClick={refreshPaymentInfo}
+                className="ml-2"
+                disabled={isManualFetch}
+              >
+                {isManualFetch ? (
+                  <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                ) : (
+                  <RefreshCw className="h-4 w-4 mr-2" />
+                )}
+                Refresh
+              </Button>
+            </AlertDescription>
+          </Alert>
+        )}
+        
         <PaymentMethodTabs
           defaultValue="upi"
           onValueChange={(value) => setPaymentMethod(value as 'upi' | 'manual')}
@@ -170,7 +206,7 @@ const UpiPayment = ({ amount, reference, onComplete }: UpiPaymentProps) => {
       <CardFooter className="flex flex-col gap-4">
         {paymentMethod === 'manual' ? (
           <p className="text-xs text-center text-gray-500">
-            By verifying your UTR, you confirm that you've made the payment of ₹{amount.toLocaleString()} to the UPI ID.
+            By verifying your UTR, you confirm that you've made the payment of ₹{amount.toLocaleString()} to the UPI ID {paymentSettings.upi_id}.
           </p>
         ) : (
           <Button 
@@ -184,7 +220,7 @@ const UpiPayment = ({ amount, reference, onComplete }: UpiPaymentProps) => {
         )}
         
         <p className="text-xs text-center text-gray-500">
-          By clicking this button, you confirm that you've made the payment of ₹{amount.toLocaleString()} to the UPI ID.
+          By clicking this button, you confirm that you've made the payment of ₹{amount.toLocaleString()} to the UPI ID {paymentSettings.upi_id}.
         </p>
       </CardFooter>
     </Card>

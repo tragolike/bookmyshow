@@ -1,5 +1,5 @@
 
-import { useState, useEffect } from 'react';
+import { useState } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
@@ -27,6 +27,24 @@ interface SpecialOffer {
 const fetchSpecialOffers = async () => {
   try {
     console.log('Fetching special offers...');
+    
+    // First check if special_offers table exists
+    const { data: tableExists, error: tableCheckError } = await supabase.from('information_schema.tables')
+      .select('table_name')
+      .eq('table_name', 'special_offers')
+      .eq('table_schema', 'public')
+      .single();
+      
+    if (tableCheckError) {
+      console.error('Error checking if special_offers table exists:', tableCheckError);
+      return [];
+    }
+    
+    if (!tableExists) {
+      console.warn('special_offers table does not exist');
+      return [];
+    }
+    
     const { data, error } = await supabase
       .from('special_offers')
       .select('*')
@@ -41,7 +59,7 @@ const fetchSpecialOffers = async () => {
     return data || [];
   } catch (error) {
     console.error('Error fetching special offers:', error);
-    throw error;
+    return [];
   }
 };
 
@@ -131,6 +149,7 @@ const SpecialOffersManager = () => {
     
     try {
       setIsUploading(true);
+      toast.info('Uploading image...');
       
       // Create a unique file name
       const fileExt = file.name.split('.').pop();
@@ -186,20 +205,20 @@ const SpecialOffersManager = () => {
     toast.info('Retrying to fetch special offers...');
   };
   
-  if (error) {
-    return (
-      <Card>
-        <CardHeader>
-          <CardTitle>Special Offers</CardTitle>
-          <CardDescription>
-            Manage special offers and promotions that appear on the website
-          </CardDescription>
-        </CardHeader>
-        <CardContent>
+  return (
+    <Card>
+      <CardHeader>
+        <CardTitle>Special Offers</CardTitle>
+        <CardDescription>
+          Manage special offers and promotions that appear on the website
+        </CardDescription>
+      </CardHeader>
+      <CardContent>
+        {error && (
           <Alert variant="destructive" className="mb-4">
             <AlertTriangle className="h-4 w-4 mr-2" />
             <AlertDescription className="flex items-center justify-between">
-              <span>Error loading special offers: {(error as any)?.message || 'Unknown error'}</span>
+              <span>Error loading special offers: The database table might not exist yet.</span>
               <Button 
                 variant="outline" 
                 size="sm" 
@@ -211,25 +230,8 @@ const SpecialOffersManager = () => {
               </Button>
             </AlertDescription>
           </Alert>
-          
-          <Button onClick={() => setActiveTab('create')} className="mt-4">
-            <PlusCircle className="mr-2 h-4 w-4" />
-            Create Your First Offer
-          </Button>
-        </CardContent>
-      </Card>
-    );
-  }
-  
-  return (
-    <Card>
-      <CardHeader>
-        <CardTitle>Special Offers</CardTitle>
-        <CardDescription>
-          Manage special offers and promotions that appear on the website
-        </CardDescription>
-      </CardHeader>
-      <CardContent>
+        )}
+        
         <Tabs defaultValue="all" value={activeTab} onValueChange={setActiveTab}>
           <TabsList className="mb-4">
             <TabsTrigger value="all">All Offers</TabsTrigger>

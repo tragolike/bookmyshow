@@ -65,6 +65,8 @@ const PaymentSettingsForm = () => {
   
   const handleQrUpload = async (file: File) => {
     try {
+      toast.info('Uploading QR code...');
+      
       // Upload QR code image to Supabase Storage
       console.log('Uploading QR code image...');
       const result = await uploadFile(file, 'payment_assets', 'qr_codes');
@@ -104,6 +106,7 @@ const PaymentSettingsForm = () => {
     };
     
     try {
+      toast.info('Saving payment settings...');
       // Use our mutation from the hook
       const result = await updateSettings(settingsToSave);
       console.log('Update settings result:', result);
@@ -111,7 +114,7 @@ const PaymentSettingsForm = () => {
       // Force refresh after updating to ensure we have the latest data
       setTimeout(() => {
         refreshPaymentSettings();
-      }, 500);
+      }, 1000);
     } catch (error) {
       console.error('Error in handleSaveSettings:', error);
     }

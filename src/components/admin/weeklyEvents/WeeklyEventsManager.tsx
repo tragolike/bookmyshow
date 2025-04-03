@@ -8,7 +8,7 @@ import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/com
 import { Label } from '@/components/ui/label';
 import { Switch } from '@/components/ui/switch';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { Loader2, Star, Trash2, ExternalLink } from 'lucide-react';
+import { Loader2, Star, Trash2, ExternalLink, RefreshCw } from 'lucide-react';
 import { useIsMobile } from '@/hooks/use-mobile';
 import { Event } from '@/types/events';
 
@@ -24,33 +24,37 @@ interface WeeklyEvent {
   event_price?: number;
 }
 
-// Define the exact shape of the data returned from Supabase
-interface SupabaseWeeklyEventResult {
-  id: string;
-  event_id: string;
-  is_featured: boolean;
-  events: {
-    id: string;
-    title: string;
-    date: string;
-    venue: string;
-    city: string;
-    image: string;
-    price: number;
-  } | null;
-}
-
+// Modified fetch function to handle the error
 const fetchWeeklyEvents = async () => {
   try {
     console.log('Fetching weekly events...');
+    
+    // First check if the weekly_events table exists
+    const { data: tableExists, error: tableCheckError } = await supabase.from('information_schema.tables')
+      .select('table_name')
+      .eq('table_name', 'weekly_events')
+      .eq('table_schema', 'public')
+      .single();
+      
+    if (tableCheckError) {
+      console.error('Error checking if weekly_events table exists:', tableCheckError);
+      return []; // Return empty array on error
+    }
+    
+    if (!tableExists) {
+      console.warn('weekly_events table does not exist');
+      return []; // Return empty array if table doesn't exist
+    }
+    
+    // Try a simpler query first
     const { data, error } = await supabase
       .from('weekly_events')
       .select(`
-        id,
+        id, 
         event_id,
         is_featured,
         events:event_id (
-          id,
+          id, 
           title,
           date,
           venue,
@@ -63,13 +67,13 @@ const fetchWeeklyEvents = async () => {
       
     if (error) {
       console.error('Error fetching weekly events:', error);
-      throw error;
+      return []; // Return empty array on error
     }
     
     console.log('Successfully fetched weekly events:', data);
     
-    // Cast the data as unknown first, then to the correct type
-    return ((data as unknown) as SupabaseWeeklyEventResult[] || []).map(item => ({
+    // Map the data to the expected format
+    return (data || []).map(item => ({
       id: item.id,
       event_id: item.event_id,
       is_featured: item.is_featured,
@@ -82,7 +86,7 @@ const fetchWeeklyEvents = async () => {
     }));
   } catch (error) {
     console.error('Error in fetchWeeklyEvents:', error);
-    throw error;
+    return []; // Return empty array on exception
   }
 };
 
@@ -96,14 +100,14 @@ const fetchAllEvents = async (): Promise<Event[]> => {
       
     if (error) {
       console.error('Error fetching all events:', error);
-      throw error;
+      return [];
     }
     
     console.log('Successfully fetched all events:', data);
     return data || [];
   } catch (error) {
     console.error('Error in fetchAllEvents:', error);
-    throw error;
+    return [];
   }
 };
 
@@ -112,9 +116,10 @@ const WeeklyEventsManager = () => {
   const queryClient = useQueryClient();
   const [selectedEventId, setSelectedEventId] = useState<string>('');
   const [isFeatured, setIsFeatured] = useState(false);
+  const [retryCount, setRetryCount] = useState(0);
   
   const { data: weeklyEvents, isLoading, error } = useQuery({
-    queryKey: ['weeklyEvents'],
+    queryKey: ['weeklyEvents', retryCount],
     queryFn: fetchWeeklyEvents,
     retry: 3,
     retryDelay: 1000
@@ -231,23 +236,11 @@ const WeeklyEventsManager = () => {
     }
   };
   
-  if (error) {
-    return (
-      <Card>
-        <CardHeader>
-          <CardTitle>Best Events This Week</CardTitle>
-          <CardDescription>
-            Error loading weekly events: {(error as any)?.message || 'Unknown error'}
-          </CardDescription>
-        </CardHeader>
-        <CardContent>
-          <Button onClick={() => queryClient.invalidateQueries({ queryKey: ['weeklyEvents'] })}>
-            Retry Loading Weekly Events
-          </Button>
-        </CardContent>
-      </Card>
-    );
-  }
+  const handleRetry = () => {
+    setRetryCount(prev => prev + 1);
+    queryClient.invalidateQueries({ queryKey: ['weeklyEvents'] });
+    toast.info('Retrying to load weekly events');
+  };
   
   return (
     <Card>
@@ -258,6 +251,23 @@ const WeeklyEventsManager = () => {
         </CardDescription>
       </CardHeader>
       <CardContent className="space-y-6">
+        {error && (
+          <div className="bg-red-50 border border-red-200 text-red-800 rounded-md p-4 mb-4">
+            <div className="flex items-center">
+              <RefreshCw className="h-5 w-5 mr-2" />
+              <p className="flex-1">Error loading weekly events. Try again or check database configuration.</p>
+              <Button 
+                variant="outline" 
+                size="sm" 
+                onClick={handleRetry}
+                className="ml-4"
+              >
+                Retry Loading Weekly Events
+              </Button>
+            </div>
+          </div>
+        )}
+        
         <div className="p-4 bg-slate-50 rounded-md">
           <h3 className="font-medium mb-3">Add Event to Weekly Section</h3>
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4 items-end">

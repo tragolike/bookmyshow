@@ -11,6 +11,11 @@ const UpiIdDisplay = ({ upiId }: UpiIdDisplayProps) => {
   const [copied, setCopied] = useState(false);
   
   const copyToClipboard = async () => {
+    if (!upiId || upiId === 'default@upi') {
+      toast.error('No valid UPI ID to copy');
+      return;
+    }
+    
     try {
       await navigator.clipboard.writeText(upiId);
       setCopied(true);
@@ -32,6 +37,11 @@ const UpiIdDisplay = ({ upiId }: UpiIdDisplayProps) => {
       aria-label="Click to copy UPI ID"
       role="button"
       tabIndex={0}
+      onKeyDown={(e) => {
+        if (e.key === 'Enter' || e.key === ' ') {
+          copyToClipboard();
+        }
+      }}
     >
       <span className="font-medium text-gray-800">{upiId || 'default@upi'}</span>
       {copied ? (

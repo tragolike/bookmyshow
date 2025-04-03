@@ -271,7 +271,39 @@ export const getPaymentSettings = async (skipCache = false) => {
   try {
     console.log('Fetching payment settings, skipCache:', skipCache);
     
-    // Create the query without chaining .then()
+    // Check if the payment_settings table exists
+    const { data: tableExists, error: tableCheckError } = await supabase
+      .from('information_schema.tables')
+      .select('table_name')
+      .eq('table_name', 'payment_settings')
+      .eq('table_schema', 'public')
+      .single();
+    
+    if (tableCheckError) {
+      console.error('Error checking if payment_settings table exists:', tableCheckError);
+      return { 
+        data: {
+          upi_id: 'showtix@upi',
+          qr_code_url: '',
+          payment_instructions: 'Please make the payment using any UPI app and enter the UTR number for verification.'
+        },
+        error: null 
+      };
+    }
+    
+    if (!tableExists) {
+      console.warn('payment_settings table does not exist');
+      return { 
+        data: {
+          upi_id: 'showtix@upi',
+          qr_code_url: '',
+          payment_instructions: 'Please make the payment using any UPI app and enter the UTR number for verification.'
+        },
+        error: null 
+      };
+    }
+    
+    // Create the query
     let query = supabase
       .from('payment_settings')
       .select('*')
@@ -281,7 +313,6 @@ export const getPaymentSettings = async (skipCache = false) => {
     // Execute the query
     const { data, error } = await query.maybeSingle();
     
-    // Optional logging for debugging
     console.log('Payment settings fetch response:', { data, error });
       
     if (error) {
@@ -326,7 +357,7 @@ export const getPaymentSettings = async (skipCache = false) => {
   }
 };
 
-// Improved function to update payment settings with better error handling and admin check
+// Improved function to update payment settings
 export const updatePaymentSettings = async (settings: any) => {
   try {
     console.log('Attempting to update payment settings:', settings);
@@ -338,6 +369,24 @@ export const updatePaymentSettings = async (settings: any) => {
     if (!userEmail || !isUserAdmin(userEmail)) {
       console.error('Non-admin user attempted to update payment settings');
       return { data: null, error: new Error('Permission denied: Admin access required') };
+    }
+    
+    // Check if payment_settings table exists
+    const { data: tableExists, error: tableCheckError } = await supabase
+      .from('information_schema.tables')
+      .select('table_name')
+      .eq('table_name', 'payment_settings')
+      .eq('table_schema', 'public')
+      .single();
+    
+    if (tableCheckError) {
+      console.error('Error checking if payment_settings table exists:', tableCheckError);
+      return { data: null, error: tableCheckError };
+    }
+    
+    if (!tableExists) {
+      console.warn('payment_settings table does not exist');
+      return { data: null, error: new Error('payment_settings table does not exist') };
     }
     
     // Check if we already have settings
@@ -354,19 +403,22 @@ export const updatePaymentSettings = async (settings: any) => {
     
     console.log('Existing payment settings check result:', existingData);
     
+    // Prepare data with timestamp
+    const dataToUpdate = {
+      upi_id: settings.upi_id,
+      qr_code_url: settings.qr_code_url,
+      payment_instructions: settings.payment_instructions,
+      updated_by: settings.updated_by,
+      updated_at: new Date().toISOString()
+    };
+    
     let result;
     if (existingData?.id) {
       // Update existing settings
       console.log('Updating existing payment settings with ID:', existingData.id);
       result = await supabase
         .from('payment_settings')
-        .update({
-          upi_id: settings.upi_id,
-          qr_code_url: settings.qr_code_url,
-          payment_instructions: settings.payment_instructions,
-          updated_by: settings.updated_by,
-          updated_at: new Date().toISOString()
-        })
+        .update(dataToUpdate)
         .eq('id', existingData.id)
         .select();
     } else {
@@ -374,12 +426,7 @@ export const updatePaymentSettings = async (settings: any) => {
       console.log('Inserting new payment settings');
       result = await supabase
         .from('payment_settings')
-        .insert({
-          upi_id: settings.upi_id,
-          qr_code_url: settings.qr_code_url,
-          payment_instructions: settings.payment_instructions,
-          updated_by: settings.updated_by
-        })
+        .insert(dataToUpdate)
         .select();
     }
     

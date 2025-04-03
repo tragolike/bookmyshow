@@ -36,8 +36,8 @@ export const usePaymentSettings = () => {
         throw err;
       }
     },
-    staleTime: 1000 * 10,
-    gcTime: 1000 * 60 * 5,
+    staleTime: 1000 * 10, // 10 seconds
+    gcTime: 1000 * 60 * 5, // 5 minutes
     retry: 3,
   });
   
@@ -52,9 +52,13 @@ export const usePaymentSettings = () => {
       }
       return result;
     },
-    onSuccess: () => {
+    onSuccess: (data) => {
       // Invalidate and refetch
       queryClient.invalidateQueries({ queryKey: ['paymentSettings'] });
+      if (data && data.data) {
+        setPaymentSettings(data.data);
+        console.log('Updated payment settings in state:', data.data);
+      }
       toast.success('Payment settings updated successfully');
     },
     onError: (error: any) => {
@@ -99,7 +103,13 @@ export const usePaymentSettings = () => {
   const updateSettings = async (newSettings: PaymentSettings) => {
     try {
       console.log('Updating payment settings:', newSettings);
-      return await mutation.mutateAsync(newSettings);
+      // Make a deep copy to avoid mutation issues
+      const settingsCopy = {
+        ...newSettings,
+        upi_id: newSettings.upi_id.trim() || 'showtix@upi'
+      };
+      
+      return await mutation.mutateAsync(settingsCopy);
     } catch (error) {
       console.error('Error in updateSettings:', error);
       throw error;
