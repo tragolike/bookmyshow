@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
@@ -88,6 +87,7 @@ const fetchAllEvents = async (): Promise<Event[]> => {
 };
 
 const WeeklyEventsManager = () => {
+  
   const isMobile = useIsMobile();
   const queryClient = useQueryClient();
   const [selectedEventId, setSelectedEventId] = useState<string>('');

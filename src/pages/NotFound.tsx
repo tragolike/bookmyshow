@@ -23,7 +23,7 @@ const NotFound = () => {
         
         <Button 
           onClick={handleReturnHome}
-          className="flex items-center justify-center gap-2 px-8 py-6 rounded-full text-lg"
+          className="flex items-center justify-center gap-2 px-8 py-6 rounded-full text-lg bg-book-primary hover:bg-book-primary/90"
           size="lg"
         >
           <Home className="h-5 w-5" />

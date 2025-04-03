@@ -9,7 +9,7 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Alert, AlertDescription } from '@/components/ui/alert';
-import { Loader2, PlusCircle, TrashIcon, Upload, Info } from 'lucide-react';
+import { Loader2, PlusCircle, TrashIcon, Upload, Info, AlertTriangle, RefreshCw } from 'lucide-react';
 import { useIsMobile } from '@/hooks/use-mobile';
 
 interface SpecialOffer {
@@ -25,13 +25,18 @@ interface SpecialOffer {
 }
 
 const fetchSpecialOffers = async () => {
-  const { data, error } = await supabase
-    .from('special_offers')
-    .select('*')
-    .order('created_at', { ascending: false });
-    
-  if (error) throw error;
-  return data || [];
+  try {
+    const { data, error } = await supabase
+      .from('special_offers')
+      .select('*')
+      .order('created_at', { ascending: false });
+      
+    if (error) throw error;
+    return data || [];
+  } catch (error) {
+    console.error('Error fetching special offers:', error);
+    throw error;
+  }
 };
 
 const SpecialOffersManager = () => {
@@ -47,21 +52,29 @@ const SpecialOffersManager = () => {
     discount_percentage: 10
   });
   const [isUploading, setIsUploading] = useState(false);
+  const [retryCount, setRetryCount] = useState(0);
   
-  const { data: offers, isLoading, error } = useQuery({
-    queryKey: ['specialOffers'],
-    queryFn: fetchSpecialOffers
+  const { data: offers, isLoading, error, refetch } = useQuery({
+    queryKey: ['specialOffers', retryCount],
+    queryFn: fetchSpecialOffers,
+    retry: 1,
+    retryDelay: 1000
   });
   
   const createMutation = useMutation({
     mutationFn: async (offer: SpecialOffer) => {
-      const { data, error } = await supabase
-        .from('special_offers')
-        .insert(offer)
-        .select();
-        
-      if (error) throw error;
-      return data;
+      try {
+        const { data, error } = await supabase
+          .from('special_offers')
+          .insert(offer)
+          .select();
+          
+        if (error) throw error;
+        return data;
+      } catch (error) {
+        console.error('Create special offer error:', error);
+        throw error;
+      }
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['specialOffers'] });
@@ -75,9 +88,9 @@ const SpecialOffersManager = () => {
         discount_percentage: 10
       });
     },
-    onError: (error) => {
+    onError: (error: any) => {
       console.error('Error creating special offer:', error);
-      toast.error('Failed to create special offer');
+      toast.error(`Failed to create special offer: ${error.message || 'Unknown error'}`);
     }
   });
   
@@ -94,9 +107,9 @@ const SpecialOffersManager = () => {
       queryClient.invalidateQueries({ queryKey: ['specialOffers'] });
       toast.success('Special offer deleted successfully');
     },
-    onError: (error) => {
+    onError: (error: any) => {
       console.error('Error deleting special offer:', error);
-      toast.error('Failed to delete special offer');
+      toast.error(`Failed to delete special offer: ${error.message || 'Unknown error'}`);
     }
   });
   
@@ -164,13 +177,44 @@ const SpecialOffersManager = () => {
     }
   };
   
+  const handleRetryFetch = () => {
+    setRetryCount(prev => prev + 1);
+    refetch();
+    toast.info('Retrying to fetch special offers...');
+  };
+  
   if (error) {
     return (
-      <Alert variant="destructive">
-        <AlertDescription>
-          Error loading special offers. Please try again later.
-        </AlertDescription>
-      </Alert>
+      <Card>
+        <CardHeader>
+          <CardTitle>Special Offers</CardTitle>
+          <CardDescription>
+            Manage special offers and promotions that appear on the website
+          </CardDescription>
+        </CardHeader>
+        <CardContent>
+          <Alert variant="destructive" className="mb-4">
+            <AlertTriangle className="h-4 w-4 mr-2" />
+            <AlertDescription className="flex items-center justify-between">
+              <span>Error loading special offers. The database table might not exist yet.</span>
+              <Button 
+                variant="outline" 
+                size="sm" 
+                onClick={handleRetryFetch}
+                className="ml-2"
+              >
+                <RefreshCw className="h-4 w-4 mr-2" />
+                Retry
+              </Button>
+            </AlertDescription>
+          </Alert>
+          
+          <Button onClick={() => setActiveTab('create')} className="mt-4">
+            <PlusCircle className="mr-2 h-4 w-4" />
+            Create Your First Offer
+          </Button>
+        </CardContent>
+      </Card>
     );
   }
   

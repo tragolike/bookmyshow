@@ -1,9 +1,10 @@
 
 import { useState, useEffect } from 'react';
-import { CheckCircle2, Loader2 } from 'lucide-react';
+import { CheckCircle2, Loader2, AlertTriangle } from 'lucide-react';
 import { toast } from 'sonner';
 import { Card, CardContent, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
+import { Alert, AlertDescription } from '@/components/ui/alert';
 import { UpiPaymentProps } from './types';
 import PaymentErrorState from './PaymentErrorState';
 import UpiPaymentView from './UpiPaymentView';
@@ -18,6 +19,7 @@ const UpiPayment = ({ amount, reference, onComplete }: UpiPaymentProps) => {
   const [countdown, setCountdown] = useState(900); // 15 minutes countdown
   const [paymentMethod, setPaymentMethod] = useState<'upi' | 'manual'>('upi');
   const [savedUtrNumber, setSavedUtrNumber] = useState<string>('');
+  const [retryCount, setRetryCount] = useState(0);
   const isMobile = useIsMobile();
   
   const { 
@@ -25,7 +27,7 @@ const UpiPayment = ({ amount, reference, onComplete }: UpiPaymentProps) => {
     isLoading, 
     error, 
     refreshPaymentSettings 
-  } = usePaymentSettings(isManualFetch);
+  } = usePaymentSettings(isManualFetch, retryCount);
   
   // Format time as MM:SS
   const formatTime = (seconds: number): string => {
@@ -58,6 +60,7 @@ const UpiPayment = ({ amount, reference, onComplete }: UpiPaymentProps) => {
   
   const refreshPaymentInfo = async () => {
     setIsManualFetch(true);
+    setRetryCount(prev => prev + 1);
     const success = await refreshPaymentSettings();
     setIsManualFetch(false);
     
@@ -92,7 +95,36 @@ const UpiPayment = ({ amount, reference, onComplete }: UpiPaymentProps) => {
   
   // If payment settings are not properly configured, show a refresh option
   if (!paymentSettings || !paymentSettings.upi_id) {
-    return <PaymentErrorState onRefresh={refreshPaymentInfo} />;
+    return (
+      <Card className="max-w-3xl mx-auto">
+        <CardHeader className="bg-amber-50 border-b border-amber-100">
+          <CardTitle className="text-amber-800">Payment Configuration Issue</CardTitle>
+        </CardHeader>
+        <CardContent className="pt-6">
+          <Alert variant="warning" className="mb-6">
+            <AlertTriangle className="h-4 w-4 mr-2" />
+            <AlertDescription>
+              The payment system is not properly configured. This might be a temporary issue.
+            </AlertDescription>
+          </Alert>
+          
+          <div className="flex justify-center">
+            <Button 
+              onClick={refreshPaymentInfo}
+              variant="outline"
+              className="mt-4"
+            >
+              {isManualFetch ? (
+                <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+              ) : (
+                <></>
+              )}
+              Refresh Payment Information
+            </Button>
+          </div>
+        </CardContent>
+      </Card>
+    );
   }
   
   const upiLink = `upi://pay?pa=${paymentSettings.upi_id}&pn=ShowTix&am=${amount}&cu=INR&tn=${reference}`;

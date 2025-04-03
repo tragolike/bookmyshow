@@ -4,7 +4,7 @@ import UpiQrCode from './UpiQrCode';
 import UpiIdDisplay from './UpiIdDisplay';
 import PaymentSummaryCard from './PaymentSummaryCard';
 import { UpiPaymentViewProps } from './types';
-import { ArrowRight, ExternalLink } from 'lucide-react';
+import { ArrowRight, ExternalLink, Smartphone } from 'lucide-react';
 import { useIsMobile } from '@/hooks/use-mobile';
 
 const UpiPaymentView = ({ 
@@ -30,7 +30,7 @@ const UpiPaymentView = ({
             href={upiLink}
             className="inline-flex items-center justify-center gap-2 bg-book-primary text-white py-2 px-4 rounded-md hover:bg-book-primary/90 transition-colors w-full mt-2"
           >
-            <ExternalLink className="h-4 w-4" />
+            <Smartphone className="h-4 w-4" />
             <span>Open in UPI App</span>
           </a>
         </div>
