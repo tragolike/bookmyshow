@@ -266,7 +266,7 @@ export const updateBrandSettings = async (settings: any) => {
   }
 };
 
-// Fix: Don't use .then() which breaks the query builder chain
+// Improved getPaymentSettings function
 export const getPaymentSettings = async (skipCache = false) => {
   try {
     console.log('Fetching payment settings, skipCache:', skipCache);
@@ -282,9 +282,7 @@ export const getPaymentSettings = async (skipCache = false) => {
     const { data, error } = await query.maybeSingle();
     
     // Optional logging for debugging
-    if (skipCache) {
-      console.log('Payment settings fetch response:', { data, error });
-    }
+    console.log('Payment settings fetch response:', { data, error });
       
     if (error) {
       console.error('Error fetching payment settings:', error);
@@ -300,6 +298,7 @@ export const getPaymentSettings = async (skipCache = false) => {
     }
     
     if (!data) {
+      console.log('No payment settings found in database, returning defaults');
       // Return default settings if no data is found
       return { 
         data: {
@@ -330,6 +329,8 @@ export const getPaymentSettings = async (skipCache = false) => {
 // Improved function to update payment settings with better error handling and admin check
 export const updatePaymentSettings = async (settings: any) => {
   try {
+    console.log('Attempting to update payment settings:', settings);
+    
     // Check if user is admin
     const { data: { session } } = await supabase.auth.getSession();
     const userEmail = session?.user?.email;
@@ -351,9 +352,12 @@ export const updatePaymentSettings = async (settings: any) => {
       return { data: null, error: checkError };
     }
     
+    console.log('Existing payment settings check result:', existingData);
+    
     let result;
     if (existingData?.id) {
       // Update existing settings
+      console.log('Updating existing payment settings with ID:', existingData.id);
       result = await supabase
         .from('payment_settings')
         .update(settings)
@@ -361,6 +365,7 @@ export const updatePaymentSettings = async (settings: any) => {
         .select();
     } else {
       // Insert new settings
+      console.log('Inserting new payment settings');
       result = await supabase
         .from('payment_settings')
         .insert(settings)

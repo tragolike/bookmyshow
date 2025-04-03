@@ -22,7 +22,7 @@ const UpiPayment = ({ amount, reference, onComplete }: UpiPaymentProps) => {
   const [retryCount, setRetryCount] = useState(0);
   const isMobile = useIsMobile();
   
-  // Fix 1: Remove the second argument from usePaymentSettings
+  // Use the payment settings hook without any arguments
   const { 
     paymentSettings, 
     isLoading, 
@@ -102,7 +102,6 @@ const UpiPayment = ({ amount, reference, onComplete }: UpiPaymentProps) => {
           <CardTitle className="text-amber-800">Payment Configuration Issue</CardTitle>
         </CardHeader>
         <CardContent className="pt-6">
-          {/* Fix 2: Change variant from "warning" to "destructive" */}
           <Alert variant="destructive" className="mb-6">
             <AlertTriangle className="h-4 w-4 mr-2" />
             <AlertDescription>

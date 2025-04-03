@@ -1,15 +1,14 @@
-import { useState, useEffect } from 'react';
+
+import { useState } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
-import { Input } from '@/components/ui/input';
-import { Checkbox } from '@/components/ui/checkbox';
 import { Label } from '@/components/ui/label';
 import { Switch } from '@/components/ui/switch';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { Loader2, Star, Edit, Trash2, ExternalLink } from 'lucide-react';
+import { Loader2, Star, Trash2, ExternalLink } from 'lucide-react';
 import { useIsMobile } from '@/hooks/use-mobile';
 import { Event } from '@/types/events';
 
@@ -42,52 +41,73 @@ interface SupabaseWeeklyEventResult {
 }
 
 const fetchWeeklyEvents = async () => {
-  const { data, error } = await supabase
-    .from('weekly_events')
-    .select(`
-      id,
-      event_id,
-      is_featured,
-      events:event_id (
+  try {
+    console.log('Fetching weekly events...');
+    const { data, error } = await supabase
+      .from('weekly_events')
+      .select(`
         id,
-        title,
-        date,
-        venue,
-        city,
-        image,
-        price
-      )
-    `)
-    .order('created_at', { ascending: false });
+        event_id,
+        is_featured,
+        events:event_id (
+          id,
+          title,
+          date,
+          venue,
+          city,
+          image,
+          price
+        )
+      `)
+      .order('created_at', { ascending: false });
+      
+    if (error) {
+      console.error('Error fetching weekly events:', error);
+      throw error;
+    }
     
-  if (error) throw error;
-  
-  // Cast the data as unknown first, then to the correct type
-  return ((data as unknown) as SupabaseWeeklyEventResult[] || []).map(item => ({
-    id: item.id,
-    event_id: item.event_id,
-    is_featured: item.is_featured,
-    event_name: item.events?.title,
-    event_date: item.events?.date,
-    event_venue: item.events?.venue,
-    event_city: item.events?.city,
-    event_image: item.events?.image,
-    event_price: item.events?.price
-  }));
+    console.log('Successfully fetched weekly events:', data);
+    
+    // Cast the data as unknown first, then to the correct type
+    return ((data as unknown) as SupabaseWeeklyEventResult[] || []).map(item => ({
+      id: item.id,
+      event_id: item.event_id,
+      is_featured: item.is_featured,
+      event_name: item.events?.title,
+      event_date: item.events?.date,
+      event_venue: item.events?.venue,
+      event_city: item.events?.city,
+      event_image: item.events?.image,
+      event_price: item.events?.price
+    }));
+  } catch (error) {
+    console.error('Error in fetchWeeklyEvents:', error);
+    throw error;
+  }
 };
 
 const fetchAllEvents = async (): Promise<Event[]> => {
-  const { data, error } = await supabase
-    .from('events')
-    .select('*')
-    .order('date', { ascending: true });
+  try {
+    console.log('Fetching all events for dropdown...');
+    const { data, error } = await supabase
+      .from('events')
+      .select('*')
+      .order('date', { ascending: true });
+      
+    if (error) {
+      console.error('Error fetching all events:', error);
+      throw error;
+    }
     
-  if (error) throw error;
-  return data || [];
+    console.log('Successfully fetched all events:', data);
+    return data || [];
+  } catch (error) {
+    console.error('Error in fetchAllEvents:', error);
+    throw error;
+  }
 };
 
 const WeeklyEventsManager = () => {
-  
   const isMobile = useIsMobile();
   const queryClient = useQueryClient();
   const [selectedEventId, setSelectedEventId] = useState<string>('');
@@ -95,22 +115,31 @@ const WeeklyEventsManager = () => {
   
   const { data: weeklyEvents, isLoading, error } = useQuery({
     queryKey: ['weeklyEvents'],
-    queryFn: fetchWeeklyEvents
+    queryFn: fetchWeeklyEvents,
+    retry: 3,
+    retryDelay: 1000
   });
   
-  const { data: allEvents } = useQuery({
+  const { data: allEvents, isLoading: isLoadingEvents } = useQuery({
     queryKey: ['allEvents'],
-    queryFn: fetchAllEvents
+    queryFn: fetchAllEvents,
+    retry: 3
   });
   
   const addEventMutation = useMutation({
     mutationFn: async (weeklyEvent: WeeklyEvent) => {
+      console.log('Adding event to weekly events:', weeklyEvent);
       const { data, error } = await supabase
         .from('weekly_events')
         .insert(weeklyEvent)
         .select();
         
-      if (error) throw error;
+      if (error) {
+        console.error('Error adding weekly event:', error);
+        throw error;
+      }
+      
+      console.log('Successfully added weekly event:', data);
       return data;
     },
     onSuccess: () => {
@@ -119,49 +148,61 @@ const WeeklyEventsManager = () => {
       setSelectedEventId('');
       setIsFeatured(false);
     },
-    onError: (error) => {
+    onError: (error: any) => {
       console.error('Error adding event to weekly events:', error);
-      toast.error('Failed to add event to weekly events');
+      toast.error(`Failed to add event to weekly events: ${error.message || 'Unknown error'}`);
     }
   });
   
   const updateEventMutation = useMutation({
     mutationFn: async ({ id, is_featured }: { id: string, is_featured: boolean }) => {
+      console.log('Updating weekly event:', { id, is_featured });
       const { data, error } = await supabase
         .from('weekly_events')
         .update({ is_featured })
         .eq('id', id)
         .select();
         
-      if (error) throw error;
+      if (error) {
+        console.error('Error updating weekly event:', error);
+        throw error;
+      }
+      
+      console.log('Successfully updated weekly event:', data);
       return data;
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['weeklyEvents'] });
       toast.success('Weekly event updated successfully');
     },
-    onError: (error) => {
+    onError: (error: any) => {
       console.error('Error updating weekly event:', error);
-      toast.error('Failed to update weekly event');
+      toast.error(`Failed to update weekly event: ${error.message || 'Unknown error'}`);
     }
   });
   
   const removeEventMutation = useMutation({
     mutationFn: async (id: string) => {
+      console.log('Removing event from weekly events:', id);
       const { error } = await supabase
         .from('weekly_events')
         .delete()
         .eq('id', id);
         
-      if (error) throw error;
+      if (error) {
+        console.error('Error removing weekly event:', error);
+        throw error;
+      }
+      
+      console.log('Successfully removed weekly event');
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['weeklyEvents'] });
       toast.success('Event removed from weekly events');
     },
-    onError: (error) => {
+    onError: (error: any) => {
       console.error('Error removing event from weekly events:', error);
-      toast.error('Failed to remove event from weekly events');
+      toast.error(`Failed to remove event from weekly events: ${error.message || 'Unknown error'}`);
     }
   });
   
@@ -190,6 +231,24 @@ const WeeklyEventsManager = () => {
     }
   };
   
+  if (error) {
+    return (
+      <Card>
+        <CardHeader>
+          <CardTitle>Best Events This Week</CardTitle>
+          <CardDescription>
+            Error loading weekly events: {(error as any)?.message || 'Unknown error'}
+          </CardDescription>
+        </CardHeader>
+        <CardContent>
+          <Button onClick={() => queryClient.invalidateQueries({ queryKey: ['weeklyEvents'] })}>
+            Retry Loading Weekly Events
+          </Button>
+        </CardContent>
+      </Card>
+    );
+  }
+  
   return (
     <Card>
       <CardHeader>
@@ -209,11 +268,17 @@ const WeeklyEventsManager = () => {
                   <SelectValue placeholder="Select an event" />
                 </SelectTrigger>
                 <SelectContent>
-                  {allEvents?.map((event) => (
-                    <SelectItem key={event.id} value={event.id}>
-                      {event.title} - {event.date}
-                    </SelectItem>
-                  ))}
+                  {isLoadingEvents ? (
+                    <SelectItem value="loading" disabled>Loading events...</SelectItem>
+                  ) : allEvents && allEvents.length > 0 ? (
+                    allEvents.map((event) => (
+                      <SelectItem key={event.id} value={event.id}>
+                        {event.title} - {event.date}
+                      </SelectItem>
+                    ))
+                  ) : (
+                    <SelectItem value="none" disabled>No events available</SelectItem>
+                  )}
                 </SelectContent>
               </Select>
             </div>

@@ -26,12 +26,18 @@ interface SpecialOffer {
 
 const fetchSpecialOffers = async () => {
   try {
+    console.log('Fetching special offers...');
     const { data, error } = await supabase
       .from('special_offers')
       .select('*')
       .order('created_at', { ascending: false });
       
-    if (error) throw error;
+    if (error) {
+      console.error('Error from Supabase when fetching special offers:', error);
+      throw error;
+    }
+    
+    console.log('Successfully fetched special offers:', data);
     return data || [];
   } catch (error) {
     console.error('Error fetching special offers:', error);
@@ -57,19 +63,25 @@ const SpecialOffersManager = () => {
   const { data: offers, isLoading, error, refetch } = useQuery({
     queryKey: ['specialOffers', retryCount],
     queryFn: fetchSpecialOffers,
-    retry: 1,
+    retry: 3,
     retryDelay: 1000
   });
   
   const createMutation = useMutation({
     mutationFn: async (offer: SpecialOffer) => {
       try {
+        console.log('Creating special offer:', offer);
         const { data, error } = await supabase
           .from('special_offers')
           .insert(offer)
           .select();
           
-        if (error) throw error;
+        if (error) {
+          console.error('Error from Supabase when creating special offer:', error);
+          throw error;
+        }
+        
+        console.log('Successfully created special offer:', data);
         return data;
       } catch (error) {
         console.error('Create special offer error:', error);
@@ -125,30 +137,21 @@ const SpecialOffersManager = () => {
       const fileName = `${Math.random().toString(36).substring(2, 15)}.${fileExt}`;
       const filePath = `special_offers/${fileName}`;
       
-      // Check if bucket exists and create if needed
-      const { data: bucketExists } = await supabase.storage.getBucket('marketing_assets');
-      
-      if (!bucketExists) {
-        await supabase.storage.createBucket('marketing_assets', {
-          public: true
-        });
-      }
-      
       // Upload the file
-      const { error: uploadError } = await supabase.storage
+      const { error: uploadError, data } = await supabase.storage
         .from('marketing_assets')
         .upload(filePath, file);
         
       if (uploadError) throw uploadError;
       
       // Get the public URL
-      const { data } = supabase.storage
+      const { data: urlData } = supabase.storage
         .from('marketing_assets')
         .getPublicUrl(filePath);
         
       setNewOffer({
         ...newOffer,
-        image_url: data.publicUrl
+        image_url: urlData.publicUrl
       });
       
       toast.success('Image uploaded successfully');
@@ -196,7 +199,7 @@ const SpecialOffersManager = () => {
           <Alert variant="destructive" className="mb-4">
             <AlertTriangle className="h-4 w-4 mr-2" />
             <AlertDescription className="flex items-center justify-between">
-              <span>Error loading special offers. The database table might not exist yet.</span>
+              <span>Error loading special offers: {(error as any)?.message || 'Unknown error'}</span>
               <Button 
                 variant="outline" 
                 size="sm" 

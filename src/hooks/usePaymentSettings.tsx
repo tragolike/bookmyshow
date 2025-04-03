@@ -13,7 +13,7 @@ export interface PaymentSettings {
   updated_by?: string;
 }
 
-export const usePaymentSettings = (isManualFetch = false) => {
+export const usePaymentSettings = () => {
   const [paymentSettings, setPaymentSettings] = useState<PaymentSettings | null>(null);
   const queryClient = useQueryClient();
   
@@ -25,9 +25,8 @@ export const usePaymentSettings = (isManualFetch = false) => {
     refetch 
   } = useQuery({
     queryKey: ['paymentSettings'],
-    queryFn: () => getPaymentSettings(true), // Pass skipCache=true here
-    enabled: !isManualFetch, // Only auto-fetch if not manually triggered
-    staleTime: 1000 * 30, // 30 seconds
+    queryFn: () => getPaymentSettings(true), // Always pass skipCache=true to ensure fresh data
+    staleTime: 1000 * 10, // 10 seconds
     gcTime: 1000 * 60 * 5, // 5 minutes
     retry: 3,
   });
@@ -58,11 +57,9 @@ export const usePaymentSettings = (isManualFetch = false) => {
         payment_instructions: 'Please make the payment using any UPI app and enter the UTR number for verification.'
       });
       
-      if (!isManualFetch) {
-        toast.error('Using default payment information');
-      }
+      toast.error('Unable to load payment settings. Using defaults.');
     }
-  }, [data, error, isManualFetch]);
+  }, [data, error]);
   
   const refreshPaymentSettings = async () => {
     try {
@@ -81,7 +78,13 @@ export const usePaymentSettings = (isManualFetch = false) => {
   };
   
   const updateSettings = async (newSettings: PaymentSettings) => {
-    return mutation.mutate(newSettings);
+    try {
+      console.log('Updating payment settings:', newSettings);
+      return mutation.mutate(newSettings);
+    } catch (error) {
+      console.error('Error in updateSettings:', error);
+      throw error;
+    }
   };
   
   return { 

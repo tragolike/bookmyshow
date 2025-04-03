@@ -19,7 +19,7 @@ const PaymentSettingsForm = () => {
     isUpdating, 
     updateSettings, 
     refreshPaymentSettings 
-  } = usePaymentSettings(false);
+  } = usePaymentSettings();
   
   // Payment settings state
   const [upiId, setUpiId] = useState('showtix@upi');
@@ -31,6 +31,7 @@ const PaymentSettingsForm = () => {
   // Update local state when payment settings change
   useEffect(() => {
     if (paymentSettings) {
+      console.log("Setting UPI ID from payment settings:", paymentSettings.upi_id);
       setUpiId(paymentSettings.upi_id || 'showtix@upi');
       setQrCodeUrl(paymentSettings.qr_code_url || '');
       setPaymentInstructions(paymentSettings.payment_instructions || 'Please make the payment using any UPI app and enter the UTR number for verification.');
@@ -86,6 +87,8 @@ const PaymentSettingsForm = () => {
       return;
     }
     
+    console.log("Saving UPI ID:", upiId);
+    
     const settingsToSave: PaymentSettings = {
       upi_id: upiId,
       qr_code_url: qrCodeUrl,
@@ -125,7 +128,10 @@ const PaymentSettingsForm = () => {
           <UpiSettingsTab
             upiId={upiId}
             qrCodeUrl={qrCodeUrl}
-            onUpiIdChange={setUpiId}
+            onUpiIdChange={(value) => {
+              console.log("UPI ID changed to:", value);
+              setUpiId(value);
+            }}
             onQrCodeUrlChange={setQrCodeUrl}
             onGenerateQR={handleGenerateQR}
             onQrUpload={handleQrUpload}
