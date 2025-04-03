@@ -1,4 +1,3 @@
-
 import { useState } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
@@ -24,12 +23,10 @@ interface WeeklyEvent {
   event_price?: number;
 }
 
-// Modified fetch function to handle the error
 const fetchWeeklyEvents = async () => {
   try {
     console.log('Fetching weekly events...');
     
-    // First check if the weekly_events table exists
     const { data: tableExists, error: tableCheckError } = await supabase.from('information_schema.tables')
       .select('table_name')
       .eq('table_name', 'weekly_events')
@@ -38,15 +35,14 @@ const fetchWeeklyEvents = async () => {
       
     if (tableCheckError) {
       console.error('Error checking if weekly_events table exists:', tableCheckError);
-      return []; // Return empty array on error
+      return [];
     }
     
     if (!tableExists) {
       console.warn('weekly_events table does not exist');
-      return []; // Return empty array if table doesn't exist
+      return [];
     }
     
-    // Try a simpler query first
     const { data, error } = await supabase
       .from('weekly_events')
       .select(`
@@ -67,12 +63,11 @@ const fetchWeeklyEvents = async () => {
       
     if (error) {
       console.error('Error fetching weekly events:', error);
-      return []; // Return empty array on error
+      return [];
     }
     
     console.log('Successfully fetched weekly events:', data);
     
-    // Map the data to the expected format
     return (data || []).map(item => ({
       id: item.id,
       event_id: item.event_id,
@@ -86,7 +81,7 @@ const fetchWeeklyEvents = async () => {
     }));
   } catch (error) {
     console.error('Error in fetchWeeklyEvents:', error);
-    return []; // Return empty array on exception
+    return [];
   }
 };
 
