@@ -1,8 +1,7 @@
-
 import { useState, useEffect } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { ChevronLeft, ChevronRight } from 'lucide-react';
-import { supabase } from '@/integrations/supabase/client';
+import { supabase, getHeroSlides } from '@/integrations/supabase/client';
 import { Button } from '@/components/ui/button';
 import { cn } from '@/lib/utils';
 import { toast } from 'sonner';
@@ -28,31 +27,17 @@ const HeroSection = () => {
   useEffect(() => {
     const fetchSlides = async () => {
       try {
-        // Check if the hero_slides table exists
-        const { error: tableCheckError } = await supabase
-          .from('hero_slides')
-          .select('id')
-          .limit(1);
-          
-        if (tableCheckError && tableCheckError.code === '42P01') {
-          console.log('Hero slides table does not exist yet, using default slides');
-          setSlides(defaultSlides);
-          setIsLoading(false);
-          return;
-        }
-        
-        const { data, error } = await supabase
-          .from('hero_slides')
-          .select('*')
-          .eq('is_active', true)
-          .order('sort_order', { ascending: true });
+        // Fetch slides with the improved getHeroSlides function
+        const { data, error } = await getHeroSlides(true, true); // skipCache=true, activeOnly=true
         
         if (error) throw error;
         
         if (data && data.length > 0) {
+          console.log('Loaded hero slides:', data);
           setSlides(data);
         } else {
           // No active slides found, use defaults
+          console.log('No active slides found, using defaults');
           setSlides(defaultSlides);
         }
       } catch (error) {

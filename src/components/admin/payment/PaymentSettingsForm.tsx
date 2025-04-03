@@ -1,17 +1,25 @@
 
 import { useState, useEffect } from 'react';
-import { supabase, getPaymentSettings, uploadFile } from '@/integrations/supabase/client';
+import { uploadFile } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import UpiSettingsTab from './UpiSettingsTab';
 import { useAuth } from '@/contexts/AuthContext';
 import { Loader2 } from 'lucide-react';
+import { usePaymentSettings, PaymentSettings } from '@/hooks/usePaymentSettings';
 
 const PaymentSettingsForm = () => {
   const { user } = useAuth();
-  const [isLoading, setIsLoading] = useState(true);
-  const [isSaving, setIsSaving] = useState(false);
   const [activeTab, setActiveTab] = useState('upi');
+
+  // Use our updated payment settings hook
+  const { 
+    paymentSettings, 
+    isLoading, 
+    isUpdating, 
+    updateSettings, 
+    refreshPaymentSettings 
+  } = usePaymentSettings(false);
   
   // Payment settings state
   const [upiId, setUpiId] = useState('showtix@upi');
@@ -20,67 +28,14 @@ const PaymentSettingsForm = () => {
     'Please make the payment using any UPI app and enter the UTR number for verification.'
   );
   
-  // Load payment settings on mount
+  // Update local state when payment settings change
   useEffect(() => {
-    fetchPaymentSettings();
-  }, []);
-  
-  const fetchPaymentSettings = async () => {
-    try {
-      setIsLoading(true);
-      console.log('Fetching payment settings...');
-      
-      const { data, error } = await getPaymentSettings();
-      
-      if (error) {
-        console.error('Error fetching payment settings:', error);
-        toast.error('Could not load payment settings');
-        // Use default values which are already set
-        return;
-      }
-      
-      if (data) {
-        console.log('Payment settings loaded:', data);
-        setUpiId(data.upi_id || 'showtix@upi');
-        setQrCodeUrl(data.qr_code_url || '');
-        setPaymentInstructions(data.payment_instructions || 'Please make the payment using any UPI app and enter the UTR number for verification.');
-      }
-    } catch (error) {
-      console.error('Exception while fetching payment settings:', error);
-      toast.error('Failed to load payment settings');
-    } finally {
-      setIsLoading(false);
+    if (paymentSettings) {
+      setUpiId(paymentSettings.upi_id || 'showtix@upi');
+      setQrCodeUrl(paymentSettings.qr_code_url || '');
+      setPaymentInstructions(paymentSettings.payment_instructions || 'Please make the payment using any UPI app and enter the UTR number for verification.');
     }
-  };
-  
-  const handleSaveSettings = async () => {
-    setIsSaving(true);
-    try {
-      console.log('Saving payment settings...');
-      const { error } = await supabase
-        .from('payment_settings')
-        .upsert({
-          upi_id: upiId,
-          qr_code_url: qrCodeUrl,
-          payment_instructions: paymentInstructions,
-          updated_by: user?.id,
-          updated_at: new Date().toISOString()
-        }, {
-          onConflict: 'id'
-        });
-      
-      if (error) {
-        throw error;
-      }
-      
-      toast.success('Payment settings saved successfully');
-    } catch (error: any) {
-      console.error('Error saving payment settings:', error);
-      toast.error(error.message || 'Failed to save payment settings');
-    } finally {
-      setIsSaving(false);
-    }
-  };
+  }, [paymentSettings]);
   
   const handleGenerateQR = async () => {
     try {
@@ -125,6 +80,32 @@ const PaymentSettingsForm = () => {
     }
   };
   
+  const handleSaveSettings = async () => {
+    if (!user?.id) {
+      toast.error('You must be logged in to save settings');
+      return;
+    }
+    
+    const settingsToSave: PaymentSettings = {
+      upi_id: upiId,
+      qr_code_url: qrCodeUrl,
+      payment_instructions: paymentInstructions,
+      updated_by: user.id,
+    };
+    
+    try {
+      // Use our mutation from the hook
+      await updateSettings(settingsToSave);
+      
+      // Force refresh after updating to ensure we have the latest data
+      setTimeout(() => {
+        refreshPaymentSettings();
+      }, 500);
+    } catch (error) {
+      console.error('Error in handleSaveSettings:', error);
+    }
+  };
+  
   if (isLoading) {
     return (
       <div className="flex justify-center py-12">
@@ -157,9 +138,9 @@ const PaymentSettingsForm = () => {
           type="button"
           className="px-4 py-2 bg-primary text-white rounded-md hover:bg-primary/90 transition-colors"
           onClick={handleSaveSettings}
-          disabled={isSaving}
+          disabled={isUpdating}
         >
-          {isSaving ? (
+          {isUpdating ? (
             <>
               <Loader2 className="mr-2 h-4 w-4 animate-spin inline" />
               Saving...

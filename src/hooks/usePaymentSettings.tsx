@@ -1,12 +1,21 @@
 
 import { useState, useEffect } from 'react';
-import { getPaymentSettings } from '@/integrations/supabase/client';
-import { PaymentSettings } from '@/components/payment/types';
+import { getPaymentSettings, updatePaymentSettings } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
-import { useQuery } from '@tanstack/react-query';
+import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
+
+export interface PaymentSettings {
+  id?: string;
+  upi_id: string;
+  qr_code_url?: string;
+  payment_instructions?: string;
+  updated_at?: string;
+  updated_by?: string;
+}
 
 export const usePaymentSettings = (isManualFetch = false) => {
   const [paymentSettings, setPaymentSettings] = useState<PaymentSettings | null>(null);
+  const queryClient = useQueryClient();
   
   const { 
     data, 
@@ -15,11 +24,24 @@ export const usePaymentSettings = (isManualFetch = false) => {
     refetch 
   } = useQuery({
     queryKey: ['paymentSettings'],
-    queryFn: getPaymentSettings,
+    queryFn: () => getPaymentSettings(true), // Force skip cache
     enabled: !isManualFetch, // Only auto-fetch if not manually triggered
-    staleTime: 1000 * 60 * 5, // 5 minutes
-    gcTime: 1000 * 60 * 10, // 10 minutes
+    staleTime: 1000 * 30, // 30 seconds
+    gcTime: 1000 * 60 * 5, // 5 minutes
     retry: 3,
+  });
+  
+  const mutation = useMutation({
+    mutationFn: (newSettings: PaymentSettings) => updatePaymentSettings(newSettings),
+    onSuccess: () => {
+      // Invalidate and refetch
+      queryClient.invalidateQueries({ queryKey: ['paymentSettings'] });
+      toast.success('Payment settings updated successfully');
+    },
+    onError: (error: any) => {
+      console.error('Error updating payment settings:', error);
+      toast.error(`Failed to update payment settings: ${error?.message || 'Unknown error'}`);
+    }
   });
   
   useEffect(() => {
@@ -57,10 +79,16 @@ export const usePaymentSettings = (isManualFetch = false) => {
     }
   };
   
+  const updateSettings = async (newSettings: PaymentSettings) => {
+    return mutation.mutate(newSettings);
+  };
+  
   return { 
     paymentSettings, 
     isLoading, 
     error, 
-    refreshPaymentSettings 
+    isUpdating: mutation.isPending,
+    refreshPaymentSettings,
+    updateSettings
   };
 };

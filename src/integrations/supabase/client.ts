@@ -1,3 +1,4 @@
+
 import { createClient } from '@supabase/supabase-js';
 import type { EventStatus } from '@/types/events';
 
@@ -10,6 +11,11 @@ export const supabase = createClient(supabaseUrl, supabaseKey, {
     persistSession: true,
     autoRefreshToken: true,
     storageKey: 'showtix-auth'
+  },
+  global: {
+    headers: {
+      'x-application-name': 'showtix'
+    }
   }
 });
 
@@ -67,7 +73,7 @@ export const ensureBucketExists = async (bucketId: string, bucketName: string) =
       
       if (createError) {
         console.error(`Error creating bucket ${bucketId}:`, createError);
-        if (createError.message.includes('already exists')) {
+        if (createError.message?.includes('already exists')) {
           console.log(`Bucket ${bucketId} already exists despite list not showing it`);
           return { success: true, error: null, already_exists: true };
         }
@@ -86,7 +92,7 @@ export const ensureBucketExists = async (bucketId: string, bucketName: string) =
   }
 };
 
-// Improved upload file to Supabase Storage with better error handling
+// Improved upload file to Supabase Storage with better error handling and admin functionality
 export const uploadFile = async (file: File, bucketId: string, folderPath: string = '') => {
   try {
     // First ensure the bucket exists
@@ -106,6 +112,14 @@ export const uploadFile = async (file: File, bucketId: string, folderPath: strin
     
     console.log(`Uploading file to ${bucketId}/${filePath}`);
     
+    // Get session to check if user is admin
+    const { data: { session } } = await supabase.auth.getSession();
+    const userEmail = session?.user?.email;
+    
+    if (!userEmail || !isUserAdmin(userEmail)) {
+      console.warn('User is not an admin, upload may fail due to permissions');
+    }
+    
     // Upload the file
     const { data, error } = await supabase.storage
       .from(bucketId)
@@ -116,7 +130,7 @@ export const uploadFile = async (file: File, bucketId: string, folderPath: strin
       
     if (error) {
       console.error('Error uploading file:', error);
-      return { error };
+      return { error, url: null, path: null };
     }
     
     // Generate the public URL
@@ -137,15 +151,25 @@ export const uploadFile = async (file: File, bucketId: string, folderPath: strin
   }
 };
 
-// Improved function to fetch brand settings with fallback
-export const getBrandSettings = async () => {
+// Improved function to fetch brand settings with enhanced error handling and caching control
+export const getBrandSettings = async (skipCache = false) => {
   try {
-    const { data, error } = await supabase
+    console.log('Fetching brand settings, skipCache:', skipCache);
+    let query = supabase
       .from('brand_settings')
       .select('*')
       .order('updated_at', { ascending: false })
-      .limit(1)
-      .maybeSingle();
+      .limit(1);
+    
+    if (skipCache) {
+      query = query.then(res => {
+        // Log for debugging
+        console.log('Brand settings fetch response:', res);
+        return res;
+      });
+    }
+    
+    const { data, error } = await query.maybeSingle();
       
     if (error) {
       console.error('Error fetching brand settings:', error);
@@ -190,9 +214,18 @@ export const getBrandSettings = async () => {
   }
 };
 
-// Improved function to update brand settings with better error handling
+// Improved function to update brand settings with better error handling and admin check
 export const updateBrandSettings = async (settings: any) => {
   try {
+    // Check if user is admin
+    const { data: { session } } = await supabase.auth.getSession();
+    const userEmail = session?.user?.email;
+    
+    if (!userEmail || !isUserAdmin(userEmail)) {
+      console.error('Non-admin user attempted to update brand settings');
+      return { data: null, error: new Error('Permission denied: Admin access required') };
+    }
+    
     // Check if we already have settings
     const { data: existingData, error: checkError } = await supabase
       .from('brand_settings')
@@ -226,6 +259,7 @@ export const updateBrandSettings = async (settings: any) => {
       return { data: null, error: result.error };
     }
     
+    console.log('Brand settings updated successfully:', result.data);
     return { data: result.data, error: null };
   } catch (error) {
     console.error('Error updating brand settings:', error);
@@ -233,15 +267,25 @@ export const updateBrandSettings = async (settings: any) => {
   }
 };
 
-// Improved get payment settings with better fallback and error handling
-export const getPaymentSettings = async () => {
+// Improved get payment settings with better fallback, error handling, and caching control
+export const getPaymentSettings = async (skipCache = false) => {
   try {
-    const { data, error } = await supabase
+    console.log('Fetching payment settings, skipCache:', skipCache);
+    let query = supabase
       .from('payment_settings')
       .select('*')
       .order('updated_at', { ascending: false })
-      .limit(1)
-      .maybeSingle();
+      .limit(1);
+    
+    if (skipCache) {
+      query = query.then(res => {
+        // Log for debugging
+        console.log('Payment settings fetch response:', res);
+        return res;
+      });
+    }
+    
+    const { data, error } = await query.maybeSingle();
       
     if (error) {
       console.error('Error fetching payment settings:', error);
@@ -268,6 +312,7 @@ export const getPaymentSettings = async () => {
       };
     }
     
+    console.log('Payment settings data loaded:', data);
     return { data, error: null };
   } catch (error) {
     console.error('Error fetching payment settings:', error);
@@ -280,6 +325,94 @@ export const getPaymentSettings = async () => {
       }, 
       error: null 
     };
+  }
+};
+
+// Updated function to save payment settings with proper admin checks
+export const updatePaymentSettings = async (settings: any) => {
+  try {
+    // Check if user is admin
+    const { data: { session } } = await supabase.auth.getSession();
+    const userEmail = session?.user?.email;
+    
+    if (!userEmail || !isUserAdmin(userEmail)) {
+      console.error('Non-admin user attempted to update payment settings');
+      return { data: null, error: new Error('Permission denied: Admin access required') };
+    }
+    
+    // Check if we already have settings
+    const { data: existingData, error: checkError } = await supabase
+      .from('payment_settings')
+      .select('id')
+      .limit(1)
+      .maybeSingle();
+      
+    if (checkError) {
+      console.error('Error checking existing payment settings:', checkError);
+      return { data: null, error: checkError };
+    }
+    
+    let result;
+    if (existingData?.id) {
+      // Update existing settings
+      result = await supabase
+        .from('payment_settings')
+        .update(settings)
+        .eq('id', existingData.id)
+        .select();
+    } else {
+      // Insert new settings
+      result = await supabase
+        .from('payment_settings')
+        .insert(settings)
+        .select();
+    }
+    
+    if (result.error) {
+      console.error('Error updating payment settings:', result.error);
+      return { data: null, error: result.error };
+    }
+    
+    console.log('Payment settings updated successfully:', result.data);
+    return { data: result.data, error: null };
+  } catch (error) {
+    console.error('Error updating payment settings:', error);
+    return { data: null, error };
+  }
+};
+
+// Fetch hero slides with improved error handling and caching control
+export const getHeroSlides = async (skipCache = false, activeOnly = false) => {
+  try {
+    console.log('Fetching hero slides, skipCache:', skipCache, 'activeOnly:', activeOnly);
+    let query = supabase
+      .from('hero_slides')
+      .select('*')
+      .order('sort_order', { ascending: true });
+    
+    if (activeOnly) {
+      query = query.eq('is_active', true);
+    }
+    
+    if (skipCache) {
+      query = query.then(res => {
+        // Log for debugging
+        console.log('Hero slides fetch response:', res);
+        return res;
+      });
+    }
+    
+    const { data, error } = await query;
+      
+    if (error) {
+      console.error('Error fetching hero slides:', error);
+      return { data: null, error };
+    }
+    
+    return { data, error: null };
+  } catch (error) {
+    console.error('Error fetching hero slides:', error);
+    return { data: null, error };
   }
 };
 
