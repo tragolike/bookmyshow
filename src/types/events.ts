@@ -1,5 +1,5 @@
 
-export type EventStatus = 'available' | 'sold_out' | 'cancelled' | 'postponed' | 'ongoing';
+export type EventStatus = 'available' | 'sold_out' | 'cancelled' | 'postponed' | 'ongoing' | 'fast-filling';
 
 export interface Event {
   id: string;
@@ -14,4 +14,13 @@ export interface Event {
   status: EventStatus;
   interested?: number;
   created_at?: string;
+}
+
+export interface Seat {
+  id: string;
+  row: string;
+  number: number;
+  status: 'available' | 'unavailable' | 'booked';
+  price: number;
+  category: string;
 }
