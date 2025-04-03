@@ -63,8 +63,8 @@ const fetchWeeklyEvents = async () => {
     
   if (error) throw error;
   
-  // Cast to the correct type and map the data
-  return (data as SupabaseWeeklyEventResult[] || []).map(item => ({
+  // Cast the data as unknown first, then to the correct type
+  return ((data as unknown) as SupabaseWeeklyEventResult[] || []).map(item => ({
     id: item.id,
     event_id: item.event_id,
     is_featured: item.is_featured,
