@@ -1,3 +1,4 @@
+
 import { useState, useEffect } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
@@ -25,7 +26,8 @@ interface WeeklyEvent {
   event_price?: number;
 }
 
-interface WeeklyEventJoinResult {
+// Define the exact shape of the data returned from Supabase
+interface SupabaseWeeklyEventResult {
   id: string;
   event_id: string;
   is_featured: boolean;
@@ -61,7 +63,8 @@ const fetchWeeklyEvents = async () => {
     
   if (error) throw error;
   
-  return (data as WeeklyEventJoinResult[] || []).map(item => ({
+  // Cast to the correct type and map the data
+  return (data as SupabaseWeeklyEventResult[] || []).map(item => ({
     id: item.id,
     event_id: item.event_id,
     is_featured: item.is_featured,
