@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
@@ -26,6 +25,21 @@ interface WeeklyEvent {
   event_price?: number;
 }
 
+interface WeeklyEventJoinResult {
+  id: string;
+  event_id: string;
+  is_featured: boolean;
+  events: {
+    id: string;
+    title: string;
+    date: string;
+    venue: string;
+    city: string;
+    image: string;
+    price: number;
+  } | null;
+}
+
 const fetchWeeklyEvents = async () => {
   const { data, error } = await supabase
     .from('weekly_events')
@@ -47,8 +61,7 @@ const fetchWeeklyEvents = async () => {
     
   if (error) throw error;
   
-  // Transform the data for easier use in the UI
-  return (data || []).map(item => ({
+  return (data as WeeklyEventJoinResult[] || []).map(item => ({
     id: item.id,
     event_id: item.event_id,
     is_featured: item.is_featured,
@@ -64,7 +77,7 @@ const fetchWeeklyEvents = async () => {
 const fetchAllEvents = async (): Promise<Event[]> => {
   const { data, error } = await supabase
     .from('events')
-    .select('id, title, date, venue, city')
+    .select('*')
     .order('date', { ascending: true });
     
   if (error) throw error;
