@@ -127,7 +127,8 @@ const BookingPage = () => {
       return;
     }
     
-    navigate(`/payment`, {
+    // Fix: Navigate to booking-confirmation instead of payment
+    navigate(`/booking-confirmation`, {
       state: {
         eventId,
         eventName: event.title,

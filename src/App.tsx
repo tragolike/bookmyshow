@@ -15,6 +15,7 @@ const Index = lazy(() => import("./pages/Index"));
 const EventDetail = lazy(() => import("./pages/EventDetail"));
 const BookingPage = lazy(() => import("./pages/BookingPage"));
 const BookingConfirmation = lazy(() => import("./pages/BookingConfirmation"));
+const PaymentPage = lazy(() => import("./pages/PaymentPage")); // Add Payment Page
 const LoginPage = lazy(() => import("./pages/auth/LoginPage"));
 const RegisterPage = lazy(() => import("./pages/auth/RegisterPage"));
 const PasswordReset = lazy(() => import("./components/auth/PasswordReset"));
@@ -103,6 +104,7 @@ const App = () => {
                   <Route path="/" element={<Index />} />
                   <Route path="/events/:id" element={<EventDetail />} />
                   <Route path="/events/:id/booking" element={<UserRoute element={<BookingPage />} />} />
+                  <Route path="/payment" element={<UserRoute element={<PaymentPage />} />} />
                   <Route path="/booking-confirmation" element={<UserRoute element={<BookingConfirmation />} />} />
                   <Route path="/login" element={<LoginPage />} />
                   <Route path="/register" element={<RegisterPage />} />
