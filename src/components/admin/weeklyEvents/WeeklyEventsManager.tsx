@@ -1,3 +1,4 @@
+
 import { useState } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
@@ -21,6 +22,22 @@ interface WeeklyEvent {
   event_city?: string;
   event_image?: string;
   event_price?: number;
+}
+
+// Define a type for the events nested object in the response
+interface EventsResponse {
+  id: string;
+  event_id: string;
+  is_featured: boolean;
+  events: {
+    id: string;
+    title: string;
+    date: string;
+    venue: string;
+    city: string;
+    image: string;
+    price: number;
+  } | null;
 }
 
 const fetchWeeklyEvents = async () => {
@@ -68,7 +85,8 @@ const fetchWeeklyEvents = async () => {
     
     console.log('Successfully fetched weekly events:', data);
     
-    return (data || []).map(item => ({
+    // Cast the data to the correct type and map it
+    return (data as EventsResponse[] || []).map(item => ({
       id: item.id,
       event_id: item.event_id,
       is_featured: item.is_featured,
