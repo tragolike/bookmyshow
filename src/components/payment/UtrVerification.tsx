@@ -1,5 +1,5 @@
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { Loader2, AlertTriangle, CheckCircle2 } from 'lucide-react';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -8,10 +8,21 @@ import { Alert, AlertTitle, AlertDescription } from '@/components/ui/alert';
 import PaymentCountdown from './PaymentCountdown';
 import { UtrVerificationProps } from './types';
 
-const UtrVerification = ({ amount, upiId, countdown, onVerify }: UtrVerificationProps) => {
+interface ExtendedUtrVerificationProps extends UtrVerificationProps {
+  savedUtrNumber?: string;
+}
+
+const UtrVerification = ({ amount, upiId, countdown, onVerify, savedUtrNumber = '' }: ExtendedUtrVerificationProps) => {
   const [utrNumber, setUtrNumber] = useState('');
   const [utrError, setUtrError] = useState('');
   const [isVerifying, setIsVerifying] = useState(false);
+  
+  // Use the saved UTR number if available
+  useEffect(() => {
+    if (savedUtrNumber) {
+      setUtrNumber(savedUtrNumber);
+    }
+  }, [savedUtrNumber]);
   
   // UTR validation regex
   const utrRegex = /^[A-Z0-9]{12,22}$/;
@@ -39,11 +50,12 @@ const UtrVerification = ({ amount, upiId, countdown, onVerify }: UtrVerification
     }
     
     setIsVerifying(true);
-    // Pass UTR to parent component for verification
+    
+    // Simulate verification delay for better UX
     setTimeout(() => {
       setIsVerifying(false);
       onVerify(utrNumber);
-    }, 2000);
+    }, 1500);
   };
   
   return (
@@ -70,6 +82,11 @@ const UtrVerification = ({ amount, upiId, countdown, onVerify }: UtrVerification
               />
             </div>
             {utrError && <p className="text-sm text-red-600 mt-1">{utrError}</p>}
+            {savedUtrNumber && (
+              <p className="text-xs text-green-600 mt-1">
+                We've prefilled your last UTR number for convenience.
+              </p>
+            )}
             <p className="text-xs text-gray-500 mt-1">
               You can find the UTR in your bank/UPI application payment history.
             </p>

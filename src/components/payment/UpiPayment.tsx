@@ -11,11 +11,14 @@ import UtrVerification from './UtrVerification';
 import PaymentLoader from './PaymentLoader';
 import PaymentMethodTabs from './PaymentMethodTabs';
 import { usePaymentSettings } from '@/hooks/usePaymentSettings';
+import { useIsMobile } from '@/hooks/use-mobile';
 
 const UpiPayment = ({ amount, reference, onComplete }: UpiPaymentProps) => {
   const [isManualFetch, setIsManualFetch] = useState(false);
   const [countdown, setCountdown] = useState(900); // 15 minutes countdown
   const [paymentMethod, setPaymentMethod] = useState<'upi' | 'manual'>('upi');
+  const [savedUtrNumber, setSavedUtrNumber] = useState<string>('');
+  const isMobile = useIsMobile();
   
   const { 
     paymentSettings, 
@@ -45,6 +48,14 @@ const UpiPayment = ({ amount, reference, onComplete }: UpiPaymentProps) => {
     return () => clearInterval(timer);
   }, [countdown]);
   
+  // Try to retrieve saved UTR from localStorage
+  useEffect(() => {
+    const savedUtr = localStorage.getItem('lastUtrNumber');
+    if (savedUtr) {
+      setSavedUtrNumber(savedUtr);
+    }
+  }, []);
+  
   const refreshPaymentInfo = async () => {
     setIsManualFetch(true);
     const success = await refreshPaymentSettings();
@@ -63,9 +74,16 @@ const UpiPayment = ({ amount, reference, onComplete }: UpiPaymentProps) => {
       return;
     }
     
-    // Simulate UTR verification
+    // Save UTR to localStorage for future reference
+    localStorage.setItem('lastUtrNumber', utrNumber);
+    
+    // Simulate UTR verification - in production this should call a backend API
     toast.success('UTR verified successfully!');
-    onComplete();
+    
+    // Add delay to show success message before completing
+    setTimeout(() => {
+      onComplete();
+    }, 1000);
   };
   
   if (isLoading && !isManualFetch) {
@@ -80,7 +98,7 @@ const UpiPayment = ({ amount, reference, onComplete }: UpiPaymentProps) => {
   const upiLink = `upi://pay?pa=${paymentSettings.upi_id}&pn=ShowTix&am=${amount}&cu=INR&tn=${reference}`;
   
   return (
-    <Card className="bg-white shadow-lg overflow-hidden border-0">
+    <Card className={`bg-white shadow-lg overflow-hidden border-0 ${isMobile ? 'max-w-full' : 'max-w-3xl mx-auto'}`}>
       <CardHeader className="bg-gradient-to-r from-indigo-600 to-purple-600 text-white">
         <CardTitle className="text-xl">Complete Your Payment</CardTitle>
         <p className="text-white/80 mt-1">
@@ -110,6 +128,7 @@ const UpiPayment = ({ amount, reference, onComplete }: UpiPaymentProps) => {
               upiId={paymentSettings.upi_id}
               countdown={countdown}
               onVerify={verifyUtrAndComplete}
+              savedUtrNumber={savedUtrNumber}
             />
           }
         />

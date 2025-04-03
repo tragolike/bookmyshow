@@ -5,6 +5,7 @@ import UpiIdDisplay from './UpiIdDisplay';
 import PaymentSummaryCard from './PaymentSummaryCard';
 import { UpiPaymentViewProps } from './types';
 import { ArrowRight, ExternalLink } from 'lucide-react';
+import { useIsMobile } from '@/hooks/use-mobile';
 
 const UpiPaymentView = ({ 
   paymentSettings, 
@@ -13,8 +14,10 @@ const UpiPaymentView = ({
   upiLink,
   onContinue 
 }: UpiPaymentViewProps) => {
+  const isMobile = useIsMobile();
+  
   return (
-    <div className="flex flex-col md:flex-row gap-6">
+    <div className={`flex flex-col ${isMobile ? 'gap-6' : 'md:flex-row md:gap-6'}`}>
       {/* QR Code */}
       <div className="flex-1 flex flex-col items-center">
         <UpiQrCode qrCodeUrl={paymentSettings.qr_code_url} />

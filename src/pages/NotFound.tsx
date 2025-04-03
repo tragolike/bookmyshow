@@ -1,43 +1,35 @@
 
-import { useLocation, Link } from "react-router-dom";
-import { useEffect } from "react";
-import { Header } from "@/components/Header";
-import Footer from "@/components/Footer";
-import { Home } from "lucide-react";
+import { useNavigate } from 'react-router-dom';
+import { Home } from 'lucide-react';
+import { Button } from '@/components/ui/button';
+import { useIsMobile } from '@/hooks/use-mobile';
 
 const NotFound = () => {
-  const location = useLocation();
-
-  useEffect(() => {
-    console.error(
-      "404 Error: User attempted to access non-existent route:",
-      location.pathname
-    );
-  }, [location.pathname]);
-
+  const navigate = useNavigate();
+  const isMobile = useIsMobile();
+  
+  const handleReturnHome = () => {
+    navigate('/');
+  };
+  
   return (
-    <div className="min-h-screen flex flex-col bg-black text-white">
-      <Header />
-      
-      <main className="flex-1 flex items-center justify-center p-4">
-        <div className="max-w-md w-full text-center">
-          <div className="text-9xl font-bold text-[#ff2366] mb-4">404</div>
-          <h1 className="text-3xl font-bold mb-4">Page not found</h1>
-          <p className="text-gray-400 mb-8">
-            The page you are looking for might have been removed, had its name changed, or is temporarily unavailable.
-          </p>
-          
-          <Link 
-            to="/" 
-            className="inline-flex items-center justify-center gap-2 bg-[#ff2366] hover:bg-[#e01f59] text-white px-6 py-3 rounded-full transition-colors"
-          >
-            <Home className="w-5 h-5" />
-            <span>Return to Home</span>
-          </Link>
-        </div>
-      </main>
-      
-      <Footer />
+    <div className="min-h-screen bg-black text-white flex flex-col items-center justify-center p-4">
+      <div className={`text-center ${isMobile ? 'w-full' : 'max-w-md'}`}>
+        <h1 className="text-8xl font-bold text-book-primary mb-4">404</h1>
+        <h2 className="text-3xl font-bold mb-6">Page not found</h2>
+        <p className="text-gray-400 mb-8">
+          The page you are looking for might have been removed, had its name changed, or is temporarily unavailable.
+        </p>
+        
+        <Button 
+          onClick={handleReturnHome}
+          className="flex items-center justify-center gap-2 px-8 py-6 rounded-full text-lg"
+          size="lg"
+        >
+          <Home className="h-5 w-5" />
+          Return to Home
+        </Button>
+      </div>
     </div>
   );
 };
