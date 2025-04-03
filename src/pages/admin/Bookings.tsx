@@ -9,10 +9,7 @@ const AdminBookingsPage = () => {
   const [activeTab, setActiveTab] = useState("all");
 
   return (
-    <AdminLayout
-      title="Bookings"
-      subtitle="Manage event bookings and payments"
-    >
+    <AdminLayout title="Bookings">
       <Tabs
         defaultValue="all"
         value={activeTab}

@@ -12,6 +12,7 @@ import { Switch } from '@/components/ui/switch';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Loader2, Star, Edit, Trash2, ExternalLink } from 'lucide-react';
 import { useIsMobile } from '@/hooks/use-mobile';
+import { Event } from '@/types/events';
 
 interface WeeklyEvent {
   id?: string;
@@ -21,17 +22,8 @@ interface WeeklyEvent {
   event_date?: string;
   event_venue?: string;
   event_city?: string;
-  created_at?: string;
-}
-
-interface Event {
-  id: string;
-  title: string;
-  date: string;
-  venue: string;
-  city: string;
-  image: string;
-  price: number;
+  event_image?: string;
+  event_price?: number;
 }
 
 const fetchWeeklyEvents = async () => {
@@ -69,7 +61,7 @@ const fetchWeeklyEvents = async () => {
   }));
 };
 
-const fetchAllEvents = async () => {
+const fetchAllEvents = async (): Promise<Event[]> => {
   const { data, error } = await supabase
     .from('events')
     .select('id, title, date, venue, city')

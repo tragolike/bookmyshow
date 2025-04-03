@@ -29,3 +29,8 @@ export interface PaymentMethodTabsProps {
   upiContent: React.ReactNode;
   manualContent: React.ReactNode;
 }
+
+export interface PaymentCountdownProps {
+  initialTime: number;
+  onExpire?: () => void;
+}
